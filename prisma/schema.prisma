@@ -581,6 +581,7 @@ model Prenotazione {
   fatturaId       String?
   appuntamentiSpa AppuntamentoSpa[]
   conversazioniWA ConversazioneWhatsApp[]
+  accompagnatori  Accompagnatore[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -590,6 +591,48 @@ model Prenotazione {
   @@index([hostId, stato])
   @@index([guestEmail])
   @@map("prenotazioni")
+}
+
+// ─── Accompagnatori (profili aggiuntivi per prenotazione) ─────────────────────
+
+model Accompagnatore {
+  id                String       @id @default(cuid())
+  prenotazioneId    String
+  prenotazione      Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  // Anagrafica
+  nome              String
+  cognome           String
+  sesso             String?      // "M" o "F"
+  dataNascita       DateTime?    @db.Date
+  luogoNascita      String?
+  provinciaNascita  String?      // sigla 2 lettere
+  nazionalita       String?      // es. "Italiana", "Tedesca"
+
+  // Documento (per Alloggiati Web)
+  tipoDocumento     String?      // PPORT, IDENTE, PATEN, ecc.
+  numeroDocumento   String?
+  luogoRilascio     String?
+  provinciaRilascio String?
+
+  // Codici ISTAT (per export Alloggiati Web)
+  comuneNascitaIstat   String?
+  statoNascitaIstat    String?   @default("100000100")
+  cittadinanzaIstat    String?   @default("100000100")
+  comuneRilascioIstat  String?
+  statoRilascioIstat   String?
+
+  // Extra
+  email             String?
+  telefono          String?
+  note              String?
+  isMinore          Boolean      @default(false) // < 18 anni
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([prenotazioneId])
+  @@map("accompagnatori")
 }
 
 // ─── Chat ──────────────────────────────────────────────────────────────────────

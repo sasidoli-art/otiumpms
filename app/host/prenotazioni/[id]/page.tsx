@@ -11,6 +11,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import PrenotazioneActions from './prenotazione-actions'
 import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
+import AccompagnatoriSection from './accompagnatori-section'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -51,6 +52,7 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
           messaggi: { orderBy: { createdAt: 'asc' } },
         },
       },
+      accompagnatori: { orderBy: { createdAt: 'asc' } },
     },
   })
 
@@ -146,6 +148,16 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
               </div>
             )}
           </div>
+
+          {/* Accompagnatori */}
+          <AccompagnatoriSection
+            prenotazioneId={prenotazione.id}
+            accompagnatoriIniziali={prenotazione.accompagnatori.map(a => ({
+              ...a,
+              dataNascita: a.dataNascita?.toISOString() ?? null,
+            }))}
+            numOspiti={prenotazione.numOspiti}
+          />
 
           {/* Chat */}
           <div className="card">
