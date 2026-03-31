@@ -13,8 +13,9 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum Role {
-  ADMIN
-  HOST
+  SUPERADMIN  // piattaforma — vede tutto, gestisce host, billing, piani
+  ADMIN       // proprietario hotel — gestisce le sue strutture, staff, moduli
+  HOST        // operatore/receptionist — accesso operativo quotidiano
 }
 
 enum PianoTipo {
@@ -242,6 +243,9 @@ model Host {
   // Catalogo servizi
   serviziStruttura      ServizioStruttura[]
   pacchettiServizio     PacchettoServizio[]
+
+  // Pagamenti
+  paymentConfig         PaymentProviderConfig?
 
   @@map("hosts")
 }
@@ -621,6 +625,7 @@ model Prenotazione {
   alertOspite     AlertOspite[]
   pianoPasto      PastoPrenotazione?
   addebiti        AddebitoPrenotazione[]
+  pagamentiCheckout PagamentoCheckout[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -739,6 +744,78 @@ model MovimentoMagazzino {
 
   @@index([articoloId, createdAt])
   @@map("movimenti_magazzino")
+}
+
+// ─── Pagamenti Checkout (POS/contanti/bonifico) ──────────────────────────────
+
+// Configurazione provider pagamento per host
+model PaymentProviderConfig {
+  id              String   @id @default(cuid())
+  hostId          String   @unique
+  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Provider attivo: MANUALE, STRIPE, ADYEN, NEXI, SUMUP
+  providerAttivo  String   @default("MANUALE")
+
+  // Stripe Terminal
+  stripeSecretKey    String?
+  stripeLocationId   String?
+  stripeReaderId     String?
+
+  // Adyen
+  adyenApiKey        String?
+  adyenMerchantAccount String?
+  adyenTerminalId    String?
+  adyenEnvironment   String?  @default("test") // "test" | "live"
+
+  // Nexi
+  nexiApiKey         String?
+  nexiTerminalId     String?
+
+  // SumUp
+  sumupApiKey        String?
+  sumupDeviceId      String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("payment_provider_config")
+}
+
+// Singola transazione di pagamento al checkout
+model PagamentoCheckout {
+  id              String   @id @default(cuid())
+  hostId          String
+  prenotazioneId  String
+  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  // Importo
+  importo         Float
+  divisa          String   @default("EUR")
+
+  // Metodo
+  metodo          String   // CARTA, CONTANTI, BONIFICO, CAMERA_CREDIT, ASSEGNO, ALTRO
+  provider        String   @default("MANUALE") // MANUALE, STRIPE, ADYEN, NEXI, SUMUP
+
+  // Riferimenti
+  riferimentoEsterno String? // transaction ID dal POS/provider
+  ultime4Cifre       String? // ultime 4 cifre carta
+  circuito           String? // VISA, MASTERCARD, AMEX, BANCOMAT
+  autorizzazione     String? // codice autorizzazione
+
+  // Stato
+  stato           String   @default("COMPLETATO") // PENDENTE, COMPLETATO, RIFIUTATO, ANNULLATO, RIMBORSATO
+  errore          String?  // motivo se rifiutato
+
+  // Chi ha gestito
+  operatore       String?
+  note            String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([prenotazioneId])
+  @@index([hostId, createdAt])
+  @@map("pagamenti_checkout")
 }
 
 // ─── Catalogo Servizi & Prodotti (con IVA) ────────────────────────────────────

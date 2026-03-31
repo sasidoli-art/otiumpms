@@ -3,7 +3,7 @@ import 'next-auth/jwt'
 
 declare module 'next-auth' {
   interface User {
-    role: 'ADMIN' | 'HOST'
+    role: 'SUPERADMIN' | 'ADMIN' | 'HOST'
     hostId: string | null
   }
 
@@ -12,7 +12,7 @@ declare module 'next-auth' {
       id: string
       email: string
       name: string
-      role: 'ADMIN' | 'HOST'
+      role: 'SUPERADMIN' | 'ADMIN' | 'HOST'
       hostId: string | null
     }
   }
@@ -21,7 +21,7 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id: string
-    role: 'ADMIN' | 'HOST'
+    role: 'SUPERADMIN' | 'ADMIN' | 'HOST'
     hostId: string | null
   }
 }
