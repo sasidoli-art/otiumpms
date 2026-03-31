@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/PROGETTI/Gestionale_otium/app/api/host/prenotazioni/route.ts /c/PROGETTI/Gestionale_otium/app/api/host/estruture/*/route.ts)",
+      "Bash(xargs wc:*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(grep -r require\\\\\\(/c/PROGETTI/Gestionale_otium/app --include=*.ts --include=*.tsx)",
+      "Bash(ls -la /c/PROGETTI/Gestionale_otium/app/host/strutture/[id]/)",
+      "Bash(find /c/PROGETTI/Gestionale_otium/app/host/strutture/[id]/tariffe -type f)",
+      "Bash(find /c/PROGETTI/Gestionale_otium/app -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\) ! -path */.next/* -newermt '2026-03-28 00:00')",
+      "Bash(ls -lR /c/PROGETTI/Gestionale_otium/app/host/strutture/[id]/tariffe/)",
+      "Bash(find c:PROGETTIGestionale_otiumcomponentshost -type f -name *.tsx)",
+      "Bash(ls -la \"c:\\\\PROGETTI\\\\Gestionale_otium\\\\components\\\\host\"\" 2>/dev/null || echo \"Directory not found \")"
+    ]
+  }
+}

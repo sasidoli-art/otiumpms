@@ -1,0 +1,1214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  HOST
+}
+
+enum PianoTipo {
+  EVENTO_SINGOLO
+  VISIBILITA_MENSILE
+  PARTNER_PREMIUM
+}
+
+enum StatoAbbonamento {
+  ATTIVO
+  SOSPESO
+  SCADUTO
+  IN_PROVA
+}
+
+enum StatoEvento {
+  BOZZA
+  IN_ATTESA
+  APPROVATO
+  RIFIUTATO
+  SCADUTO
+}
+
+enum StatoPagamento {
+  IN_ATTESA
+  PAGATO
+  IN_RITARDO
+  ANNULLATO
+}
+
+enum StatoFattura {
+  BOZZA
+  INVIATA
+  PAGATA
+  SCADUTA
+  ANNULLATA
+}
+
+enum CategoriaEvento {
+  MUSICA
+  ARTE
+  TEATRO
+  FOOD
+  SPORT
+  FESTIVAL
+  FIERA
+  CONFERENZA
+  CINEMA
+  NATURA
+  FAMIGLIA
+  ALTRO
+}
+
+enum StatoPrenotazione {
+  RICHIESTA
+  CONFERMATA
+  ANNULLATA
+  COMPLETATA
+  NO_SHOW
+}
+
+enum MessaggioMittente {
+  HOST
+  GUEST
+}
+
+enum CanaleMessaggio {
+  CHAT
+  EMAIL
+  WHATSAPP
+  SMS
+}
+
+enum StatoHK {
+  PULITA
+  SPORCA
+  IN_PULIZIA
+  NON_DISTURBARE
+  MANUTENZIONE
+  FUORI_SERVIZIO
+}
+
+enum PrioritaHK {
+  BASSA
+  NORMALE
+  ALTA
+  URGENTE
+}
+
+enum TipoStruttura {
+  EVENTO
+  VENUE
+  ESPERIENZA
+  ALLOGGIO
+  SERVIZIO
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  nome          String
+  cognome       String
+  role          Role      @default(HOST)
+  attivo        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  host          Host?
+  sessioni      Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Host {
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Dati azienda
+  nomeAzienda       String
+  partitaIva        String?
+  codiceFiscale     String?
+  telefono          String?
+  sitoWeb           String?
+  indirizzo         String?
+  citta             String?
+  provincia         String?
+  cap               String?
+  regione           String?
+  logo              String?          // URL logo
+  note              String?
+
+  // Canali di comunicazione (email SMTP per-host)
+  smtpHost          String?
+  smtpPort          Int?
+  smtpUser          String?
+  smtpPass          String?
+  emailMittente     String?          // es. "Villa Otium <info@villa.it>"
+
+  // AI Concierge WhatsApp
+  conciergeAttivo       Boolean   @default(false)
+  conciergeProvider     String?   @default("ollama")  // "ollama" | "claude" | "openai"
+  conciergeApiKey       String?   // API key AI dell'host (non della piattaforma)
+  conciergeModel        String?   @default("llama3.1") // modello AI da usare
+  conciergeSystemPrompt String?   // info hotel: orari colazione, checkout, Wi-Fi, ecc.
+  whatsappNumeroId      String?   // Phone Number ID da Meta Cloud API
+  whatsappAccessToken   String?   // token API WhatsApp Business dell'host
+  whatsappVerifyToken   String?   // token verifica webhook Meta
+
+  // Abbonamento
+  piano             PianoTipo        @default(EVENTO_SINGOLO)
+  statoAbbonamento  StatoAbbonamento @default(IN_PROVA)
+  dataInizioAbb     DateTime?
+  dataFineAbb       DateTime?
+  
+  // Dati fatturazione (possono differire dai dati azienda)
+  fattNomeAzienda   String?
+  fattPartitaIva    String?
+  fattIndirizzo     String?
+  fattCitta         String?
+  fattCap           String?
+  fattProvincia     String?
+  fattPaese         String?          @default("Italia")
+  fattEmail         String?          // email per invio fatture
+  fattPec           String?
+  fattCodiceSDI     String?
+  regimeFiscale     String?          @default("RF01") // RF01=Ordinario, RF02=Minimi, RF04=Agricoltura, ecc.
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  eventi            Evento[]
+  abbonamenti       Abbonamento[]
+  pagamenti         Pagamento[]
+  fatture           Fattura[]
+  strutture         Struttura[]
+  prenotazioni      Prenotazione[]
+  chat              Chat[]
+  ospiti            OspiteCRM[]
+  segnalazioni      SegnalazioneManutenzione[]
+  comunicazioni     ComunicazioneStaff[]
+  notifiche         Notifica[]
+  pacchetti         Pacchetto[]
+
+  // SPA module
+  terapistiSpa          TerapistaSpa[]
+  cabineSpa             CabinaSpa[]
+  trattamentiSpa        TrattamentoSpa[]
+  percorsiBenessere     PercorsoBenessere[]
+  appuntamentiSpa       AppuntamentoSpa[]
+  disponibilitaSpa      DisponibilitaTerapista[]
+
+  // AI Concierge
+  conversazioniWA       ConversazioneWhatsApp[]
+
+  @@map("hosts")
+}
+
+model Evento {
+  id               String          @id @default(cuid())
+  hostId           String
+  host             Host            @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  titolo           String
+  descrizione      String?
+  categoria        CategoriaEvento
+  stato            StatoEvento     @default(IN_ATTESA)
+  
+  dataInizio       DateTime
+  dataFine         DateTime?
+  orario           String?
+  
+  luogo            String?
+  citta            String
+  regione          String
+  indirizzo        String?
+  
+  prezzo           String?          // es. "Gratuito", "€12", "da €5"
+  urlBiglietti     String?
+  urlEvento        String?
+  immagine         String?
+  
+  // Visibilità
+  inEvidenza       Boolean         @default(false)
+  inNewsletter     Boolean         @default(false)
+  visibilitaNaz    Boolean         @default(false)
+  regioni          String[]        @default([])  // regioni target
+  
+  // Note admin
+  noteAdmin        String?
+  
+  // Analytics
+  visualizzazioni  Int             @default(0)
+  click            Int             @default(0)
+  
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  analyticsGiorn   AnalyticsGiornalieri[]
+  pacchetti        Pacchetto[]
+
+  @@index([hostId])
+  @@index([hostId, stato])
+  @@map("eventi")
+}
+
+model AnalyticsGiornalieri {
+  id              String   @id @default(cuid())
+  eventoId        String
+  evento          Evento   @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  data            DateTime @db.Date
+  visualizzazioni Int      @default(0)
+  click           Int      @default(0)
+
+  @@unique([eventoId, data])
+  @@map("analytics_giornalieri")
+}
+
+model Abbonamento {
+  id              String           @id @default(cuid())
+  hostId          String
+  host            Host             @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  piano           PianoTipo
+  stato           StatoAbbonamento
+  dataInizio      DateTime
+  dataFine        DateTime?
+  prezzoMensile   Float
+  note            String?
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  pagamenti       Pagamento[]
+
+  @@map("abbonamenti")
+}
+
+model Pagamento {
+  id              String         @id @default(cuid())
+  hostId          String
+  host            Host           @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  abbonamentoId   String?
+  abbonamento     Abbonamento?   @relation(fields: [abbonamentoId], references: [id])
+
+  importo         Float
+  stato           StatoPagamento @default(IN_ATTESA)
+  metodo          String?        // "Bonifico", "Carta", etc.
+  riferimento     String?        // numero transazione / CRO
+  dataScadenza    DateTime?
+  dataPagamento   DateTime?
+  note            String?
+  descrizione     String?
+
+  fattura         Fattura?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([hostId])
+  @@index([hostId, stato])
+  @@map("pagamenti")
+}
+
+model Fattura {
+  id              String       @id @default(cuid())
+  hostId          String
+  host            Host         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  pagamentoId     String?      @unique
+  pagamento       Pagamento?   @relation(fields: [pagamentoId], references: [id])
+
+  numero          String       @unique  // es. "2026/001"
+  anno            Int
+  stato           StatoFattura @default(BOZZA)
+
+  // Dati cliente al momento emissione
+  clienteNome     String
+  clientePIva     String?
+  clienteCF       String?
+  clienteIndirizzo String?
+  clienteCitta    String?
+  clienteCap      String?
+  clienteProvincia String?
+  clientePaese    String       @default("Italia")
+  clienteEmail    String?
+  clientePec      String?
+  clienteSDI      String?
+
+  // Righe fattura (JSON array)
+  righe           Json         // [{descrizione, quantita, prezzoUnitario, iva, totale}]
+  
+  imponibile      Float
+  iva             Float
+  totale          Float
+  aliquotaIva     Float        @default(22)
+
+  dataEmissione   DateTime     @default(now())
+  dataScadenza    DateTime?
+  note            String?
+  
+  prenotazioni    Prenotazione[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([hostId])
+  @@index([hostId, stato])
+  @@index([anno])
+  @@map("fatture")
+}
+
+// ─── Booking Engine ────────────────────────────────────────────────────────────
+
+model Struttura {
+  id              String        @id @default(cuid())
+  hostId          String
+  host            Host          @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome            String
+  tipo            TipoStruttura @default(EVENTO)
+  descrizione     String?
+  indirizzo       String?
+  citta           String?
+  regione         String?
+  capacitaTotale  Int           @default(1)   // posti / unità totali
+  prezzoBase      Float         @default(0)
+  immagini        String[]      @default([])
+  attiva          Boolean       @default(true)
+  urlPrenotazione String?       // slug pubblico per booking page
+
+  // ─── Alloggiati Web (Questura / PS) ───────────────────────────────────────
+  alloggiatiAbilitato       Boolean  @default(false)
+  alloggiatiCodiceStruttura String?  // codice assegnato dalla questura (es. "IT099001")
+  alloggiatiComuneIstat     String?  // codice ISTAT comune struttura (es. "H501")
+  alloggiatiDenominazioneComune String? // nome comune per leggibilità
+
+  unita           UnitaPrenotabile[]
+  prenotazioni    Prenotazione[]
+  segnalazioni    SegnalazioneManutenzione[]
+  pacchetti       Pacchetto[]
+  regoleTariffa   RegolaTariffa[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("strutture")
+}
+
+// Unità prenotabile (camera, tavolo, posto, slot orario, ecc.)
+model UnitaPrenotabile {
+  id              String    @id @default(cuid())
+  strutturaId     String
+  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome            String     // es. "Posto VIP", "Camera Standard", "Slot ore 10-12"
+  descrizione     String?
+  capacita        Int        @default(1)
+  lettiExtra      Int        @default(0)   // letti aggiuntivi disponibili su richiesta
+  piano           Int?                     // piano dell'edificio (0 = terra, 1, 2, ...)
+  prezzoBase      Float      @default(0)
+  prezzoLettoExtra Float?                  // sovrapprezzo per letto extra a notte
+  attiva          Boolean    @default(true)
+
+  // Housekeeping
+  statoHK         StatoHK    @default(PULITA)
+  noteHK          String?    // note visibili allo staff HK
+  ultimaPulizia   DateTime?
+
+  disponibilita   Disponibilita[]
+  tariffe         TariffaPeriodo[]
+  regoleTariffa   RegolaTariffa[]
+  prenotazioni    Prenotazione[]
+  taskHK          TaskHK[]
+  segnalazioni    SegnalazioneManutenzione[]
+  pagamentiSpa    PagamentoSpa[]
+
+  @@map("unita_prenotabili")
+}
+
+// Disponibilità giornaliera per unità
+model Disponibilita {
+  id               String           @id @default(cuid())
+  unitaId          String
+  unita            UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+
+  data             DateTime         @db.Date
+  postiDisponibili Int              @default(1)
+  postiOccupati    Int              @default(0)
+  chiuso           Boolean          @default(false)  // blocco manuale host
+  noteInterno      String?
+
+  @@unique([unitaId, data])
+  @@map("disponibilita")
+}
+
+// Tariffa per periodo (alta stagione, weekend, promo ecc.)
+model TariffaPeriodo {
+  id              String           @id @default(cuid())
+  unitaId         String
+  unita           UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+
+  nome            String           // es. "Alta stagione", "Promo Pasqua"
+  dataInizio      DateTime         @db.Date
+  dataFine        DateTime         @db.Date
+  prezzo          Float
+  colore          String?          @default("#6366f1") // per il calendario
+
+  @@map("tariffe_periodo")
+}
+
+// Regola tariffa automatica (weekend, stagione, festivi)
+model RegolaTariffa {
+  id              String             @id @default(cuid())
+  strutturaId     String
+  struttura       Struttura          @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  unitaId         String?            // null = tutte le unità della struttura
+  unita           UnitaPrenotabile?  @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+
+  nome            String             // es. "Weekend +20%", "Alta stagione agosto"
+  tipo            TipoRegolaTariffa  // WEEKEND, STAGIONE, FESTIVO
+  attiva          Boolean            @default(true)
+  priorita        Int                @default(0) // regola con priorità più alta vince
+
+  // Modificatore prezzo
+  modificatore    TipoModificatore   // PERCENTUALE, FISSO
+  valore          Float              // es. 20 = +20% oppure 30 = +€30
+
+  // Periodo (solo per STAGIONE)
+  meseInizio      Int?               // 1-12
+  giornoInizio    Int?               // 1-31
+  meseFine        Int?               // 1-12
+  giornoFine      Int?               // 1-31
+
+  // Giorni settimana (solo per WEEKEND / personalizzato) — 0=Lun, 6=Dom
+  giorniSettimana Int[]              @default([])  // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
+
+  createdAt       DateTime           @default(now())
+
+  @@map("regole_tariffa")
+}
+
+enum TipoRegolaTariffa {
+  WEEKEND    // applica a giorni settimana selezionati
+  STAGIONE   // applica a range date annuale (si ripete ogni anno)
+  FESTIVO    // applica a date specifiche (Natale, Capodanno, ecc.)
+}
+
+enum TipoModificatore {
+  PERCENTUALE // +X% sul prezzo base
+  FISSO       // +€X sul prezzo base
+}
+
+// Prenotazione / richiesta da ospite
+model Prenotazione {
+  id              String             @id @default(cuid())
+  hostId          String
+  host            Host               @relation(fields: [hostId], references: [id])
+  strutturaId     String?
+  struttura       Struttura?         @relation(fields: [strutturaId], references: [id])
+  unitaId         String?
+  unita           UnitaPrenotabile?  @relation(fields: [unitaId], references: [id])
+
+  // Dati ospite
+  guestNome       String
+  guestCognome    String
+  guestEmail      String
+  guestTelefono   String?
+  guestNote       String?
+
+  // Dettagli prenotazione
+  dataArrivo      DateTime           @db.Date
+  dataPartenza    DateTime?          @db.Date
+  numOspiti       Int                @default(1)
+  stato           StatoPrenotazione  @default(RICHIESTA)
+  fonte           String?            @default("Diretto") // "Diretto", "Web", "Tel", "Email"
+
+  // Economici
+  prezzoTotale    Float?
+  acconto         Float?
+  tassaSoggiorno  Float?         // tassa di soggiorno: € per notte
+  noteInterne     String?
+
+  // ─── Dati anagrafici ospite per Alloggiati Web ───────────────────────────
+  guestSesso                String?   // "M" o "F"
+  guestDataNascita          DateTime? @db.Date
+  guestLuogoNascita         String?   // nome comune (display)
+  guestComuneNascitaIstat   String?   // codice ISTAT comune nascita
+  guestProvinciaNascita     String?   // sigla 2 lettere
+  guestStatoNascitaIstat    String?   @default("100000100") // ISTAT stato nascita
+  guestCittadinanzaIstat    String?   @default("100000100") // ISTAT cittadinanza
+  guestTipoDocumento        String?   // PPORT, IDENTE, PATEN, PATEN_INT, ALTRO
+  guestNumeroDocumento      String?
+  guestLuogoRilascio        String?   // nome comune (display)
+  guestComuneRilascioIstat  String?   // ISTAT comune rilascio
+  guestProvinciaRilascio    String?   // sigla 2 lettere
+  guestStatoRilascioIstat   String?   // ISTAT stato rilascio
+
+  // Notifiche / Email automatiche
+  emailInviata        Boolean  @default(false)
+  reminderInviato     Boolean  @default(false) // reminder pre-arrivo inviato
+  followUpInviato     Boolean  @default(false) // follow-up post-soggiorno inviato
+
+  // Lingua preferita ospite (per email multilingua)
+  guestLingua     String?            @default("it") // "it", "en", "de", "fr", "es"
+
+  // Self check-in ospite
+  checkInToken        String?  @unique
+  checkInCompletato   Boolean  @default(false)
+
+  chat            Chat?
+  fattura         Fattura?           @relation(fields: [fatturaId], references: [id])
+  fatturaId       String?
+  appuntamentiSpa AppuntamentoSpa[]
+  conversazioniWA ConversazioneWhatsApp[]
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  // Indici per le query più frequenti nei route handler
+  @@index([hostId])
+  @@index([hostId, stato])
+  @@index([guestEmail])
+  @@map("prenotazioni")
+}
+
+// ─── Chat ──────────────────────────────────────────────────────────────────────
+
+model Chat {
+  id              String       @id @default(cuid())
+  prenotazioneId  String       @unique
+  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  hostId          String
+  host            Host         @relation(fields: [hostId], references: [id])
+
+  messaggi        Messaggio[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("chat")
+}
+
+model Messaggio {
+  id              String            @id @default(cuid())
+  chatId          String
+  chat            Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  mittente        MessaggioMittente
+  canale          CanaleMessaggio   @default(CHAT)
+  testo           String
+  letto           Boolean           @default(false)
+
+  createdAt       DateTime          @default(now())
+
+  // Indici per updateMany (segna letti) e ordinamento cronologico
+  @@index([chatId])
+  @@index([chatId, mittente, letto])
+  @@map("messaggi")
+}
+
+// ─── Comunicazione Staff ──────────────────────────────────────────────────────
+
+enum TipoComunicazione {
+  AVVISO
+  TASK
+  NOTA
+  URGENTE
+}
+
+model ComunicazioneStaff {
+  id          String             @id @default(cuid())
+  hostId      String
+  host        Host               @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  tipo        TipoComunicazione  @default(AVVISO)
+  titolo      String
+  testo       String?
+  autore      String             // nome di chi scrive (libero, non collegato a User)
+  destinatari String[]           @default([])  // nomi destinatari oppure [] = tutti
+
+  fissato     Boolean            @default(false)  // pin in cima
+  archiviato  Boolean            @default(false)
+
+  // Reazioni / letto da
+  letti       String[]           @default([])  // nomi di chi ha confermato lettura
+
+  dataScadenza DateTime?         @db.Date
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@map("comunicazioni_staff")
+}
+
+// ─── CRM Ospiti ───────────────────────────────────────────────────────────────
+
+model OspiteCRM {
+  id                String    @id @default(cuid())
+  hostId            String
+  host              Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Anagrafica
+  nome              String
+  cognome           String
+  email             String
+  telefono          String?
+  nazionalita       String?
+  lingua            String?   @default("it")
+
+  // Preferenze & CRM
+  note              String?
+  preferenze        String?   // es. "piano alto, cuscino extra, allergia noci"
+  vip               Boolean   @default(false)
+  blacklist         Boolean   @default(false)
+  blacklistMotivo   String?
+
+  // Tag liberi
+  tags              String[]  @default([])
+
+  // Statistiche (aggiornate automaticamente)
+  numSoggiorni      Int       @default(0)
+  totaleSpeso       Float     @default(0)
+  dataUltimoSoggiorno DateTime?
+
+  // Preferenze SPA
+  spaAllergie              String?   // es. "allergia oli essenziali, sensibile alle fragranze"
+  spaNote                  String?   // note per i terapisti
+  spaPreferenzeTerapistaId String?   // terapista preferito
+  spaPreferenzeTerapista   TerapistaSpa? @relation("OspiteTerapistaPreferito", fields: [spaPreferenzeTerapistaId], references: [id])
+  spaTrattamentiPreferiti  String[]  @default([])  // nomi/id trattamenti preferiti
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Collegamento prenotazioni via email (lookup dinamico)
+  appuntamentiSpa AppuntamentoSpa[]
+  conversazioniWA ConversazioneWhatsApp[]
+
+  @@unique([hostId, email])
+  @@map("ospiti_crm")
+}
+
+// ─── Manutenzione ─────────────────────────────────────────────────────────────
+
+enum StatoManutenzione {
+  APERTA
+  IN_LAVORAZIONE
+  IN_ATTESA_PARTI
+  RISOLTA
+  ANNULLATA
+}
+
+enum PrioritaManutenzione {
+  BASSA
+  NORMALE
+  ALTA
+  URGENTE
+}
+
+model SegnalazioneManutenzione {
+  id              String               @id @default(cuid())
+  hostId          String
+  host            Host                 @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId     String?
+  struttura       Struttura?           @relation(fields: [strutturaId], references: [id])
+  unitaId         String?
+  unita           UnitaPrenotabile?    @relation(fields: [unitaId], references: [id])
+
+  titolo          String
+  descrizione     String?
+  categoria       String               // "IDRAULICA", "ELETTRICA", "SERRATURA", "ARREDO", "PULIZIA_STRAORD", "ALTRO"
+  stato           StatoManutenzione    @default(APERTA)
+  priorita        PrioritaManutenzione @default(NORMALE)
+
+  assegnatoA      String?              // nome tecnico/fornitore
+  costoStimato    Float?
+  costoReale      Float?
+  note            String?
+
+  dataScadenza    DateTime?            @db.Date
+  dataRisoluzione DateTime?
+
+  immagineUrl     String?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@map("segnalazioni_manutenzione")
+}
+
+// ─── Housekeeping ─────────────────────────────────────────────────────────────
+
+model TaskHK {
+  id              String           @id @default(cuid())
+  unitaId         String
+  unita           UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  hostId          String
+
+  tipo            String           // "PULIZIA", "CAMBIO_BIANCHERIA", "MANUTENZIONE", "ALTRO"
+  descrizione     String?
+  priorita        PrioritaHK       @default(NORMALE)
+  assegnatoA      String?          // nome operatore HK
+  completato      Boolean          @default(false)
+  completatoAt    DateTime?
+  note            String?
+
+  dataScadenza    DateTime?        @db.Date
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("task_hk")
+}
+
+// ─── Pacchetti evento + soggiorno ─────────────────────────────────────────
+
+model Pacchetto {
+  id              String    @id @default(cuid())
+  hostId          String
+  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId     String
+  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome            String     // es. "Weekend Sagra del Tartufo"
+  descrizione     String?
+  immagine        String?
+
+  // Evento collegato (può essere evento host o evento esterno Otiumweek)
+  eventoId        String?    // ID evento host locale (nullable)
+  evento          Evento?    @relation(fields: [eventoId], references: [id])
+  eventoEsterno   String?    // URL o titolo evento Otiumweek esterno (quando non è evento host)
+
+  // Dettagli pacchetto
+  notti           Int        @default(1)
+  numOspiti       Int        @default(2)
+  prezzo          Float                    // prezzo pacchetto tutto incluso
+  prezzoOriginale Float?                   // prezzo senza sconto (per mostrare risparmio)
+
+  // Incluso nel pacchetto (testo libero, visualizzato come bullet list)
+  incluso         String[]   @default([])  // es. ["2 notti in camera doppia", "Ingresso sagra", "Colazione"]
+
+  attivo          Boolean    @default(true)
+  dataInizio      DateTime?  @db.Date      // periodo validità
+  dataFine        DateTime?  @db.Date
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@map("pacchetti")
+}
+
+// ─── Notifiche ────────────────────────────────────────────────────────────────
+
+model Notifica {
+  id        String   @id @default(cuid())
+  hostId    String
+  host      Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  tipo      String   // "prenotazione", "checkin", "manutenzione", "sistema"
+  titolo    String
+  messaggio String?
+  letta     Boolean  @default(false)
+  linkUrl   String?  // es. "/host/prenotazioni/abc123"
+
+  createdAt DateTime @default(now())
+
+  @@map("notifiche")
+}
+
+// ─── SPA Module ────────────────────────────────────────────────────────────────
+
+enum CategoriaSpa {
+  MASSAGGIO
+  VISO
+  CORPO
+  RITUALI
+  BAGNI
+  COPPIA
+  ALTRO
+}
+
+enum StatoAppuntamentoSpa {
+  PRENOTATO
+  CONFERMATO
+  IN_CORSO
+  COMPLETATO
+  ANNULLATO
+  NO_SHOW
+}
+
+enum TipoDisponibilita {
+  SETTIMANALE  // fascia oraria ricorrente ogni settimana
+  SPECIFICA    // giorno specifico
+  BLOCCO       // blocco: ferie, indisponibilità
+}
+
+enum MetodoPagamentoSpa {
+  CAMERA_CREDIT  // addebito su camera della prenotazione
+  CONTANTI
+  CARTA
+  TRANSFERWISE
+}
+
+enum StatoPagamentoSpa {
+  PENDENTE
+  RISCOSSO
+  RIMBORSO_RICHIESTO
+  RIMBORSATO
+}
+
+model TerapistaSpa {
+  id               String   @id @default(cuid())
+  hostId           String
+  host             Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome             String
+  cognome          String
+  email            String?
+  telefono         String?
+  colore           String   @default("#6366f1") // colore nel calendario
+  specializzazioni String[] @default([])        // es. ["massaggio", "estetica"]
+  note             String?
+  attivo           Boolean  @default(true)
+
+  // Profilo pubblico
+  profiloPublico   Boolean  @default(false)
+  bio              String?
+
+  createdAt        DateTime @default(now())
+  appuntamenti     AppuntamentoSpa[]
+  disponibilita    DisponibilitaTerapista[]
+  ospitePreferenza OspiteCRM[] @relation("OspiteTerapistaPreferito")
+
+  @@map("terapisti_spa")
+}
+
+model CabinaSpa {
+  id          String   @id @default(cuid())
+  hostId      String
+  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome        String   // es. "Cabina 1", "Suite Relax", "Grotta del sale"
+  descrizione String?
+  colore      String   @default("#8b5cf6")
+  capacita    Int      @default(1) // n. persone simultanee
+  attiva      Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  appuntamenti AppuntamentoSpa[]
+
+  @@map("cabine_spa")
+}
+
+model TrattamentoSpa {
+  id          String        @id @default(cuid())
+  hostId      String
+  host        Host          @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome              String        // es. "Massaggio svedese 50 min"
+  categoria         CategoriaSpa  @default(MASSAGGIO)
+  durata            Int           // minuti
+  prezzo            Float
+  descrizione       String?
+  colore            String        @default("#06b6d4")
+  attivo            Boolean       @default(true)
+  prenotabileOnline Boolean       @default(false) // visibile e prenotabile sul booking engine pubblico
+
+  createdAt   DateTime      @default(now())
+  appuntamenti AppuntamentoSpa[]
+  passaggi    PassaggioPercorso[]
+
+  @@map("trattamenti_spa")
+}
+
+model PercorsoBenessere {
+  id           String   @id @default(cuid())
+  hostId       String
+  host         Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome         String   // es. "Weekend della Coppia", "Percorso Detox"
+  descrizione  String?
+  prezzo       Float
+  durataMinuti Int      @default(0) // calcolata automaticamente dalla somma dei passaggi
+  attivo       Boolean  @default(true)
+  colore       String   @default("#f59e0b")
+
+  createdAt    DateTime @default(now())
+  passaggi     PassaggioPercorso[]
+  appuntamenti AppuntamentoSpa[]
+
+  @@map("percorsi_benessere")
+}
+
+model PassaggioPercorso {
+  id             String            @id @default(cuid())
+  percorsoId     String
+  percorso       PercorsoBenessere @relation(fields: [percorsoId], references: [id], onDelete: Cascade)
+  trattamentoId  String
+  trattamento    TrattamentoSpa    @relation(fields: [trattamentoId], references: [id], onDelete: Cascade)
+
+  ordine         Int               @default(0)
+  durata         Int               // minuti (può sovrascrivere quella del trattamento)
+  note           String?
+
+  @@map("passaggi_percorso")
+}
+
+model AppuntamentoSpa {
+  id             String               @id @default(cuid())
+  hostId         String
+  host           Host                 @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Ospite
+  guestNome      String
+  guestCognome   String
+  guestEmail     String?
+  guestTelefono  String?
+  ospiteId       String?              // link opzionale a OspiteCRM
+  ospite         OspiteCRM?           @relation(fields: [ospiteId], references: [id])
+  prenotazioneId String?              // link opzionale a prenotazione soggiorno
+  prenotazione   Prenotazione?        @relation(fields: [prenotazioneId], references: [id])
+
+  // Risorse
+  cabinaId       String?
+  cabina         CabinaSpa?           @relation(fields: [cabinaId], references: [id])
+  terapistaId    String?
+  terapista      TerapistaSpa?        @relation(fields: [terapistaId], references: [id])
+
+  // Servizio
+  trattamentoId  String?
+  trattamento    TrattamentoSpa?      @relation(fields: [trattamentoId], references: [id])
+  percorsoId     String?
+  percorso       PercorsoBenessere?   @relation(fields: [percorsoId], references: [id])
+
+  // Slot temporale
+  dataOra        DateTime             // inizio appuntamento
+  durata         Int                  // minuti
+
+  // Prezzo e stato
+  prezzoTotale   Float?
+  stato          StatoAppuntamentoSpa @default(CONFERMATO)
+  note           String?
+  reminderInviato Boolean             @default(false) // reminder giorno prima
+  waiverObbligatorio Boolean          @default(true)
+
+  // Relazioni waiver e pagamento
+  waiver         WaiverSpa?
+  pagamento      PagamentoSpa?
+
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  @@map("appuntamenti_spa")
+}
+
+model DisponibilitaTerapista {
+  id           String            @id @default(cuid())
+  hostId       String
+  host         Host              @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  terapistaId  String
+  terapista    TerapistaSpa      @relation(fields: [terapistaId], references: [id], onDelete: Cascade)
+
+  tipo         TipoDisponibilita @default(SETTIMANALE)
+  giorno       Int?              // 0=lun..6=dom, solo per SETTIMANALE
+  data         DateTime?         // data esatta, solo per SPECIFICA o BLOCCO
+  orarioInizio String            // "09:00"
+  orarioFine   String            // "18:00"
+  attiva       Boolean           @default(true)
+
+  createdAt    DateTime          @default(now())
+
+  @@map("disponibilita_terapisti")
+}
+
+// ─── SPA Waiver & Payments ────────────────────────────────────────────────────────
+
+model WaiverSpa {
+  id                    String          @id @default(cuid())
+  appuntamentoId        String          @unique
+  appuntamento          AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
+
+  // Firma digitale
+  firmaBase64           String?         // Canvas drawing base64
+  dataRegistrazione     DateTime        @default(now())
+
+  // Zone del corpo (semplici checkbox, no SVG)
+  zoneTrattate          String[]        @default([])
+  zoneEvitare           String[]        @default([])
+
+  // ─── Condizioni di salute (checkbox guidate) ───────────────────
+  incinta               Boolean         @default(false)
+  incintaMesi           Int?
+  condizioni            String[]        @default([])   // ["pressione_alta", "diabete", "epilessia", ...]
+  condizioneAltro       String?         // testo libero se seleziona "altro"
+
+  // Allergie (checkbox + testo)
+  allergieSelezionate   String[]        @default([])   // ["lattice", "oli_essenziali", "profumi", "nichel"]
+  allergieAltro         String?         // testo libero se seleziona "altro"
+
+  // Campi legacy (mantenuti per retrocompatibilità con waiver esistenti)
+  allergie              String?
+  patologie             String?
+  farmaci               String?
+
+  // ─── Preferenze trattamento ────────────────────────────────────
+  pressioneMassaggio    String?         // "leggera" | "media" | "forte"
+  temperaturaPreferita  String?         // "freddo" | "tiepido" | "caldo"
+  musicaPreferita       String?         // "si" | "no" | "indifferente"
+  aromiPreferiti        String?         // "si" | "senza"
+  notePreferenze        String?         // note libere preferenze
+
+  // Accettazione T&C
+  accettazioneTermini   Boolean         @default(false)
+  accettazionePrivacy   Boolean         @default(false)
+  consensoFoto          Boolean         @default(false)
+  dichiarazioneNessuna  Boolean         @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
+
+  // Status firma
+  confermato            Boolean         @default(false)
+  dataConfermaPaper     DateTime?
+
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@map("waivers_spa")
+}
+
+model PagamentoSpa {
+  id              String          @id @default(cuid())
+  appuntamentoId  String          @unique
+  appuntamento    AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
+
+  // Importo
+  importo         Float
+  tipoImporto     String          @default("TRATTAMENTO") // TRATTAMENTO|PERCORSO|PERSONALIZZATO
+
+  // Metodo pagamento
+  metodo          MetodoPagamentoSpa @default(CONTANTI)
+
+  // Se camera credit
+  unitaId         String?
+  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
+
+  // Se carta
+  ultimeQuatroCifre String?        // 4242
+
+  // Stato
+  stato           StatoPagamentoSpa @default(PENDENTE)
+  dataRiscossione DateTime?
+  noteRiscossione String?          // ref number, check number, etc.
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([appuntamentoId])
+  @@index([unitaId])
+  @@map("pagamenti_spa")
+}
+
+// ─── AI Concierge WhatsApp ────────────────────────────────────────────────────
+
+enum StatoConversazioneWA {
+  ATTIVA           // gestita dall'AI
+  ESCALATA         // passata a operatore umano
+  CHIUSA           // conclusa
+}
+
+enum MittenteWA {
+  OSPITE
+  AI_CONCIERGE
+  HOST_UMANO       // quando l'host interviene manualmente
+}
+
+enum TipoAzioneConcierge {
+  SPA_CHECK_DISPONIBILITA
+  SPA_PRENOTAZIONE
+  HK_TASK_CREATO
+  MANUTENZIONE_SEGNALATA
+  LATE_CHECKOUT_RICHIESTO
+  INFO_FORNITA
+  ESCALATION
+}
+
+model ConversazioneWhatsApp {
+  id              String                @id @default(cuid())
+  hostId          String
+  host            Host                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Identificazione ospite
+  telefonoOspite  String                // numero WhatsApp (formato E.164: +393331234567)
+  nomeOspite      String?               // nome se identificato
+  prenotazioneId  String?               // prenotazione collegata (se trovata)
+  prenotazione    Prenotazione?         @relation(fields: [prenotazioneId], references: [id])
+  ospiteCrmId     String?               // collegamento CRM
+  ospiteCrm       OspiteCRM?            @relation(fields: [ospiteCrmId], references: [id])
+
+  stato           StatoConversazioneWA  @default(ATTIVA)
+  lingua          String                @default("it")  // lingua rilevata dall'AI
+
+  messaggi        MessaggioWhatsApp[]
+  azioni          AzioneConcierge[]
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([hostId, telefonoOspite])  // una conversazione per ospite per host
+  @@index([hostId, stato])
+  @@map("conversazioni_whatsapp")
+}
+
+model MessaggioWhatsApp {
+  id                String                @id @default(cuid())
+  conversazioneId   String
+  conversazione     ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
+
+  mittente          MittenteWA
+  testo             String
+  whatsappMessageId String?               // ID messaggio da Meta API (delivery tracking)
+
+  // Metadata AI
+  toolsUsati        String[]              @default([])  // nomi tool chiamati nella risposta
+  tokensUsati       Int?                  // token consumati per risposta AI
+
+  createdAt         DateTime              @default(now())
+
+  @@index([conversazioneId])
+  @@map("messaggi_whatsapp")
+}
+
+model AzioneConcierge {
+  id                String                @id @default(cuid())
+  conversazioneId   String
+  conversazione     ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
+
+  tipo              TipoAzioneConcierge
+  descrizione       String                // "Prenotato massaggio 60min ore 15:00"
+  datiJson          Json?                 // payload completo azione (ID task creato, slot prenotato, ecc.)
+  successo          Boolean               @default(true)
+  errore            String?               // se fallita, motivo
+
+  createdAt         DateTime              @default(now())
+
+  @@index([conversazioneId])
+  @@map("azioni_concierge")
+}
+

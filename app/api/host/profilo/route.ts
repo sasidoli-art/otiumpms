@@ -1,0 +1,76 @@
+﻿import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/db'
+import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { parseBody, profiloUpdateSchema } from '@/lib/validations'
+import { logger } from '@/lib/logger'
+
+// GET /api/host/profilo
+export async function GET() {
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
+
+  const host = await prisma.host.findUnique({
+    where: { id: auth.user.hostId },
+    include: { user: { select: { email: true, nome: true, cognome: true } } },
+  })
+
+  if (!host) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
+  return NextResponse.json(host)
+}
+
+// PATCH /api/host/profilo
+export async function PATCH(req: NextRequest) {
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
+
+  const host = await prisma.host.findUnique({ where: { id: auth.user.hostId } })
+  if (!host) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
+
+  let raw: unknown
+  try {
+    raw = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Corpo della richiesta malformato' }, { status: 400 })
+  }
+
+  const parsed = parseBody(profiloUpdateSchema, raw)
+  if (parsed.error) return parsed.error
+  const data = parsed.data
+
+  const updated = await prisma.host.update({
+    where: { id: auth.user.hostId },
+    data: {
+      nomeAzienda: data.nomeAzienda ?? host.nomeAzienda,
+      partitaIva: data.partitaIva !== undefined ? data.partitaIva : host.partitaIva,
+      codiceFiscale: data.codiceFiscale !== undefined ? data.codiceFiscale : host.codiceFiscale,
+      telefono: data.telefono !== undefined ? data.telefono : host.telefono,
+      sitoWeb: data.sitoWeb !== undefined ? (data.sitoWeb || null) : host.sitoWeb,
+      indirizzo: data.indirizzo !== undefined ? data.indirizzo : host.indirizzo,
+      citta: data.citta !== undefined ? data.citta : host.citta,
+      provincia: data.provincia !== undefined ? data.provincia : host.provincia,
+      cap: data.cap !== undefined ? data.cap : host.cap,
+      regione: data.regione !== undefined ? data.regione : host.regione,
+      fattNomeAzienda: data.fattNomeAzienda !== undefined ? data.fattNomeAzienda : host.fattNomeAzienda,
+      fattPartitaIva: data.fattPartitaIva !== undefined ? data.fattPartitaIva : host.fattPartitaIva,
+      fattIndirizzo: data.fattIndirizzo !== undefined ? data.fattIndirizzo : host.fattIndirizzo,
+      fattCitta: data.fattCitta !== undefined ? data.fattCitta : host.fattCitta,
+      fattCap: data.fattCap !== undefined ? data.fattCap : host.fattCap,
+      fattProvincia: data.fattProvincia !== undefined ? data.fattProvincia : host.fattProvincia,
+      fattPaese: data.fattPaese !== undefined ? data.fattPaese : host.fattPaese,
+      fattEmail: data.fattEmail !== undefined ? (data.fattEmail || null) : host.fattEmail,
+      fattPec: data.fattPec !== undefined ? (data.fattPec || null) : host.fattPec,
+      fattCodiceSDI: data.fattCodiceSDI !== undefined ? data.fattCodiceSDI : host.fattCodiceSDI,
+      regimeFiscale: data.regimeFiscale !== undefined ? data.regimeFiscale : host.regimeFiscale,
+      // Canali email
+      smtpHost: data.smtpHost !== undefined ? (data.smtpHost || null) : host.smtpHost,
+      smtpPort: data.smtpPort !== undefined ? (data.smtpPort ?? null) : host.smtpPort,
+      smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
+      smtpPass: data.smtpPass !== undefined ? (data.smtpPass || null) : host.smtpPass,
+      emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
+    },
+  })
+
+  logger.info('Profilo host aggiornato', 'host/profilo', { hostId: auth.user.hostId })
+
+  return NextResponse.json(updated)
+}
