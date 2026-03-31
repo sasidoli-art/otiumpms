@@ -124,6 +124,24 @@ export const CONCIERGE_TOOLS: AIToolDefinition[] = [
       required: ['motivo'],
     },
   },
+  {
+    name: 'add_companion',
+    description: 'Registra un accompagnatore per la prenotazione. Usa quando l\'ospite comunica i dati di chi viaggia con lui (nome, cognome, documento). Chiedi i dati uno alla volta in modo naturale.',
+    parameters: {
+      type: 'object',
+      properties: {
+        nome: { type: 'string', description: 'Nome dell\'accompagnatore' },
+        cognome: { type: 'string', description: 'Cognome dell\'accompagnatore' },
+        sesso: { type: 'string', enum: ['M', 'F'], description: 'Sesso (opzionale)' },
+        dataNascita: { type: 'string', description: 'Data di nascita YYYY-MM-DD (opzionale)' },
+        nazionalita: { type: 'string', description: 'Nazionalità (opzionale)' },
+        tipoDocumento: { type: 'string', enum: ['IDENTE', 'PPORT', 'PATEN', 'ALTRO'], description: 'Tipo documento (opzionale)' },
+        numeroDocumento: { type: 'string', description: 'Numero documento (opzionale)' },
+        isMinore: { type: 'boolean', description: 'Se minore di 18 anni' },
+      },
+      required: ['nome', 'cognome'],
+    },
+  },
 ]
 
 // ─── Context builder ──────────────────────────────────────────────────────────
@@ -420,6 +438,42 @@ async function executeTool(
       case 'get_hotel_info': {
         tipo = 'INFO_FORNITA'
         result = `L'argomento richiesto è: ${args.argomento}. Rispondi basandoti sulle INFORMAZIONI HOTEL nel tuo system prompt. Se non hai l'informazione specifica, suggerisci di contattare la reception.`
+        break
+      }
+
+      case 'add_companion': {
+        tipo = 'INFO_FORNITA'
+        if (!guest.prenotazioneId) {
+          result = 'Nessuna prenotazione collegata. Impossibile registrare accompagnatori.'
+          successo = false
+          break
+        }
+
+        const acc = await prisma.accompagnatore.create({
+          data: {
+            prenotazioneId: guest.prenotazioneId,
+            nome: String(args.nome),
+            cognome: String(args.cognome),
+            sesso: args.sesso ? String(args.sesso) : null,
+            dataNascita: args.dataNascita ? new Date(String(args.dataNascita)) : null,
+            nazionalita: args.nazionalita ? String(args.nazionalita) : null,
+            tipoDocumento: args.tipoDocumento ? String(args.tipoDocumento) : null,
+            numeroDocumento: args.numeroDocumento ? String(args.numeroDocumento) : null,
+            isMinore: args.isMinore === true,
+          },
+        })
+
+        await prisma.notifica.create({
+          data: {
+            hostId,
+            tipo: 'sistema',
+            titolo: `Accompagnatore registrato via Concierge`,
+            messaggio: `${args.nome} ${args.cognome} aggiunto alla prenotazione di ${guest.guestNome} ${guest.guestCognome}`,
+            linkUrl: `/host/prenotazioni/${guest.prenotazioneId}`,
+          },
+        })
+
+        result = `Accompagnatore registrato: ${args.nome} ${args.cognome} (ID: ${acc.id}). L'host è stato notificato.`
         break
       }
 

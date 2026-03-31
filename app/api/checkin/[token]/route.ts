@@ -71,6 +71,7 @@ export async function POST(
     guestTipoDocumento, guestNumeroDocumento, guestLuogoRilascio,
     guestComuneRilascioIstat, guestProvinciaRilascio, guestStatoRilascioIstat,
     guestTelefono,
+    accompagnatori,  // array opzionale di accompagnatori
   } = body
 
   if (!guestTipoDocumento || !guestNumeroDocumento) {
@@ -99,13 +100,43 @@ export async function POST(
     select: { id: true, checkInCompletato: true },
   })
 
+  // Salva accompagnatori (se presenti)
+  if (Array.isArray(accompagnatori) && accompagnatori.length > 0) {
+    // Rimuovi accompagnatori esistenti (l'ospite potrebbe rifare il check-in)
+    await prisma.accompagnatore.deleteMany({ where: { prenotazioneId: prenotazione.id } })
+
+    for (const acc of accompagnatori) {
+      if (!acc.nome || !acc.cognome) continue
+      await prisma.accompagnatore.create({
+        data: {
+          prenotazioneId: prenotazione.id,
+          nome: acc.nome,
+          cognome: acc.cognome,
+          sesso: acc.sesso || null,
+          dataNascita: acc.dataNascita ? new Date(acc.dataNascita) : null,
+          luogoNascita: acc.luogoNascita || null,
+          provinciaNascita: acc.provinciaNascita || null,
+          nazionalita: acc.nazionalita || null,
+          tipoDocumento: acc.tipoDocumento || null,
+          numeroDocumento: acc.numeroDocumento || null,
+          luogoRilascio: acc.luogoRilascio || null,
+          provinciaRilascio: acc.provinciaRilascio || null,
+          email: acc.email || null,
+          telefono: acc.telefono || null,
+          isMinore: acc.isMinore === true,
+        },
+      })
+    }
+  }
+
   // Crea notifica per l'host
+  const numAcc = Array.isArray(accompagnatori) ? accompagnatori.filter((a: { nome?: string }) => a.nome).length : 0
   await prisma.notifica.create({
     data: {
       hostId: prenotazione.hostId,
       tipo: 'checkin',
       titolo: 'Check-in online completato',
-      messaggio: `Un ospite ha completato il check-in online`,
+      messaggio: `Un ospite ha completato il check-in online${numAcc > 0 ? ` con ${numAcc} accompagnator${numAcc === 1 ? 'e' : 'i'}` : ''}`,
       linkUrl: `/host/prenotazioni/${prenotazione.id}`,
     },
   })
