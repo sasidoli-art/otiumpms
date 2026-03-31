@@ -13,6 +13,7 @@ import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
 import AccompagnatoriSection from './accompagnatori-section'
 import TracesSection from './traces-section'
+import AlertSection from './alert-section'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -196,6 +197,9 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
               )}
             </div>
           </div>
+
+          {/* Alert ospite */}
+          <AlertSection prenotazioneId={prenotazione.id} />
 
           {/* Check-in / Check-out */}
           <div className="card">

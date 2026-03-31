@@ -34,6 +34,9 @@ import {
   Eye,
   ClipboardCheck,
   Puzzle,
+  Search,
+  UtensilsCrossed,
+  Clock,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -60,6 +63,8 @@ const HREF_MODULO: Record<string, string> = {
   '/host/fatture': 'fatturazione',
   '/host/pacchetti': 'eventi',
   '/host/email-automatiche': 'emailAuto',
+  '/host/ristorazione': 'ristorazione',
+  '/host/oggetti-smarriti': 'lostFound',
 }
 
 const allNavGroups = [
@@ -87,7 +92,9 @@ const allNavGroups = [
       { href: '/host/manutenzione', label: 'Manutenzione',  icon: Wrench },
       { href: '/host/staff',        label: 'Staff',         icon: MessageSquare },
       { href: '/host/alloggiati',   label: 'Alloggiati Web', icon: Shield },
-      { href: '/host/promemoria',  label: 'Promemoria',     icon: ClipboardCheck },
+      { href: '/host/promemoria',        label: 'Promemoria',        icon: ClipboardCheck },
+      { href: '/host/oggetti-smarriti',  label: 'Oggetti smarriti',  icon: Search },
+      { href: '/host/ristorazione',      label: 'Ristorazione',      icon: UtensilsCrossed },
     ],
   },
   {
@@ -117,6 +124,7 @@ const allNavGroups = [
     label: 'ACCOUNT',
     items: [
       { href: '/host/notifiche',   label: 'Notifiche',   icon: Bell },
+      { href: '/host/audit',       label: 'Registro',     icon: Clock },
       { href: '/host/moduli',      label: 'Moduli',       icon: Puzzle },
       { href: '/host/abbonamento', label: 'Abbonamento', icon: CreditCard },
       { href: '/host/profilo',     label: 'Profilo',     icon: UserCircle },
