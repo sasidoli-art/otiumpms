@@ -142,6 +142,17 @@ export const CONCIERGE_TOOLS: AIToolDefinition[] = [
       required: ['nome', 'cognome'],
     },
   },
+  {
+    name: 'assign_room',
+    description: 'Assegna una camera alla prenotazione dell\'ospite. Sceglie automaticamente la camera migliore disponibile (pulita, capacità adeguata). Usa quando l\'ospite chiede informazioni sulla camera o quando serve assegnare una camera.',
+    parameters: {
+      type: 'object',
+      properties: {
+        pianoPreferito: { type: 'number', description: 'Piano preferito dall\'ospite (opzionale)' },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ─── Context builder ──────────────────────────────────────────────────────────
@@ -438,6 +449,45 @@ async function executeTool(
       case 'get_hotel_info': {
         tipo = 'INFO_FORNITA'
         result = `L'argomento richiesto è: ${args.argomento}. Rispondi basandoti sulle INFORMAZIONI HOTEL nel tuo system prompt. Se non hai l'informazione specifica, suggerisci di contattare la reception.`
+        break
+      }
+
+      case 'assign_room': {
+        tipo = 'INFO_FORNITA'
+        if (!guest.prenotazioneId || !guest.strutturaId) {
+          result = 'Nessuna prenotazione o struttura collegata. Impossibile assegnare camera.'
+          successo = false
+          break
+        }
+
+        const { assegnaAutomaticamente: autoAssign, assegnaCamera: doAssign } = await import('@/lib/assegnazione-camera')
+        const migliore = await autoAssign({
+          strutturaId: guest.strutturaId,
+          dataArrivo: new Date(guest.dataArrivo!),
+          dataPartenza: guest.dataPartenza ? new Date(guest.dataPartenza) : null,
+          numOspiti: 1,
+          pianoPreferito: args.pianoPreferito ? Number(args.pianoPreferito) : undefined,
+        })
+
+        if (!migliore) {
+          result = 'Nessuna camera disponibile per il periodo richiesto.'
+          successo = false
+          break
+        }
+
+        await doAssign(guest.prenotazioneId, migliore.id, 'AI Concierge')
+
+        await prisma.notifica.create({
+          data: {
+            hostId,
+            tipo: 'prenotazione',
+            titolo: `Camera assegnata via AI Concierge`,
+            messaggio: `${guest.guestNome} ${guest.guestCognome} → ${migliore.nome} (${migliore.motivoScore})`,
+            linkUrl: `/host/prenotazioni/${guest.prenotazioneId}`,
+          },
+        })
+
+        result = `Camera assegnata: ${migliore.nome} (piano ${migliore.piano ?? 'N/D'}, capacità ${migliore.capacita}, stato: ${migliore.statoHK}). Score: ${migliore.score} — ${migliore.motivoScore}`
         break
       }
 

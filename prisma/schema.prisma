@@ -421,6 +421,10 @@ model Struttura {
   regoleTariffa   RegolaTariffa[]
   configPasti     ConfigPastoStruttura[]
   canaliEsterni   CanaleEsterno[]
+
+  // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
+  modalitaAssegnazione String?  @default("MANUALE")
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
