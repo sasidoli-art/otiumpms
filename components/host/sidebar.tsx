@@ -124,6 +124,7 @@ const allNavGroups = [
     label: 'ACCOUNT',
     items: [
       { href: '/host/notifiche',   label: 'Notifiche',   icon: Bell },
+      { href: '/host/gdpr',        label: 'GDPR & Privacy', icon: Shield },
       { href: '/host/audit',       label: 'Registro',     icon: Clock },
       { href: '/host/moduli',      label: 'Moduli',       icon: Puzzle },
       { href: '/host/abbonamento', label: 'Abbonamento', icon: CreditCard },
