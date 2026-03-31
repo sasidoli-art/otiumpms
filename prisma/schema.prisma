@@ -223,6 +223,9 @@ model Host {
   // AI Concierge
   conversazioniWA       ConversazioneWhatsApp[]
 
+  // Promemoria operativi
+  traces                Trace[]
+
   @@map("hosts")
 }
 
@@ -582,6 +585,7 @@ model Prenotazione {
   appuntamentiSpa AppuntamentoSpa[]
   conversazioniWA ConversazioneWhatsApp[]
   accompagnatori  Accompagnatore[]
+  traces          Trace[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -591,6 +595,61 @@ model Prenotazione {
   @@index([hostId, stato])
   @@index([guestEmail])
   @@map("prenotazioni")
+}
+
+// ─── Promemoria Operativi (Traces) ────────────────────────────────────────────
+
+enum StatoTrace {
+  APERTO
+  IN_CORSO
+  COMPLETATO
+  ANNULLATO
+}
+
+enum PrioritaTrace {
+  BASSA
+  NORMALE
+  ALTA
+  URGENTE
+}
+
+model Trace {
+  id              String         @id @default(cuid())
+  hostId          String
+  host            Host           @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Collegamento opzionale a prenotazione
+  prenotazioneId  String?
+  prenotazione    Prenotazione?  @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
+
+  // Contenuto
+  titolo          String
+  descrizione     String?
+  reparto         String         // "RECEPTION", "HOUSEKEEPING", "MANUTENZIONE", "SPA", "RISTORANTE", "DIREZIONE", "ALTRO"
+  priorita        PrioritaTrace  @default(NORMALE)
+  stato           StatoTrace     @default(APERTO)
+
+  // Scadenza e assegnazione
+  dataScadenza    DateTime?      @db.Date
+  oraScadenza     String?        // "HH:mm" — per trace time-sensitive (es. "preparare camera entro le 14:00")
+  assegnatoA      String?        // nome operatore/reparto
+  creatoDa        String?        // nome di chi ha creato il trace
+
+  // Trigger automatico (quando mostrare il promemoria)
+  triggerEvento   String?        // "CHECKIN", "CHECKOUT", "ARRIVO_GIORNO", null = sempre visibile
+
+  // Risoluzione
+  completatoAt    DateTime?
+  completatoDa    String?        // chi ha marcato come completato
+  noteRisoluzione String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([hostId, stato])
+  @@index([hostId, dataScadenza])
+  @@index([prenotazioneId])
+  @@map("traces")
 }
 
 // ─── Accompagnatori (profili aggiuntivi per prenotazione) ─────────────────────

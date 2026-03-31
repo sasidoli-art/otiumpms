@@ -32,6 +32,7 @@ import {
   Bell,
   Mail,
   Eye,
+  ClipboardCheck,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -63,6 +64,7 @@ const navGroups = [
       { href: '/host/manutenzione', label: 'Manutenzione',  icon: Wrench },
       { href: '/host/staff',        label: 'Staff',         icon: MessageSquare },
       { href: '/host/alloggiati',   label: 'Alloggiati Web', icon: Shield },
+      { href: '/host/promemoria',  label: 'Promemoria',     icon: ClipboardCheck },
     ],
   },
   {

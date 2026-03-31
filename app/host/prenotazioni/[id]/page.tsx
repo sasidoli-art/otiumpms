@@ -12,6 +12,7 @@ import PrenotazioneActions from './prenotazione-actions'
 import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
 import AccompagnatoriSection from './accompagnatori-section'
+import TracesSection from './traces-section'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -148,6 +149,9 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
               </div>
             )}
           </div>
+
+          {/* Promemoria operativi */}
+          <TracesSection prenotazioneId={prenotazione.id} />
 
           {/* Accompagnatori */}
           <AccompagnatoriSection
