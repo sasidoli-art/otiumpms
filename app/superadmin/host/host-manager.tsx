@@ -1,0 +1,164 @@
+'use client'
+
+import { useState } from 'react'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import Link from 'next/link'
+import {
+  Building2, ExternalLink, Bot, UserCheck, Power, Loader2,
+} from 'lucide-react'
+
+type Host = {
+  id: string
+  nomeAzienda: string
+  citta: string | null
+  piano: string
+  statoAbbonamento: string
+  dataFineAbb: string | null
+  conciergeAttivo: boolean
+  moduliAttivi: Record<string, boolean> | null
+  user: { email: string; nome: string; cognome: string; attivo: boolean }
+  _count: { strutture: number; prenotazioni: number; fatture: number }
+  createdAt: string
+}
+
+const STATO_COLORI: Record<string, string> = {
+  ATTIVO: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  IN_PROVA: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  SOSPESO: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  SCADUTO: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+}
+
+const UPSELL_MODES = [
+  { value: 'off', label: 'Disattivo', icon: Power, color: 'text-gray-400' },
+  { value: 'manual', label: 'Manuale', icon: UserCheck, color: 'text-blue-600' },
+  { value: 'ai', label: 'AI', icon: Bot, color: 'text-purple-600' },
+]
+
+export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }) {
+  const [hosts, setHosts] = useState(hostsIniziali)
+  const [saving, setSaving] = useState<string | null>(null)
+
+  function getUpsellMode(h: Host): string {
+    const moduli = h.moduliAttivi || {}
+    if (!moduli.upselling) return 'off'
+    if (h.conciergeAttivo && moduli.concierge) return 'ai'
+    return 'manual'
+  }
+
+  async function setUpsellMode(hostId: string, mode: string) {
+    setSaving(hostId)
+
+    // Aggiorna moduli upselling + concierge
+    const updates: Record<string, boolean> = {}
+    if (mode === 'off') {
+      updates.upselling = false
+    } else if (mode === 'manual') {
+      updates.upselling = true
+    } else if (mode === 'ai') {
+      updates.upselling = true
+      updates.concierge = true
+    }
+
+    // Usa l'API admin per aggiornare l'host
+    // Per ora aggiorniamo via PATCH diretto
+    const res = await fetch(`/api/superadmin/host/${hostId}/config`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        moduliAttivi: updates,
+        conciergeAttivo: mode === 'ai',
+      }),
+    })
+
+    if (res.ok) {
+      const updated = await res.json()
+      setHosts(prev => prev.map(h => h.id === hostId ? { ...h, moduliAttivi: updated.moduliAttivi, conciergeAttivo: updated.conciergeAttivo } : h))
+    }
+    setSaving(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Host & Clienti</h1>
+          <p className="text-sm text-gray-500">{hosts.length} host registrati</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-slate-700">
+                <th className="table-th">Azienda</th>
+                <th className="table-th">Referente</th>
+                <th className="table-th">Piano</th>
+                <th className="table-th">Stato</th>
+                <th className="table-th text-right">Strutture</th>
+                <th className="table-th text-right">Pren.</th>
+                <th className="table-th text-center">Upselling</th>
+                <th className="table-th">Registrato</th>
+                <th className="table-th"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {hosts.map(h => {
+                const mode = getUpsellMode(h)
+                return (
+                  <tr key={h.id} className="border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+                    <td className="table-td">
+                      <p className="font-semibold text-gray-900 dark:text-slate-100">{h.nomeAzienda}</p>
+                      <p className="text-[10px] text-gray-400">{h.user.email}</p>
+                    </td>
+                    <td className="table-td text-gray-600 dark:text-slate-300">{h.user.nome} {h.user.cognome}</td>
+                    <td className="table-td"><span className="text-xs bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400 px-2 py-0.5 rounded">{h.piano}</span></td>
+                    <td className="table-td"><span className={`text-xs px-2 py-0.5 rounded ${STATO_COLORI[h.statoAbbonamento] || ''}`}>{h.statoAbbonamento}</span></td>
+                    <td className="table-td text-right">{h._count.strutture}</td>
+                    <td className="table-td text-right font-medium">{h._count.prenotazioni}</td>
+                    <td className="table-td">
+                      <div className="flex items-center justify-center gap-0.5">
+                        {saving === h.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+                        ) : (
+                          UPSELL_MODES.map(m => {
+                            const Icon = m.icon
+                            const isActive = mode === m.value
+                            return (
+                              <button
+                                key={m.value}
+                                onClick={() => setUpsellMode(h.id, m.value)}
+                                title={`Upselling: ${m.label}`}
+                                className={`p-1.5 rounded transition-all ${
+                                  isActive
+                                    ? `${m.color} bg-gray-100 dark:bg-slate-700 ring-1 ring-current`
+                                    : 'text-gray-300 dark:text-slate-600 hover:text-gray-500'
+                                }`}
+                              >
+                                <Icon className="w-4 h-4" />
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                      <p className="text-[9px] text-center text-gray-400 mt-0.5">
+                        {UPSELL_MODES.find(m => m.value === mode)?.label}
+                      </p>
+                    </td>
+                    <td className="table-td text-xs text-gray-400">{format(new Date(h.createdAt), 'd MMM yy', { locale: it })}</td>
+                    <td className="table-td">
+                      <Link href={`/admin/clienti/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1">
+                        Gestisci <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
