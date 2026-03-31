@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { signOut } from 'next-auth/react'
-import { LogOut, ChevronDown, User, Settings, Search, BookOpen, Users, Building2 } from 'lucide-react'
+import { LogOut, ChevronDown, User, Settings, Search, BookOpen, Users, Building2, Moon, Sun } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificheBell } from '@/components/layout/notifiche-bell'
+import { useTheme } from '@/components/theme-provider'
 
 interface TopbarProps {
   nomeUtente: string
@@ -78,7 +79,7 @@ export function Topbar({ nomeUtente, ruolo, settingsHref }: TopbarProps) {
     .join('')
 
   return (
-    <div className="bg-white h-14 flex items-center justify-between px-5 border-b border-slate-200 shadow-topbar shrink-0 sticky top-0 z-30">
+    <div className="bg-white dark:bg-slate-900 h-14 flex items-center justify-between px-5 border-b border-slate-200 dark:border-slate-700 shadow-topbar shrink-0 sticky top-0 z-30">
       {/* Left — search */}
       <div className="flex items-center gap-3 flex-1 max-w-md">
         {ruolo === 'HOST' && (
@@ -90,10 +91,10 @@ export function Topbar({ nomeUtente, ruolo, settingsHref }: TopbarProps) {
               onChange={e => onSearchChange(e.target.value)}
               onFocus={() => results.length > 0 && setSearchOpen(true)}
               placeholder="Cerca prenotazioni, ospiti, strutture..."
-              className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-colors"
+              className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-colors dark:text-slate-200 dark:placeholder-slate-500"
             />
             {searchOpen && results.length > 0 && (
-              <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden z-50 max-h-80 overflow-y-auto">
+              <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-600 overflow-hidden z-50 max-h-80 overflow-y-auto">
                 {results.map(r => (
                   <button
                     key={`${r.type}-${r.id}`}
@@ -123,6 +124,9 @@ export function Topbar({ nomeUtente, ruolo, settingsHref }: TopbarProps) {
 
       {/* Right */}
       <div className="flex items-center gap-3" ref={ref}>
+        {/* Dark mode toggle */}
+        <ThemeToggle />
+
         {ruolo === 'HOST' && <NotificheBell />}
 
         {/* User Dropdown */}
@@ -134,16 +138,16 @@ export function Topbar({ nomeUtente, ruolo, settingsHref }: TopbarProps) {
             <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold select-none">
               {initials || <User size={14} />}
             </div>
-            <span className="text-sm font-semibold text-slate-700 hidden sm:block max-w-[120px] truncate">
+            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 hidden sm:block max-w-[120px] truncate">
               {nomeUtente}
             </span>
             <ChevronDown size={13} className="text-slate-400" />
           </button>
 
           {open && (
-            <div className="absolute right-0 top-12 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50">
-              <div className="px-4 py-3 border-b border-slate-100">
-                <p className="text-sm font-bold text-slate-900 truncate">{nomeUtente}</p>
+            <div className="absolute right-0 top-12 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 py-1 z-50">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{nomeUtente}</p>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {ruolo === 'ADMIN' ? 'Amministratore' : 'Host'}
                 </p>
@@ -168,5 +172,18 @@ export function Topbar({ nomeUtente, ruolo, settingsHref }: TopbarProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  return (
+    <button
+      onClick={toggle}
+      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+      title={theme === 'dark' ? 'Modalità chiara' : 'Modalità scura'}
+    >
+      {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
   )
 }

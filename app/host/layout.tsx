@@ -30,7 +30,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
           ruolo="HOST"
           settingsHref="/host/profilo"
         />
-        <main className="flex-1 overflow-y-auto bg-slate-100 p-6">
+        <main className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-6">
           {children}
         </main>
       </div>

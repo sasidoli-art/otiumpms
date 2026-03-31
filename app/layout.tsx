@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 import { PwaProvider } from '@/components/pwa-provider'
+import { ThemeProvider } from '@/components/theme-provider'
 
 export const metadata: Metadata = {
   title: 'Otium Week — Gestionale',
@@ -30,8 +31,8 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="bg-gray-50 text-gray-900 antialiased">
-        <Providers>{children}</Providers>
+      <body className="antialiased">
+        <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
         <PwaProvider />
       </body>
     </html>
