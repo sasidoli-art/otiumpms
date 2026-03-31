@@ -15,6 +15,9 @@ import AccompagnatoriSection from './accompagnatori-section'
 import TracesSection from './traces-section'
 import AlertSection from './alert-section'
 import PastoSection from './pasto-section'
+import AssegnazioneSection from './assegnazione-section'
+import PagamentoCheckoutSection from './pagamento-checkout-section'
+import AddebitiSection from './addebiti-section'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -152,6 +155,9 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
             )}
           </div>
 
+          {/* Addebiti / Conto ospite */}
+          <AddebitiSection prenotazioneId={prenotazione.id} />
+
           {/* Promemoria operativi */}
           <TracesSection prenotazioneId={prenotazione.id} />
 
@@ -202,8 +208,14 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
           {/* Alert ospite */}
           <AlertSection prenotazioneId={prenotazione.id} />
 
+          {/* Assegnazione camera */}
+          <AssegnazioneSection prenotazioneId={prenotazione.id} cameraAttuale={prenotazione.unita?.nome ?? null} />
+
           {/* Piano pasto */}
           <PastoSection prenotazioneId={prenotazione.id} />
+
+          {/* Pagamento checkout */}
+          <PagamentoCheckoutSection prenotazioneId={prenotazione.id} saldoDovuto={prenotazione.prezzoTotale ?? 0} />
 
           {/* Check-in / Check-out */}
           <div className="card">
