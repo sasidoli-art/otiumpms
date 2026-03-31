@@ -878,6 +878,29 @@ model Notifica {
   @@map("notifiche")
 }
 
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  hostId      String?
+  userId      String?  // chi ha eseguito l'azione
+  userEmail   String?
+
+  azione      String   // "prenotazione.creata", "checkin.completato", "fattura.emessa", ecc.
+  entita      String   // "prenotazione", "fattura", "struttura", "ospite", ecc.
+  entitaId    String?  // ID dell'entità coinvolta
+  dettagli    String?  // descrizione leggibile
+  datiJson    Json?    // payload completo (old/new values)
+  ip          String?  // IP del client
+  userAgent   String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([hostId, createdAt])
+  @@index([entita, entitaId])
+  @@map("audit_log")
+}
+
 // ─── SPA Module ────────────────────────────────────────────────────────────────
 
 enum CategoriaSpa {
