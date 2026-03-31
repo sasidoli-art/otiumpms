@@ -1341,6 +1341,20 @@ model CabinaSpa {
   capacita    Int      @default(1) // n. persone simultanee
   attiva      Boolean  @default(true)
 
+  // Housekeeping cabina SPA
+  statoHK             String    @default("PULITA")  // PULITA, OCCUPATA, IN_PULIZIA, NON_DISPONIBILE
+  ultimaPulizia       DateTime?
+  durataPuliziaMinuti Int       @default(15)  // turnaround tra appuntamenti
+  noteHK              String?
+
+  // Dotazione biancheria SPA (standard per questa cabina)
+  dotazioneAsciugamaniGrandi  Int @default(4)
+  dotazioneAsciugamaniPiccoli Int @default(4)
+  dotazioneAccappatoi         Int @default(2)
+  dotazioneLenzuolaLettino    Int @default(2)
+  dotazioneCiabatte           Int @default(2)
+  dotazioneTappetini          Int @default(1)
+
   createdAt   DateTime @default(now())
   appuntamenti AppuntamentoSpa[]
 

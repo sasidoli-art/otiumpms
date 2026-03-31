@@ -64,13 +64,26 @@ export function PagamentoSpaForm({
   const [loading, setLoading] = useState(false)
   const [savedPayment, setSavedPayment] = useState<any>(null)
 
-  // Se ospite della struttura, carica le camere
+  // Carica le camere per addebito su camera
   useEffect(() => {
-    if (prenotazioneId) {
-      // In futuro: fetch camere della prenotazione
-      setUnitaeDisponibili([])
-    }
-  }, [prenotazioneId])
+    fetch('/api/host/strutture')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        if (Array.isArray(data)) {
+          // Raccoglie tutte le unità da tutte le strutture
+          const unita: { id: string; nome: string }[] = []
+          for (const s of data) {
+            if (s.unita) {
+              for (const u of s.unita) {
+                unita.push({ id: u.id, nome: `${u.nome} (${s.nome})` })
+              }
+            }
+          }
+          setUnitaeDisponibili(unita)
+        }
+      })
+      .catch(() => setUnitaeDisponibili([]))
+  }, [])
 
   const handleSubmit = async () => {
     if (!metodoPagamento) {
