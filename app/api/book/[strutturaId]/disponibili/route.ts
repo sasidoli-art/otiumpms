@@ -76,7 +76,7 @@ export async function GET(req: NextRequest, { params: paramsPromise }: { params:
       regole: regole.map(r => ({
         id: r.id,
         nome: r.nome,
-        tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO',
+        tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
         attiva: r.attiva,
         priorita: r.priorita,
         modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',

@@ -111,7 +111,7 @@ export async function POST(
         regole: regole.map(r => ({
           id: r.id,
           nome: r.nome,
-          tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO',
+          tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
           attiva: r.attiva,
           priorita: r.priorita,
           modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',

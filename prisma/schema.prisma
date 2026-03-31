@@ -177,6 +177,10 @@ model Host {
   whatsappAccessToken   String?   // token API WhatsApp Business dell'host
   whatsappVerifyToken   String?   // token verifica webhook Meta
 
+  // Moduli attivabili per struttura
+  // JSON: { "spa": true, "concierge": false, "lostFound": true, ... }
+  moduliAttivi          Json?     @default("{}")
+
   // Abbonamento
   piano             PianoTipo        @default(EVENTO_SINGOLO)
   statoAbbonamento  StatoAbbonamento @default(IN_PROVA)
@@ -225,6 +229,9 @@ model Host {
 
   // Promemoria operativi
   traces                Trace[]
+
+  // Oggetti smarriti
+  oggettiSmarriti       OggettoSmarrito[]
 
   @@map("hosts")
 }
@@ -506,6 +513,9 @@ model RegolaTariffa {
   // Giorni settimana (solo per WEEKEND / personalizzato) — 0=Lun, 6=Dom
   giorniSettimana Int[]              @default([])  // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
 
+  // Durata soggiorno (solo per DURATA) — notti minime per attivare lo sconto
+  nottiMinime     Int?               // es. 3 = sconto attivo per soggiorni >= 3 notti
+
   createdAt       DateTime           @default(now())
 
   @@map("regole_tariffa")
@@ -515,6 +525,7 @@ enum TipoRegolaTariffa {
   WEEKEND    // applica a giorni settimana selezionati
   STAGIONE   // applica a range date annuale (si ripete ogni anno)
   FESTIVO    // applica a date specifiche (Natale, Capodanno, ecc.)
+  DURATA     // sconto per soggiorni lunghi (es. 3+ notti -10%, 7+ notti -20%)
 }
 
 enum TipoModificatore {
@@ -586,6 +597,8 @@ model Prenotazione {
   conversazioniWA ConversazioneWhatsApp[]
   accompagnatori  Accompagnatore[]
   traces          Trace[]
+  oggettiSmarriti OggettoSmarrito[]
+  alertOspite     AlertOspite[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -595,6 +608,73 @@ model Prenotazione {
   @@index([hostId, stato])
   @@index([guestEmail])
   @@map("prenotazioni")
+}
+
+// ─── Alert Ospite (avvisi automatici a check-in/checkout) ─────────────────────
+
+model AlertOspite {
+  id              String       @id @default(cuid())
+  hostId          String
+  prenotazioneId  String
+  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  messaggio       String       // "Ospite VIP — upgrade se possibile", "Allergia noci — avvisare cucina"
+  tipo            String       @default("INFO") // INFO, WARNING, DANGER
+  triggerEvento   String       // "CHECKIN", "CHECKOUT", "ACCESSO" (quando si apre la prenotazione)
+  attivo          Boolean      @default(true)
+  vistoAt         DateTime?    // quando l'operatore l'ha visto/confermato
+  vistoDa         String?
+
+  createdAt       DateTime     @default(now())
+
+  @@index([prenotazioneId, triggerEvento])
+  @@map("alert_ospite")
+}
+
+// ─── Oggetti Smarriti (Lost & Found) ──────────────────────────────────────────
+
+enum StatoOggettoSmarrito {
+  IN_CUSTODIA      // trovato, in attesa
+  RESTITUITO       // riconsegnato al proprietario
+  SPEDITO          // spedito al proprietario
+  NON_RECLAMATO    // nessuno l'ha reclamato (dopo N giorni)
+  SMALTITO         // eliminato/donato
+}
+
+model OggettoSmarrito {
+  id              String                @id @default(cuid())
+  hostId          String
+  host            Host                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Cosa
+  descrizione     String                // "Orologio da polso argento", "Zaino nero North Face"
+  categoria       String                @default("ALTRO") // ABBIGLIAMENTO, ELETTRONICA, DOCUMENTI, GIOIELLI, BAGAGLIO, ALTRO
+  foto            String?               // URL foto
+
+  // Dove e quando trovato
+  luogoRitrovamento String?             // "Camera 204", "Ristorante", "Lobby", "Parcheggio"
+  dataRitrovamento  DateTime            @default(now()) @db.Date
+  trovatoDa       String?               // nome di chi l'ha trovato
+
+  // Proprietario (se identificato)
+  proprietarioNome     String?
+  proprietarioEmail    String?
+  proprietarioTelefono String?
+  prenotazioneId       String?          // collegamento opzionale a prenotazione
+  prenotazione         Prenotazione?    @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
+
+  // Stato
+  stato           StatoOggettoSmarrito  @default(IN_CUSTODIA)
+  luogoCustodia   String?               // "Cassaforte reception", "Magazzino piano -1"
+  dataRestituzione DateTime?
+  noteRestituzione String?              // "Spedito via corriere DHL tracking XXX"
+  note            String?
+
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([hostId, stato])
+  @@map("oggetti_smarriti")
 }
 
 // ─── Promemoria Operativi (Traces) ────────────────────────────────────────────

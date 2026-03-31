@@ -23,7 +23,7 @@ export type TariffaPeriodo = {
 export type RegolaTariffa = {
   id: string
   nome: string
-  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO'
+  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA'
   attiva: boolean
   priorita: number
   modificatore: 'PERCENTUALE' | 'FISSO'
