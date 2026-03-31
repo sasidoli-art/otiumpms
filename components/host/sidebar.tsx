@@ -43,6 +43,7 @@ import {
   Code,
   ShoppingBag,
   Award,
+  Bot,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -74,6 +75,7 @@ const HREF_MODULO: Record<string, string> = {
   '/host/magazzino': 'magazzino',
   '/host/canali': 'channelMgr',
   '/host/servizi': 'catalogo',
+  '/host/concierge': 'concierge',
   '/host/upselling': 'upselling',
 }
 
@@ -121,6 +123,7 @@ const allNavGroups = [
       { href: '/host/canali',           label: 'Channel Manager', icon: Globe },
       { href: '/host/servizi',           label: 'Catalogo servizi', icon: ShoppingBag },
       { href: '/host/upselling',        label: 'Upselling',        icon: Award },
+      { href: '/host/concierge',        label: 'AI Concierge',     icon: Bot },
       { href: '/host/integrazione',     label: 'Integrazione sito', icon: Code },
     ],
   },
