@@ -41,6 +41,7 @@ import {
   Boxes,
   Shirt,
   Code,
+  ShoppingBag,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -71,6 +72,7 @@ const HREF_MODULO: Record<string, string> = {
   '/host/oggetti-smarriti': 'lostFound',
   '/host/magazzino': 'magazzino',
   '/host/canali': 'channelMgr',
+  '/host/servizi': 'catalogo',
 }
 
 const allNavGroups = [
@@ -115,6 +117,7 @@ const allNavGroups = [
       { href: '/host/fatture',   label: 'Fatture',       icon: FileText },
       { href: '/host/email-automatiche', label: 'Email auto', icon: Mail },
       { href: '/host/canali',           label: 'Channel Manager', icon: Globe },
+      { href: '/host/servizi',           label: 'Catalogo servizi', icon: ShoppingBag },
       { href: '/host/integrazione',     label: 'Integrazione sito', icon: Code },
     ],
   },
