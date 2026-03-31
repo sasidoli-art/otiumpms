@@ -40,6 +40,7 @@ import {
   Globe,
   Boxes,
   Shirt,
+  Code,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -114,6 +115,7 @@ const allNavGroups = [
       { href: '/host/fatture',   label: 'Fatture',       icon: FileText },
       { href: '/host/email-automatiche', label: 'Email auto', icon: Mail },
       { href: '/host/canali',           label: 'Channel Manager', icon: Globe },
+      { href: '/host/integrazione',     label: 'Integrazione sito', icon: Code },
     ],
   },
   {
