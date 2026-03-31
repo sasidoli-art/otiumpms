@@ -35,7 +35,8 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   { id: 'promemoria',    nome: 'Promemoria',          descrizione: 'Task interni legati a prenotazioni con scadenza',      icona: 'ClipboardCheck',  categoria: 'operativo',    defaultAttivo: true },
   { id: 'staff',         nome: 'Bacheca Staff',       descrizione: 'Comunicazioni interne, avvisi, task per il team',      icona: 'MessageSquare',   categoria: 'operativo',    defaultAttivo: true },
   { id: 'alloggiati',    nome: 'Alloggiati Web',      descrizione: 'Export schedine per Questura (PS)',                    icona: 'Shield',          categoria: 'operativo',    defaultAttivo: false },
-  { id: 'lostFound',     nome: 'Oggetti Smarriti',    descrizione: 'Registro oggetti trovati/smarriti, notifica ospite',   icona: 'Search',          categoria: 'operativo',    defaultAttivo: false },
+  { id: 'lostFound',     nome: 'Lost & Found',        descrizione: 'Registro oggetti trovati/smarriti',                    icona: 'Search',          categoria: 'operativo',    defaultAttivo: false },
+  { id: 'magazzino',    nome: 'Magazzino',           descrizione: 'Inventario articoli, scorte, movimenti carico/scarico', icona: 'Boxes',           categoria: 'operativo',    defaultAttivo: false },
   { id: 'alertOspite',   nome: 'Alert Ospite',        descrizione: 'Avvisi automatici a check-in/checkout (VIP, allergie)',icona: 'AlertTriangle',   categoria: 'operativo',    defaultAttivo: false },
 
   // Avanzato

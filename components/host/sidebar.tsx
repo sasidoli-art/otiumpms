@@ -38,6 +38,7 @@ import {
   UtensilsCrossed,
   Clock,
   Globe,
+  Boxes,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -66,6 +67,7 @@ const HREF_MODULO: Record<string, string> = {
   '/host/email-automatiche': 'emailAuto',
   '/host/ristorazione': 'ristorazione',
   '/host/oggetti-smarriti': 'lostFound',
+  '/host/magazzino': 'magazzino',
   '/host/canali': 'channelMgr',
 }
 
@@ -91,12 +93,13 @@ const allNavGroups = [
     items: [
       { href: '/host/crm',          label: 'CRM Ospiti',    icon: Users },
       { href: '/host/housekeeping', label: 'Housekeeping',  icon: Sparkles },
+      { href: '/host/oggetti-smarriti',  label: 'Lost & Found',  icon: Search },
+      { href: '/host/magazzino',    label: 'Magazzino',     icon: Boxes },
       { href: '/host/manutenzione', label: 'Manutenzione',  icon: Wrench },
       { href: '/host/staff',        label: 'Staff',         icon: MessageSquare },
       { href: '/host/alloggiati',   label: 'Alloggiati Web', icon: Shield },
-      { href: '/host/promemoria',        label: 'Promemoria',        icon: ClipboardCheck },
-      { href: '/host/oggetti-smarriti',  label: 'Oggetti smarriti',  icon: Search },
-      { href: '/host/ristorazione',      label: 'Ristorazione',      icon: UtensilsCrossed },
+      { href: '/host/promemoria',   label: 'Promemoria',    icon: ClipboardCheck },
+      { href: '/host/ristorazione', label: 'Ristorazione',  icon: UtensilsCrossed },
     ],
   },
   {

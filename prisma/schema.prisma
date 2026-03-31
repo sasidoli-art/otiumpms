@@ -233,6 +233,9 @@ model Host {
   // Oggetti smarriti
   oggettiSmarriti       OggettoSmarrito[]
 
+  // Magazzino
+  articoliMagazzino     ArticoloMagazzino[]
+
   @@map("hosts")
 }
 
@@ -677,6 +680,54 @@ model PastoPrenotazione {
 
   @@unique([prenotazioneId])
   @@map("pasti_prenotazione")
+}
+
+// ─── Magazzino (Inventory) ────────────────────────────────────────────────────
+
+model ArticoloMagazzino {
+  id              String    @id @default(cuid())
+  hostId          String
+  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome            String     // "Asciugamano grande", "Lenzuola singolo", "Sapone 30ml", "Minibar Cola"
+  categoria       String     @default("ALTRO") // BIANCHERIA, PULIZIA, MINIBAR, AMENITIES, CANCELLERIA, MANUTENZIONE, ALTRO
+  unita           String     @default("pz")    // pz, kg, lt, rotoli, conf
+
+  // Scorte
+  quantita        Int        @default(0)       // giacenza attuale
+  scorteMinime    Int        @default(0)       // soglia allarme riordino
+  scorteOttimali  Int?                         // livello ideale
+  costoUnitario   Float?                       // costo acquisto unitario
+
+  // Info
+  fornitore       String?    // nome fornitore
+  codiceArticolo  String?    // SKU / codice interno
+  ubicazione      String?    // "Magazzino piano -1", "Ripostiglio piano 2"
+  note            String?
+
+  movimenti       MovimentoMagazzino[]
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([hostId, categoria])
+  @@map("articoli_magazzino")
+}
+
+model MovimentoMagazzino {
+  id              String    @id @default(cuid())
+  articoloId      String
+  articolo        ArticoloMagazzino @relation(fields: [articoloId], references: [id], onDelete: Cascade)
+
+  tipo            String     // CARICO, SCARICO, RETTIFICA, CONSUMO
+  quantita        Int        // positivo per carico, negativo per scarico
+  motivo          String?    // "Rifornimento", "Consumo camera 204", "Inventario", "Rotto"
+  operatore       String?    // chi ha fatto il movimento
+
+  createdAt       DateTime   @default(now())
+
+  @@index([articoloId, createdAt])
+  @@map("movimenti_magazzino")
 }
 
 // ─── Channel Manager (connessioni iCal con OTA) ──────────────────────────────
