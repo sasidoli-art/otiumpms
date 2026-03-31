@@ -298,6 +298,26 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
         >
           <Printer className="w-4 h-4" /> Stampa ricevuta
         </a>
+
+        {/* Scheda Ospite PDF */}
+        <a
+          href={`/api/host/prenotazioni/${prenotazione.id}/scheda-ospite`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-2 py-2 px-3 text-sm text-gray-600 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+        >
+          <Printer className="w-4 h-4" /> Scheda ospite PDF
+        </a>
+
+        {/* Conto Ospite PDF */}
+        <a
+          href={`/api/host/prenotazioni/${prenotazione.id}/conto`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center gap-2 py-2 px-3 text-sm text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition-colors"
+        >
+          <Printer className="w-4 h-4" /> Conto ospite PDF
+        </a>
       </div>
 
       {/* Modal checkout — tassa di soggiorno */}

@@ -33,13 +33,36 @@ import {
   Mail,
   Eye,
   ClipboardCheck,
+  Puzzle,
   X,
   ExternalLink,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState, useEffect } from 'react'
+import { parseModuli } from '@/lib/moduli'
+import { useState, useEffect, useMemo } from 'react'
 
-const navGroups = [
+// Mapping: href sidebar → id modulo (se non presente = sempre visibile)
+const HREF_MODULO: Record<string, string> = {
+  '/host/crm': 'crm',
+  '/host/housekeeping': 'housekeeping',
+  '/host/manutenzione': 'manutenzione',
+  '/host/staff': 'staff',
+  '/host/alloggiati': 'alloggiati',
+  '/host/promemoria': 'promemoria',
+  '/host/spa': 'spa',
+  '/host/spa/calendario': 'spa',
+  '/host/spa/appuntamenti': 'spa',
+  '/host/spa/trattamenti': 'spa',
+  '/host/spa/percorsi': 'spa',
+  '/host/spa/terapisti': 'spa',
+  '/host/spa/cabine': 'spa',
+  '/host/eventi': 'eventi',
+  '/host/fatture': 'fatturazione',
+  '/host/pacchetti': 'eventi',
+  '/host/email-automatiche': 'emailAuto',
+}
+
+const allNavGroups = [
   {
     label: 'RICEVIMENTO',
     items: [
@@ -94,6 +117,7 @@ const navGroups = [
     label: 'ACCOUNT',
     items: [
       { href: '/host/notifiche',   label: 'Notifiche',   icon: Bell },
+      { href: '/host/moduli',      label: 'Moduli',       icon: Puzzle },
       { href: '/host/abbonamento', label: 'Abbonamento', icon: CreditCard },
       { href: '/host/profilo',     label: 'Profilo',     icon: UserCircle },
     ],
@@ -103,14 +127,31 @@ const navGroups = [
 export function HostSidebar({
   nomeUtente,
   nomeAzienda,
+  moduliAttivi,
 }: {
   nomeUtente: string
   nomeAzienda: string
+  moduliAttivi: unknown
 }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [showLinks, setShowLinks] = useState(false)
   const [strutture, setStrutture] = useState<{ id: string; nome: string }[]>([])
+
+  // Filtra i gruppi sidebar in base ai moduli attivi
+  const moduli = useMemo(() => parseModuli(moduliAttivi), [moduliAttivi])
+  const navGroups = useMemo(() => {
+    return allNavGroups
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item => {
+          const moduloId = HREF_MODULO[item.href]
+          if (!moduloId) return true // nessun modulo associato → sempre visibile
+          return moduli[moduloId] === true
+        }),
+      }))
+      .filter(group => group.items.length > 0)
+  }, [moduli])
 
   useEffect(() => {
     if (!showLinks || strutture.length > 0) return

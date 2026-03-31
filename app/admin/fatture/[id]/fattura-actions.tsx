@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, Check, X, Loader2, MoreVertical } from 'lucide-react'
+import { Send, Check, X, Loader2, MoreVertical, FileText, FileCode } from 'lucide-react'
 
 export function FatturaActions({
   fatturaId,
@@ -90,6 +90,25 @@ export function FatturaActions({
                 Annulla fattura
               </button>
             )}
+            <div className="border-t border-gray-100 my-1" />
+            <a
+              href={`/api/admin/fatture/${fatturaId}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full"
+            >
+              <FileText size={14} />
+              Scarica PDF
+            </a>
+            <a
+              href={`/api/admin/fatture/${fatturaId}/xml`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50 w-full"
+            >
+              <FileCode size={14} />
+              FatturaPA XML (SDI)
+            </a>
           </div>
         </>
       )}

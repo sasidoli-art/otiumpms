@@ -14,14 +14,15 @@ export default async function HostLayout({ children }: { children: React.ReactNo
 
   // Per ADMIN: prende il primo host disponibile per impersonare
   const host = session.user.role === 'HOST'
-    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true } })
-    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true } })
+    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true } })
+    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true } })
 
   return (
     <div className="flex h-screen overflow-hidden">
       <HostSidebar
         nomeUtente={session.user.name ?? ''}
         nomeAzienda={host?.nomeAzienda ?? 'La mia azienda'}
+        moduliAttivi={host?.moduliAttivi ?? {}}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar
