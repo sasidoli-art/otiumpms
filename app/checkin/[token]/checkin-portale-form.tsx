@@ -44,7 +44,6 @@ export default function CheckInPortaleForm({
   const [completato, setCompletato] = useState(p.checkInCompletato)
   const [loading, setLoading] = useState(false)
   const [errore, setErrore] = useState('')
-  const maxAcc = Math.max(0, (p.numOspiti || 1) - 1)
   const [accompagnatori, setAccompagnatori] = useState<AccForm[]>([])
 
   const emptyAcc = (): AccForm => ({
@@ -53,7 +52,7 @@ export default function CheckInPortaleForm({
     numeroDocumento: '', isMinore: false,
   })
 
-  function addAcc() { if (accompagnatori.length < maxAcc) setAccompagnatori(a => [...a, emptyAcc()]) }
+  function addAcc() { setAccompagnatori(a => [...a, emptyAcc()]) }
   function removeAcc(i: number) { setAccompagnatori(a => a.filter((_, idx) => idx !== i)) }
   function setAcc(i: number, field: string, value: string | boolean) {
     setAccompagnatori(a => a.map((acc, idx) => idx === i ? { ...acc, [field]: value } : acc))
@@ -218,22 +217,19 @@ export default function CheckInPortaleForm({
         </div>
 
         {/* Accompagnatori */}
-        {maxAcc > 0 && (
-          <div className="pt-3 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-500">
-                Accompagnatori ({accompagnatori.length}/{maxAcc})
-              </p>
-              {accompagnatori.length < maxAcc && (
-                <button type="button" onClick={addAcc} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
-                  + Aggiungi persona
-                </button>
-              )}
-            </div>
+        <div className="pt-3 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-gray-500">
+              Accompagnatori {accompagnatori.length > 0 && `(${accompagnatori.length})`}
+            </p>
+            <button type="button" onClick={addAcc} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+              + Aggiungi persona
+            </button>
+          </div>
 
-            {accompagnatori.length === 0 && (
-              <p className="text-xs text-gray-400 italic mb-2">Viaggi con qualcuno? Aggiungi i dati degli accompagnatori.</p>
-            )}
+          {accompagnatori.length === 0 && (
+            <p className="text-xs text-gray-400 italic mb-2">Viaggi con qualcuno? Aggiungi i dati degli accompagnatori per velocizzare il check-in di tutto il gruppo.</p>
+          )}
 
             {accompagnatori.map((acc, i) => (
               <div key={i} className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
@@ -285,8 +281,17 @@ export default function CheckInPortaleForm({
                 </label>
               </div>
             ))}
-          </div>
-        )}
+        </div>
+
+        {/* Avviso obbligo legale */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">
+          <p className="font-semibold mb-1">Obbligo di identificazione</p>
+          <p>
+            Ai sensi dell&apos;art. 109 del T.U.L.P.S. (R.D. 773/1931), tutti gli ospiti sono tenuti
+            a presentare un documento di identit&agrave; valido al momento dell&apos;arrivo in struttura.
+            Il check-in online non sostituisce l&apos;identificazione in reception.
+          </p>
+        </div>
 
         <button
           type="submit"

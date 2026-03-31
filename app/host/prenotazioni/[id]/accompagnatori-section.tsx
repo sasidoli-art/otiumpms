@@ -116,9 +116,7 @@ export default function AccompagnatoriSection({
     }
   }
 
-  // numOspiti include il titolare, quindi gli accompagnatori max = numOspiti - 1
-  const maxAccompagnatori = Math.max(0, numOspiti - 1)
-  const puoAggiungere = lista.length < maxAccompagnatori
+  const puoAggiungere = true
 
   return (
     <div className="card">
@@ -126,8 +124,7 @@ export default function AccompagnatoriSection({
         <div>
           <h2 className="text-base font-semibold text-gray-900">Accompagnatori</h2>
           <p className="text-xs text-gray-400">
-            {lista.length} di {maxAccompagnatori} registrati
-            {maxAccompagnatori === 0 && ' (soggiorno singolo)'}
+            {lista.length} registrat{lista.length === 1 ? 'o' : 'i'}
           </p>
         </div>
         {puoAggiungere && !showForm && (
@@ -149,9 +146,7 @@ export default function AccompagnatoriSection({
 
       {/* Lista accompagnatori */}
       {lista.length === 0 && !showForm && (
-        <p className="text-sm text-gray-400 italic py-2">
-          {maxAccompagnatori > 0 ? 'Nessun accompagnatore registrato.' : 'Prenotazione per 1 ospite.'}
-        </p>
+        <p className="text-sm text-gray-400 italic py-2">Nessun accompagnatore registrato.</p>
       )}
 
       <div className="space-y-2">
