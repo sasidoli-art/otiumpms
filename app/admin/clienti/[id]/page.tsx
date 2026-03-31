@@ -182,7 +182,7 @@ export default async function ClienteDettaglioPage({ params: paramsPromise }: { 
               <Link href={`/admin/fatture?hostId=${host.id}`} className="text-sm text-brand-600 hover:text-brand-700 font-medium">Vedi tutte →</Link>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="table-th">Numero</th>
@@ -216,7 +216,7 @@ export default async function ClienteDettaglioPage({ params: paramsPromise }: { 
               <Link href={`/admin/pagamenti?hostId=${host.id}`} className="text-sm text-brand-600 hover:text-brand-700 font-medium">Vedi tutti →</Link>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="table-th">Descrizione</th>
@@ -247,7 +247,7 @@ export default async function ClienteDettaglioPage({ params: paramsPromise }: { 
               <h3 className="font-semibold text-gray-900">Eventi ({host.eventi.length})</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                   <tr>
                     <th className="table-th">Titolo</th>

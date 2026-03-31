@@ -113,7 +113,7 @@ export default async function ImpostazioniPage() {
             <h2 className="text-base font-semibold text-gray-900">Piani Abbonamento</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="table-th">Piano</th>

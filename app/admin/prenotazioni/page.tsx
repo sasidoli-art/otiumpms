@@ -118,7 +118,7 @@ export default async function AdminPrenotazioniPage({
       ) : (
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="table-th">Ospite</th>

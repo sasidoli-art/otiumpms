@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           ruolo="ADMIN"
           settingsHref="/admin/impostazioni"
         />
-        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] p-6">
+        <main className="flex-1 overflow-y-auto bg-[#f5f6f8] dark:bg-slate-950 p-6">
           {children}
         </main>
       </div>

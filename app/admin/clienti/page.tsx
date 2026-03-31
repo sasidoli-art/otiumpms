@@ -83,7 +83,7 @@ export default async function AdminClientiPage({ searchParams }: Props) {
       {/* Tabella */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="table-th">Azienda / Referente</th>
