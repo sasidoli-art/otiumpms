@@ -236,6 +236,9 @@ model Host {
   // Magazzino
   articoliMagazzino     ArticoloMagazzino[]
 
+  // Biancheria
+  richiesteBiancheria   RichiestaBiancheria[]
+
   @@map("hosts")
 }
 
@@ -462,6 +465,7 @@ model UnitaPrenotabile {
   segnalazioni    SegnalazioneManutenzione[]
   pagamentiSpa    PagamentoSpa[]
   canaliEsterni   CanaleEsterno[]
+  dotazioneBiancheria DotazioneBiancheria[]
 
   @@map("unita_prenotabili")
 }
@@ -845,6 +849,55 @@ model OggettoSmarrito {
 
   @@index([hostId, stato])
   @@map("oggetti_smarriti")
+}
+
+// ─── Biancheria & Lavanderia ──────────────────────────────────────────────────
+
+// Dotazione standard per camera/unità (quanta biancheria serve per N ospiti)
+model DotazioneBiancheria {
+  id              String           @id @default(cuid())
+  hostId          String
+  unitaId         String?          // null = default per tutte le unità
+  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+
+  articolo        String           // "Lenzuola matrimoniale", "Asciugamano grande", "Tappetino bagno", ecc.
+  quantitaPerOspite Int            @default(1) // quanti pezzi per ospite
+  quantitaFissa   Int              @default(0) // pezzi fissi per camera (indipendenti da ospiti)
+  categoria       String           @default("BIANCHERIA") // BIANCHERIA, BAGNO, ACCESSORI
+
+  createdAt       DateTime         @default(now())
+
+  @@index([hostId])
+  @@map("dotazione_biancheria")
+}
+
+// Richiesta biancheria generata (per giorno, per camera)
+model RichiestaBiancheria {
+  id              String   @id @default(cuid())
+  hostId          String
+  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  dataConsegna    DateTime @db.Date          // giorno per cui serve la biancheria
+  generataIl      DateTime @default(now())
+
+  // Dettaglio righe (JSON): [{camera, ospiti, articoli: [{nome, quantita}]}]
+  righe           Json
+
+  totaleArticoli  Int      @default(0)       // somma totale pezzi
+  totaleCamere    Int      @default(0)
+
+  // Stato
+  stato           String   @default("BOZZA") // BOZZA, INVIATA, CONFERMATA, COMPLETATA
+  canaleInvio     String?                    // EMAIL, WHATSAPP, SMS, CHAT
+  inviatoA        String?                    // email/numero destinatario
+  inviatoIl       DateTime?
+  note            String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([hostId, dataConsegna])
+  @@map("richieste_biancheria")
 }
 
 // ─── Promemoria Operativi (Traces) ────────────────────────────────────────────

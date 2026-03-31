@@ -39,6 +39,7 @@ import {
   Clock,
   Globe,
   Boxes,
+  Shirt,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -93,6 +94,7 @@ const allNavGroups = [
     items: [
       { href: '/host/crm',          label: 'CRM Ospiti',    icon: Users },
       { href: '/host/housekeeping', label: 'Housekeeping',  icon: Sparkles },
+      { href: '/host/housekeeping/biancheria', label: 'Biancheria', icon: Shirt },
       { href: '/host/oggetti-smarriti',  label: 'Lost & Found',  icon: Search },
       { href: '/host/magazzino',    label: 'Magazzino',     icon: Boxes },
       { href: '/host/manutenzione', label: 'Manutenzione',  icon: Wrench },
