@@ -247,6 +247,9 @@ model Host {
   // Pagamenti
   paymentConfig         PaymentProviderConfig?
 
+  // Upselling
+  regoleUpsell          RegolaUpsell[]
+
   @@map("hosts")
 }
 
@@ -437,6 +440,7 @@ model Struttura {
   canaliEsterni   CanaleEsterno[]
   serviziStruttura ServizioStruttura[]
   pacchettiServizio PacchettoServizio[]
+  regoleUpsell    RegolaUpsell[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String?  @default("MANUALE")
@@ -626,6 +630,7 @@ model Prenotazione {
   pianoPasto      PastoPrenotazione?
   addebiti        AddebitoPrenotazione[]
   pagamentiCheckout PagamentoCheckout[]
+  proposteUpsell  PropostaUpsell[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -1049,6 +1054,64 @@ model OggettoSmarrito {
 
   @@index([hostId, stato])
   @@map("oggetti_smarriti")
+}
+
+// ─── Upselling Camera ────────────────────────────────────────────────────────
+
+model RegolaUpsell {
+  id              String    @id @default(cuid())
+  hostId          String
+  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId     String?
+  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome            String     // "Standard → Deluxe", "Doppia → Suite"
+  daUnitaId       String?    // camera/tipo di partenza (null = qualsiasi)
+  aUnitaId        String     // camera/tipo target upgrade
+
+  tipoSupplemento String     @default("FISSO") // FISSO (€/notte), PERCENTUALE
+  supplemento     Float      @default(0)
+
+  // Incentivo operatore
+  incentivo       Float      @default(0)       // € premio per operatore
+  incentivoPct    Float?                       // % del supplemento
+
+  // Limiti
+  maxOccupazione  Float?     @default(80)
+  maxNotti        Int?
+  soloCheckIn     Boolean    @default(true)
+  attiva          Boolean    @default(true)
+
+  proposte        PropostaUpsell[]
+  createdAt       DateTime   @default(now())
+
+  @@index([hostId])
+  @@map("regole_upsell")
+}
+
+model PropostaUpsell {
+  id              String    @id @default(cuid())
+  regolaId        String
+  regola          RegolaUpsell @relation(fields: [regolaId], references: [id], onDelete: Cascade)
+  prenotazioneId  String
+  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  daCameraNome    String
+  aCameraNome     String
+  supplementoNotte Float
+  supplementoTotale Float
+
+  stato           String     @default("PROPOSTA") // PROPOSTA, ACCETTATA, RIFIUTATA
+  propostaDa      String     // operatore, "AI Concierge", "Sistema"
+  rispostaOspite  String?
+
+  incentivoOperatore Float   @default(0)
+  accettatoAt     DateTime?
+  createdAt       DateTime   @default(now())
+
+  @@index([prenotazioneId])
+  @@index([propostaDa, createdAt])
+  @@map("proposte_upsell")
 }
 
 // ─── Biancheria & Lavanderia ──────────────────────────────────────────────────

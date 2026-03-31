@@ -153,6 +153,15 @@ export const CONCIERGE_TOOLS: AIToolDefinition[] = [
       required: [],
     },
   },
+  {
+    name: 'propose_room_upgrade',
+    description: 'Propone un upgrade di camera all\'ospite con supplemento. Usa quando l\'ospite chiede di cambiare camera, vuole qualcosa di meglio, o quando il sistema ha upgrade disponibili.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ]
 
 // ─── Context builder ──────────────────────────────────────────────────────────
@@ -449,6 +458,27 @@ async function executeTool(
       case 'get_hotel_info': {
         tipo = 'INFO_FORNITA'
         result = `L'argomento richiesto è: ${args.argomento}. Rispondi basandoti sulle INFORMAZIONI HOTEL nel tuo system prompt. Se non hai l'informazione specifica, suggerisci di contattare la reception.`
+        break
+      }
+
+      case 'propose_room_upgrade': {
+        tipo = 'INFO_FORNITA'
+        if (!guest.prenotazioneId) {
+          result = 'Nessuna prenotazione collegata.'
+          successo = false
+          break
+        }
+        const { calcolaUpgradeDisponibili } = await import('@/lib/upsell')
+        const upgrade = await calcolaUpgradeDisponibili(hostId, guest.prenotazioneId)
+        const disponibili = upgrade.filter(u => u.disponibile)
+        if (disponibili.length === 0) {
+          result = 'Nessun upgrade disponibile al momento.'
+          break
+        }
+        const lista = disponibili.map(u =>
+          `${u.nome}: ${u.daCameraNome} → ${u.aCameraNome} (+€${u.supplementoNotte}/notte, totale +€${u.supplementoTotale})`
+        ).join('\n')
+        result = `Upgrade disponibili:\n${lista}\n\nChiedi all'ospite se è interessato a uno di questi upgrade. Se accetta, usa il nome della regola per confermare.`
         break
       }
 
