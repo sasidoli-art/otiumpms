@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { generateAlloggiatiFile, validateGuest, type AlloggiatiGuest } from '@/lib/alloggiati'
+import { generateAlloggiatiFile, validateGuest, type AlloggiatiGuestWithAcc } from '@/lib/alloggiati'
 
 // GET /api/host/alloggiati?strutturaId=xxx&da=2026-03-01&a=2026-03-31
 // Restituisce le prenotazioni con stato validazione per Alloggiati Web
@@ -52,12 +52,21 @@ export async function GET(req: NextRequest) {
       guestComuneRilascioIstat: true,
       guestProvinciaRilascio: true,
       unita: { select: { nome: true } },
+      accompagnatori: {
+        select: {
+          nome: true, cognome: true, sesso: true, dataNascita: true,
+          luogoNascita: true, provinciaNascita: true,
+          comuneNascitaIstat: true, statoNascitaIstat: true, cittadinanzaIstat: true,
+          tipoDocumento: true, numeroDocumento: true,
+          comuneRilascioIstat: true, provinciaRilascio: true,
+        },
+      },
     },
     orderBy: { dataArrivo: 'asc' },
   })
 
   const risultati = prenotazioni.map(p => {
-    const validazione = validateGuest(p as AlloggiatiGuest)
+    const validazione = validateGuest(p as AlloggiatiGuestWithAcc)
     return {
       id: p.id,
       guestNome: p.guestNome,
@@ -70,6 +79,7 @@ export async function GET(req: NextRequest) {
       guestDataNascita: p.guestDataNascita,
       guestTipoDocumento: p.guestTipoDocumento,
       guestNumeroDocumento: p.guestNumeroDocumento,
+      numAccompagnatori: p.accompagnatori?.length ?? 0,
       valido: validazione.valid,
       campiMancanti: validazione.campiMancanti,
     }
@@ -133,12 +143,21 @@ export async function POST(req: NextRequest) {
       guestNumeroDocumento: true,
       guestComuneRilascioIstat: true,
       guestProvinciaRilascio: true,
+      accompagnatori: {
+        select: {
+          nome: true, cognome: true, sesso: true, dataNascita: true,
+          luogoNascita: true, provinciaNascita: true,
+          comuneNascitaIstat: true, statoNascitaIstat: true, cittadinanzaIstat: true,
+          tipoDocumento: true, numeroDocumento: true,
+          comuneRilascioIstat: true, provinciaRilascio: true,
+        },
+      },
     },
     orderBy: { dataArrivo: 'asc' },
   })
 
   // Filtra solo gli ospiti con dati validi
-  const validi = prenotazioni.filter(p => validateGuest(p as AlloggiatiGuest).valid)
+  const validi = prenotazioni.filter(p => validateGuest(p as AlloggiatiGuestWithAcc).valid)
 
   if (validi.length === 0) {
     return NextResponse.json(
@@ -149,7 +168,7 @@ export async function POST(req: NextRequest) {
 
   const txt = generateAlloggiatiFile(
     struttura.alloggiatiCodiceStruttura,
-    validi as AlloggiatiGuest[],
+    validi as AlloggiatiGuestWithAcc[],
   )
 
   const filename = `alloggiati_${struttura.alloggiatiCodiceStruttura}_${da}_${a}.txt`

@@ -50,6 +50,17 @@ async function dispatchMail(
   await transporter.sendMail({ from, ...opts })
 }
 
+/** Invia una email generica (testo libero) usando il transporter dell'host. */
+export async function sendEmailGeneric(params: {
+  to: string
+  subject: string
+  text: string
+  hostId?: string | null
+}) {
+  const html = base(`<div style="white-space: pre-wrap; font-size: 14px; color: #374151;">${params.text.replace(/\n/g, '<br>')}</div>`)
+  await dispatchMail({ to: params.to, subject: params.subject, html }, params.hostId)
+}
+
 function base(contenuto: string): string {
   return `
     <!DOCTYPE html>

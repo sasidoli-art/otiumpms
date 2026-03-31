@@ -99,31 +99,21 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
   const [extracted, setExtracted] = useState<OCRResult | null>(null)
   const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [hasCamera, setHasCamera] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
-  async function checkCamera() {
-    try {
-      if (!navigator.mediaDevices?.enumerateDevices) {
-        setHasCamera(false)
-        return false
-      }
-      const devices = await navigator.mediaDevices.enumerateDevices()
-      const cam = devices.some(d => d.kind === 'videoinput')
-      setHasCamera(cam)
-      return cam
-    } catch {
-      setHasCamera(false)
-      return false
-    }
-  }
-
   async function handleCameraClick() {
-    const cam = await checkCamera()
-    if (!cam) {
-      setError('Nessuna fotocamera rilevata su questo dispositivo. Usa "Carica file" per selezionare un\'immagine del documento.')
-      return
+    try {
+      if (navigator.mediaDevices?.enumerateDevices) {
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const cam = devices.some(d => d.kind === 'videoinput')
+        if (!cam) {
+          setError('Nessuna fotocamera rilevata su questo dispositivo. Usa "Carica file" per selezionare un\'immagine del documento.')
+          return
+        }
+      }
+    } catch {
+      // Se il check fallisce, proviamo comunque ad aprire la fotocamera
     }
     cameraRef.current?.click()
   }
@@ -229,7 +219,7 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
-        <button type="button" onClick={handleCameraClick} className={`flex-1 border-2 rounded-xl px-4 py-3 text-sm font-medium flex items-center justify-center gap-2 ${hasCamera ? 'border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'border-gray-200 text-gray-400'}`}>
+        <button type="button" onClick={handleCameraClick} className="flex-1 border-2 border-indigo-200 rounded-xl px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 flex items-center justify-center gap-2">
           <Camera className="w-4 h-4" />
           Fotocamera
         </button>

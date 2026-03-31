@@ -91,40 +91,104 @@ export function validateGuest(g: AlloggiatiGuest): AlloggiatiValidation {
   return { valid: mancanti.length === 0, campiMancanti: mancanti }
 }
 
+export interface AlloggiatiAccompagnatore {
+  nome: string
+  cognome: string
+  sesso: string | null
+  dataNascita: Date | null
+  luogoNascita: string | null
+  provinciaNascita: string | null
+  comuneNascitaIstat: string | null
+  statoNascitaIstat: string | null
+  cittadinanzaIstat: string | null
+  tipoDocumento: string | null
+  numeroDocumento: string | null
+  comuneRilascioIstat: string | null
+  provinciaRilascio: string | null
+}
+
+export interface AlloggiatiGuestWithAcc extends AlloggiatiGuest {
+  accompagnatori?: AlloggiatiAccompagnatore[]
+}
+
+function buildRecord(
+  arrivo: Date,
+  partenza: Date | null,
+  cognome: string,
+  nome: string,
+  sesso: string | null,
+  dataNascita: Date | null,
+  comuneNascitaIstat: string | null,
+  provinciaNascita: string | null,
+  statoNascitaIstat: string | null,
+  cittadinanzaIstat: string | null,
+  tipoDocumento: string | null,
+  numeroDocumento: string | null,
+  comuneRilascioIstat: string | null,
+  provinciaRilascio: string | null,
+  tipoAlloggiato: string,
+): string {
+  const notti = calcolaNotti(arrivo, partenza)
+  const isEstero = statoNascitaIstat !== '100000100'
+
+  return [
+    '2',
+    fmtData(new Date(arrivo)),
+    String(notti),
+    cognome.toUpperCase(),
+    nome.toUpperCase(),
+    mapSesso(sesso),
+    dataNascita ? fmtData(new Date(dataNascita)) : '',
+    isEstero ? '0' : (comuneNascitaIstat ?? '0'),
+    isEstero ? 'EE' : (provinciaNascita ?? ''),
+    statoNascitaIstat ?? '100000100',
+    cittadinanzaIstat ?? '100000100',
+    mapTipoDoc(tipoDocumento),
+    (numeroDocumento ?? '').toUpperCase(),
+    comuneRilascioIstat ?? '0',
+    provinciaRilascio ?? '',
+    tipoAlloggiato,
+  ].join('\t')
+}
+
 export function generateAlloggiatiFile(
   codiceStruttura: string,
-  ospiti: AlloggiatiGuest[],
+  ospiti: AlloggiatiGuestWithAcc[],
 ): string {
   const lines: string[] = []
 
   // Testata (Tipo 1)
   lines.push(['1', codiceStruttura, fmtData(new Date())].join('\t'))
 
-  // Record schedina (Tipo 2) — un record per ospite
   for (const g of ospiti) {
-    const notti = calcolaNotti(g.dataArrivo, g.dataPartenza)
-    const isEstero = g.guestStatoNascitaIstat !== '100000100'
+    const hasAcc = g.accompagnatori && g.accompagnatori.length > 0
+    // 16=singolo, 19=capofamiglia (se ha accompagnatori)
+    const tipoTitolare = hasAcc ? '19' : '16'
 
-    const fields = [
-      '2',                                                    // tipo record
-      fmtData(new Date(g.dataArrivo)),                       // data arrivo
-      String(notti),                                          // notti
-      g.guestCognome.toUpperCase(),                          // cognome
-      g.guestNome.toUpperCase(),                             // nome
-      mapSesso(g.guestSesso),                                // sesso
-      g.guestDataNascita ? fmtData(new Date(g.guestDataNascita)) : '', // data nascita
-      isEstero ? '0' : (g.guestComuneNascitaIstat ?? '0'),  // comune nascita ISTAT
-      isEstero ? 'EE' : (g.guestProvinciaNascita ?? ''),    // provincia nascita
-      g.guestStatoNascitaIstat ?? '100000100',               // stato nascita
-      g.guestCittadinanzaIstat ?? '100000100',               // cittadinanza
-      mapTipoDoc(g.guestTipoDocumento),                      // tipo documento
-      (g.guestNumeroDocumento ?? '').toUpperCase(),           // numero documento
-      g.guestComuneRilascioIstat ?? '0',                     // comune rilascio
-      g.guestProvinciaRilascio ?? '',                         // provincia rilascio
-      '16',                                                   // tipo alloggiato (singolo)
-    ]
+    lines.push(buildRecord(
+      g.dataArrivo, g.dataPartenza,
+      g.guestCognome, g.guestNome, g.guestSesso, g.guestDataNascita,
+      g.guestComuneNascitaIstat, g.guestProvinciaNascita,
+      g.guestStatoNascitaIstat, g.guestCittadinanzaIstat,
+      g.guestTipoDocumento, g.guestNumeroDocumento,
+      g.guestComuneRilascioIstat, g.guestProvinciaRilascio,
+      tipoTitolare,
+    ))
 
-    lines.push(fields.join('\t'))
+    // Accompagnatori (tipo 20 = familiare/accompagnatore)
+    if (hasAcc) {
+      for (const a of g.accompagnatori!) {
+        lines.push(buildRecord(
+          g.dataArrivo, g.dataPartenza,
+          a.cognome, a.nome, a.sesso, a.dataNascita,
+          a.comuneNascitaIstat, a.provinciaNascita,
+          a.statoNascitaIstat, a.cittadinanzaIstat,
+          a.tipoDocumento, a.numeroDocumento,
+          a.comuneRilascioIstat, a.provinciaRilascio,
+          '20',
+        ))
+      }
+    }
   }
 
   return lines.join('\r\n')

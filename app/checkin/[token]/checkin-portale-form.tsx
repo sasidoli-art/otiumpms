@@ -220,7 +220,7 @@ export default function CheckInPortaleForm({
         <div className="pt-3 border-t border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-gray-500">
-              Accompagnatori {accompagnatori.length > 0 && `(${accompagnatori.length})`}
+              Accompagnatori{accompagnatori.length > 0 ? ` (${accompagnatori.length})` : ''}
             </p>
             <button type="button" onClick={addAcc} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
               + Aggiungi persona
@@ -231,56 +231,56 @@ export default function CheckInPortaleForm({
             <p className="text-xs text-gray-400 italic mb-2">Viaggi con qualcuno? Aggiungi i dati degli accompagnatori per velocizzare il check-in di tutto il gruppo.</p>
           )}
 
-            {accompagnatori.map((acc, i) => (
-              <div key={i} className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-gray-700">Accompagnatore {i + 1}</p>
-                  <button type="button" onClick={() => removeAcc(i)} className="text-xs text-red-400 hover:text-red-600">Rimuovi</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Nome *</label>
-                    <input type="text" value={acc.nome} onChange={e => setAcc(i, 'nome', e.target.value)} className={inp} required />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Cognome *</label>
-                    <input type="text" value={acc.cognome} onChange={e => setAcc(i, 'cognome', e.target.value)} className={inp} required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Sesso</label>
-                    <select value={acc.sesso} onChange={e => setAcc(i, 'sesso', e.target.value)} className={inp}>
-                      <option value="M">M</option><option value="F">F</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Data nascita</label>
-                    <input type="date" value={acc.dataNascita} onChange={e => setAcc(i, 'dataNascita', e.target.value)} className={inp} />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Nazionalità</label>
-                    <input type="text" value={acc.nazionalita} onChange={e => setAcc(i, 'nazionalita', e.target.value)} className={inp} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Documento</label>
-                    <select value={acc.tipoDocumento} onChange={e => setAcc(i, 'tipoDocumento', e.target.value)} className={inp}>
-                      {TIPI_DOC.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-medium text-gray-500 mb-1">Numero doc.</label>
-                    <input type="text" value={acc.numeroDocumento} onChange={e => setAcc(i, 'numeroDocumento', e.target.value.toUpperCase())} className={inp} />
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={acc.isMinore} onChange={e => setAcc(i, 'isMinore', e.target.checked)} className="w-4 h-4 rounded accent-indigo-500" />
-                  <span className="text-xs text-gray-600">Minore di 18 anni</span>
-                </label>
+          {accompagnatori.map((acc, i) => (
+            <div key={i} className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-gray-700">Accompagnatore {i + 1}</p>
+                <button type="button" onClick={() => removeAcc(i)} className="text-xs text-red-400 hover:text-red-600">Rimuovi</button>
               </div>
-            ))}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Nome *</label>
+                  <input type="text" value={acc.nome} onChange={e => setAcc(i, 'nome', e.target.value)} className={inp} required />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Cognome *</label>
+                  <input type="text" value={acc.cognome} onChange={e => setAcc(i, 'cognome', e.target.value)} className={inp} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Sesso</label>
+                  <select value={acc.sesso} onChange={e => setAcc(i, 'sesso', e.target.value)} className={inp}>
+                    <option value="M">M</option><option value="F">F</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Data nascita</label>
+                  <input type="date" value={acc.dataNascita} onChange={e => setAcc(i, 'dataNascita', e.target.value)} className={inp} />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Nazionalità</label>
+                  <input type="text" value={acc.nazionalita} onChange={e => setAcc(i, 'nazionalita', e.target.value)} className={inp} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Documento</label>
+                  <select value={acc.tipoDocumento} onChange={e => setAcc(i, 'tipoDocumento', e.target.value)} className={inp}>
+                    {TIPI_DOC.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Numero doc.</label>
+                  <input type="text" value={acc.numeroDocumento} onChange={e => setAcc(i, 'numeroDocumento', e.target.value.toUpperCase())} className={inp} />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={acc.isMinore} onChange={e => setAcc(i, 'isMinore', e.target.checked)} className="w-4 h-4 rounded accent-indigo-500" />
+                <span className="text-xs text-gray-600">Minore di 18 anni</span>
+              </label>
+            </div>
+          ))}
         </div>
 
         {/* Avviso obbligo legale */}
