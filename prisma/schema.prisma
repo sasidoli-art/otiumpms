@@ -1347,18 +1347,29 @@ model CabinaSpa {
   durataPuliziaMinuti Int       @default(15)  // turnaround tra appuntamenti
   noteHK              String?
 
-  // Dotazione biancheria SPA (standard per questa cabina)
-  dotazioneAsciugamaniGrandi  Int @default(4)
-  dotazioneAsciugamaniPiccoli Int @default(4)
-  dotazioneAccappatoi         Int @default(2)
-  dotazioneLenzuolaLettino    Int @default(2)
-  dotazioneCiabatte           Int @default(2)
-  dotazioneTappetini          Int @default(1)
+  // Dotazione configurabile per cabina
+  dotazione   DotazioneCabinaSpa[]
 
   createdAt   DateTime @default(now())
   appuntamenti AppuntamentoSpa[]
 
   @@map("cabine_spa")
+}
+
+// Dotazione articoli per cabina SPA — completamente configurabile dall'host
+model DotazioneCabinaSpa {
+  id          String    @id @default(cuid())
+  cabinaId    String
+  cabina      CabinaSpa @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
+
+  articolo    String    // nome libero: "Asciugamano grande", "Olio lavanda", "Cuffia monouso", ecc.
+  quantita    Int       @default(1) // pezzi per appuntamento
+  categoria   String    @default("BIANCHERIA") // BIANCHERIA, PRODOTTI, MONOUSO, ATTREZZATURA, ALTRO
+
+  createdAt   DateTime  @default(now())
+
+  @@index([cabinaId])
+  @@map("dotazione_cabina_spa")
 }
 
 model TrattamentoSpa {

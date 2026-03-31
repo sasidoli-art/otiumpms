@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { startOfDay, endOfDay, addDays, format } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 /**
  * GET /api/host/spa/biancheria?data=2026-04-01
- * Calcola biancheria SPA necessaria per gli appuntamenti di una data.
- * Basato su: appuntamenti del giorno × dotazione per cabina.
+ * Calcola biancheria/prodotti SPA necessari per gli appuntamenti di una data.
+ * Basato sulla dotazione configurabile per cabina.
  */
 export async function GET(req: NextRequest) {
   const auth = await requireHost()
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest) {
   const giorno = startOfDay(data)
   const fineGiorno = endOfDay(data)
 
-  // Appuntamenti del giorno con cabina
+  // Appuntamenti del giorno con cabina e dotazione
   const appuntamenti = await prisma.appuntamentoSpa.findMany({
     where: {
       hostId: auth.user.hostId,
@@ -32,13 +31,10 @@ export async function GET(req: NextRequest) {
       guestCognome: true,
       dataOra: true,
       durata: true,
-      cabinaId: true,
       cabina: {
         select: {
           id: true, nome: true,
-          dotazioneAsciugamaniGrandi: true, dotazioneAsciugamaniPiccoli: true,
-          dotazioneAccappatoi: true, dotazioneLenzuolaLettino: true,
-          dotazioneCiabatte: true, dotazioneTappetini: true,
+          dotazione: { orderBy: { categoria: 'asc' } },
         },
       },
       trattamento: { select: { nome: true } },
@@ -47,36 +43,33 @@ export async function GET(req: NextRequest) {
     orderBy: { dataOra: 'asc' },
   })
 
-  // Calcola biancheria per ogni appuntamento
-  const dettaglio = appuntamenti.map(a => {
-    const cab = a.cabina
-    return {
-      appuntamentoId: a.id,
-      orario: format(new Date(a.dataOra), 'HH:mm'),
-      ospite: `${a.guestCognome} ${a.guestNome}`,
-      cabina: cab?.nome || '—',
-      trattamento: a.trattamento?.nome || '—',
-      terapista: a.terapista ? `${a.terapista.nome} ${a.terapista.cognome}` : '—',
-      biancheria: cab ? {
-        asciugamaniGrandi: cab.dotazioneAsciugamaniGrandi,
-        asciugamaniPiccoli: cab.dotazioneAsciugamaniPiccoli,
-        accappatoi: cab.dotazioneAccappatoi,
-        lenzuolaLettino: cab.dotazioneLenzuolaLettino,
-        ciabatte: cab.dotazioneCiabatte,
-        tappetini: cab.dotazioneTappetini,
-      } : null,
-    }
-  })
+  // Dettaglio per appuntamento
+  const dettaglio = appuntamenti.map(a => ({
+    appuntamentoId: a.id,
+    orario: format(new Date(a.dataOra), 'HH:mm'),
+    ospite: `${a.guestCognome} ${a.guestNome}`,
+    cabina: a.cabina?.nome || '—',
+    trattamento: a.trattamento?.nome || '—',
+    terapista: a.terapista ? `${a.terapista.nome} ${a.terapista.cognome}` : '—',
+    articoli: (a.cabina?.dotazione || []).map(d => ({
+      nome: d.articolo,
+      quantita: d.quantita,
+      categoria: d.categoria,
+    })),
+  }))
 
-  // Totali
-  const totali = {
-    asciugamaniGrandi: dettaglio.reduce((s, d) => s + (d.biancheria?.asciugamaniGrandi || 0), 0),
-    asciugamaniPiccoli: dettaglio.reduce((s, d) => s + (d.biancheria?.asciugamaniPiccoli || 0), 0),
-    accappatoi: dettaglio.reduce((s, d) => s + (d.biancheria?.accappatoi || 0), 0),
-    lenzuolaLettino: dettaglio.reduce((s, d) => s + (d.biancheria?.lenzuolaLettino || 0), 0),
-    ciabatte: dettaglio.reduce((s, d) => s + (d.biancheria?.ciabatte || 0), 0),
-    tappetini: dettaglio.reduce((s, d) => s + (d.biancheria?.tappetini || 0), 0),
+  // Totali aggregati per articolo
+  const totaliMap: Record<string, { quantita: number; categoria: string }> = {}
+  for (const d of dettaglio) {
+    for (const art of d.articoli) {
+      if (!totaliMap[art.nome]) totaliMap[art.nome] = { quantita: 0, categoria: art.categoria }
+      totaliMap[art.nome].quantita += art.quantita
+    }
   }
+
+  const totali = Object.entries(totaliMap)
+    .map(([nome, { quantita, categoria }]) => ({ nome, quantita, categoria }))
+    .sort((a, b) => a.categoria.localeCompare(b.categoria) || a.nome.localeCompare(b.nome))
 
   // Stato HK cabine
   const cabine = await prisma.cabinaSpa.findMany({
