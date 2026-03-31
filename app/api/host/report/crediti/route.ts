@@ -4,8 +4,8 @@ import { prisma } from '@/lib/db'
 
 /**
  * GET /api/host/report/crediti
- * Report crediti scaduti (AR Aging) — 30/60/90+ giorni.
- * Mostra prenotazioni completate con prezzoTotale > acconto versato.
+ * Scadenziario Crediti — fasce 30/60/90+ giorni.
+ * Mostra prenotazioni con saldo residuo (prezzoTotale - acconto versato).
  */
 export async function GET(_: NextRequest) {
   const auth = await requireHostOrAdmin()
@@ -49,7 +49,7 @@ export async function GET(_: NextRequest) {
       const saldo = Math.round((totale - acconto) * 100) / 100
       if (saldo <= 0) return null
 
-      // Data di riferimento per aging: partenza o creazione
+      // Data di riferimento per scadenziario: partenza o creazione
       const dataRif = p.dataPartenza ?? p.createdAt
       const giorniScaduto = Math.floor((oggi.getTime() - new Date(dataRif).getTime()) / 86400000)
 
@@ -80,7 +80,7 @@ export async function GET(_: NextRequest) {
     .filter((c): c is NonNullable<typeof c> => c !== null)
 
   // Aggregazione per fascia
-  const aging = {
+  const scadenziario = {
     corrente: { count: 0, totale: 0 },
     '30gg': { count: 0, totale: 0 },
     '60gg': { count: 0, totale: 0 },
@@ -88,20 +88,20 @@ export async function GET(_: NextRequest) {
   }
 
   for (const c of crediti) {
-    aging[c.fascia].count++
-    aging[c.fascia].totale += c.saldo
+    scadenziario[c.fascia].count++
+    scadenziario[c.fascia].totale += c.saldo
   }
 
   // Round
-  for (const k of Object.keys(aging) as Array<keyof typeof aging>) {
-    aging[k].totale = Math.round(aging[k].totale * 100) / 100
+  for (const k of Object.keys(scadenziario) as Array<keyof typeof scadenziario>) {
+    scadenziario[k].totale = Math.round(scadenziario[k].totale * 100) / 100
   }
 
   const totaleCrediti = crediti.reduce((s, c) => s + c.saldo, 0)
 
   return NextResponse.json({
     crediti: crediti.sort((a, b) => b.giorniScaduto - a.giorniScaduto),
-    aging,
+    scadenziario,
     riepilogo: {
       totaleCrediti: Math.round(totaleCrediti * 100) / 100,
       numCrediti: crediti.length,

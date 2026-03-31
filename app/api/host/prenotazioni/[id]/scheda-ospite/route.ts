@@ -5,9 +5,9 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 /**
- * GET /api/host/prenotazioni/[id]/regcard
- * Genera la scheda di registrazione ospite PDF (Registration Card)
- * Conforme art. 109 TULPS per identificazione in reception.
+ * GET /api/host/prenotazioni/[id]/scheda-ospite
+ * Genera la Scheda Ospite PDF per check-in in reception.
+ * Conforme art. 109 TULPS per identificazione.
  */
 export async function GET(
   _: NextRequest,
@@ -88,7 +88,7 @@ export async function GET(
           e(Text, { style: s.subtitle }, pren.host?.partitaIva ? `P.IVA ${pren.host.partitaIva}` : ''),
         ),
         // Titolo
-        e(Text, { style: { fontSize: 13, fontWeight: 'bold', marginBottom: 12 } }, 'Scheda di Registrazione Ospite'),
+        e(Text, { style: { fontSize: 13, fontWeight: 'bold', marginBottom: 12 } }, 'Scheda Ospite'),
         // Soggiorno
         e(View, { style: s.section },
           e(Text, { style: s.sectionTitle }, 'Soggiorno'),
@@ -141,7 +141,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(pdf), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="regcard_${pren.guestCognome}_${pren.guestNome}.pdf"`,
+        'Content-Disposition': `attachment; filename="scheda_ospite_${pren.guestCognome}_${pren.guestNome}.pdf"`,
       },
     })
   } catch (err) {
