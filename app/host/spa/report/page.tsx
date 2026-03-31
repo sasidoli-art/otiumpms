@@ -150,15 +150,30 @@ export default async function SpaReportPage({ searchParams }: { searchParams: Pr
     count: contaGiorno.get(i + 1) ?? 0,
   }))
 
+  // No-show separato
+  const noShowCount = await prisma.appuntamentoSpa.count({
+    where: { hostId, dataOra: { gte: inizio, lte: fine }, stato: 'NO_SHOW' },
+  })
+
+  // Ospiti unici (repeat customer)
+  const ospitiUnici = await prisma.appuntamentoSpa.groupBy({
+    by: ['guestEmail'],
+    where: { ...whereAttivi, guestEmail: { not: null } },
+  })
+
   const apptAttiviCount = kpiAttivi._count.id
   const totaleAppt = apptAttiviCount + kpiCancellazioni
+  const avgTicket = apptAttiviCount > 0 ? Math.round(((kpiAttivi._sum.prezzoTotale ?? 0) / apptAttiviCount) * 100) / 100 : 0
   const kpi = {
     totaleAppt,
     apptAttivi: apptAttiviCount,
     cancellazioni: kpiCancellazioni,
+    noShow: noShowCount,
     tassoCancellazione: totaleAppt > 0 ? Math.round((kpiCancellazioni / totaleAppt) * 100) : 0,
     revenue: kpiAttivi._sum.prezzoTotale ?? 0,
     durataOre: Math.round((kpiAttivi._sum.durata ?? 0) / 60),
+    avgTicket,
+    ospitiUnici: ospitiUnici.length,
   }
 
   return (

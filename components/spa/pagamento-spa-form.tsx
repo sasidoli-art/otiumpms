@@ -108,12 +108,9 @@ export function PagamentoSpaForm({
     }
 
     if (metodoPagamento === 'CARTA') {
-      if (!cardData.numero || cardData.numero.length < 15) {
-        onError?.('Numero carta non valido')
-        return
+      if (cardData.numero) {
+        payload.ultimeQuatroCifre = cardData.numero.slice(-4)
       }
-      // Estrai ultime 4 cifre
-      payload.ultimeQuatroCifre = cardData.numero.slice(-4)
     }
 
     setLoading(true)
