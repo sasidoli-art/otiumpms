@@ -37,6 +37,7 @@ import {
   Search,
   UtensilsCrossed,
   Clock,
+  Globe,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -65,6 +66,7 @@ const HREF_MODULO: Record<string, string> = {
   '/host/email-automatiche': 'emailAuto',
   '/host/ristorazione': 'ristorazione',
   '/host/oggetti-smarriti': 'lostFound',
+  '/host/canali': 'channelMgr',
 }
 
 const allNavGroups = [
@@ -106,6 +108,7 @@ const allNavGroups = [
       { href: '/host/analytics', label: 'Analytics',     icon: BarChart3 },
       { href: '/host/fatture',   label: 'Fatture',       icon: FileText },
       { href: '/host/email-automatiche', label: 'Email auto', icon: Mail },
+      { href: '/host/canali',           label: 'Channel Manager', icon: Globe },
     ],
   },
   {

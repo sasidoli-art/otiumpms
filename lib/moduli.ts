@@ -48,7 +48,8 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   // Integrazioni
   { id: 'concierge',     nome: 'AI Concierge',        descrizione: 'Assistente WhatsApp 24/7 con AI per ospiti',           icona: 'Bot',             categoria: 'integrazioni', defaultAttivo: false },
   { id: 'emailAuto',     nome: 'Email Automatiche',   descrizione: 'Conferme, reminder, follow-up automatici',             icona: 'Mail',            categoria: 'integrazioni', defaultAttivo: true },
-  { id: 'ical',          nome: 'Calendario iCal',     descrizione: 'Sync con Booking.com, Airbnb, Google Calendar',        icona: 'CalendarRange',   categoria: 'integrazioni', defaultAttivo: true },
+  { id: 'ical',          nome: 'Calendario iCal',     descrizione: 'Export calendario per sync con altri sistemi',          icona: 'CalendarRange',   categoria: 'integrazioni', defaultAttivo: true },
+  { id: 'channelMgr',   nome: 'Channel Manager',     descrizione: 'Import prenotazioni da Booking.com, Airbnb, VRBO via iCal', icona: 'Globe',      categoria: 'integrazioni', defaultAttivo: false },
 ]
 
 // ─── Tipo stato moduli ────────────────────────────────────────────────────────

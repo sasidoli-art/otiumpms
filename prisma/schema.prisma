@@ -420,6 +420,7 @@ model Struttura {
   pacchetti       Pacchetto[]
   regoleTariffa   RegolaTariffa[]
   configPasti     ConfigPastoStruttura[]
+  canaliEsterni   CanaleEsterno[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -453,6 +454,7 @@ model UnitaPrenotabile {
   taskHK          TaskHK[]
   segnalazioni    SegnalazioneManutenzione[]
   pagamentiSpa    PagamentoSpa[]
+  canaliEsterni   CanaleEsterno[]
 
   @@map("unita_prenotabili")
 }
@@ -671,6 +673,56 @@ model PastoPrenotazione {
 
   @@unique([prenotazioneId])
   @@map("pasti_prenotazione")
+}
+
+// ─── Channel Manager (connessioni iCal con OTA) ──────────────────────────────
+
+model CanaleEsterno {
+  id              String    @id @default(cuid())
+  strutturaId     String
+  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  unitaId         String?
+  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
+
+  nome            String    // "Booking.com", "Airbnb", "VRBO", "Google Calendar", ecc.
+  urlIcal         String    // URL feed iCal da importare
+  attivo          Boolean   @default(true)
+  colore          String    @default("#f59e0b") // colore nel calendario
+
+  // Stato sync
+  ultimoSync      DateTime?
+  ultimoSyncOk    Boolean   @default(true)
+  ultimoSyncError String?
+  eventiImportati Int       @default(0)
+
+  // Prenotazioni importate da questo canale
+  prenotazioniImportate PrenotazioneCanale[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([strutturaId])
+  @@map("canali_esterni")
+}
+
+// Singola prenotazione/blocco importato da un canale iCal
+model PrenotazioneCanale {
+  id              String         @id @default(cuid())
+  canaleId        String
+  canale          CanaleEsterno  @relation(fields: [canaleId], references: [id], onDelete: Cascade)
+
+  uidEvento       String         // UID iCal dell'evento (per dedup)
+  sommario        String         // SUMMARY dell'evento ("Booked", "Not available", nome ospite)
+  dataInizio      DateTime       @db.Date
+  dataFine        DateTime       @db.Date
+  descrizione     String?
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([canaleId, uidEvento])
+  @@index([canaleId])
+  @@map("prenotazioni_canale")
 }
 
 // ─── Alert Ospite (avvisi automatici a check-in/checkout) ─────────────────────
