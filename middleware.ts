@@ -13,11 +13,16 @@ export default withAuth(
     const { pathname } = req.nextUrl
     const token = req.nextauth.token
 
-    // Redirige chi non è HOST né ADMIN dalle rotte HOST — ADMIN può accedere al PMS
-    if (pathname.startsWith('/host') && token?.role !== 'HOST' && token?.role !== 'ADMIN') {
+    // SUPERADMIN: accesso a /superadmin/* e a tutto il resto
+    if (pathname.startsWith('/superadmin') && token?.role !== 'SUPERADMIN') {
       return NextResponse.redirect(new URL('/login', req.url))
     }
-    if (pathname.startsWith('/admin') && token?.role !== 'ADMIN') {
+    // HOST + ADMIN + SUPERADMIN possono accedere a /host/*
+    if (pathname.startsWith('/host') && token?.role !== 'HOST' && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN') {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    // ADMIN + SUPERADMIN possono accedere a /admin/*
+    if (pathname.startsWith('/admin') && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN') {
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
@@ -34,8 +39,9 @@ export default withAuth(
 export const config = {
   // Protegge tutte le rotte /host/*, /admin/* e API autenticate
   matcher: [
-    '/host/:path*', 
+    '/host/:path*',
     '/admin/:path*',
-    '/api/(host|admin|spa)/:path*',
+    '/superadmin/:path*',
+    '/api/(host|admin|spa|superadmin)/:path*',
   ],
 }
