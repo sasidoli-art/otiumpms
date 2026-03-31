@@ -419,6 +419,7 @@ model Struttura {
   segnalazioni    SegnalazioneManutenzione[]
   pacchetti       Pacchetto[]
   regoleTariffa   RegolaTariffa[]
+  configPasti     ConfigPastoStruttura[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -599,6 +600,7 @@ model Prenotazione {
   traces          Trace[]
   oggettiSmarriti OggettoSmarrito[]
   alertOspite     AlertOspite[]
+  pianoPasto      PastoPrenotazione?
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -608,6 +610,67 @@ model Prenotazione {
   @@index([hostId, stato])
   @@index([guestEmail])
   @@map("prenotazioni")
+}
+
+// ─── Piani Pasto & Ristorazione ───────────────────────────────────────────────
+
+enum TipoPasto {
+  COLAZIONE
+  PRANZO
+  CENA
+}
+
+enum PianoPasto {
+  SOLO_PERNOTTAMENTO   // Room Only
+  PERNOTTAMENTO_COLAZIONE  // B&B
+  MEZZA_PENSIONE       // HB: colazione + cena
+  PENSIONE_COMPLETA    // FB: colazione + pranzo + cena
+  ALL_INCLUSIVE         // tutto incluso
+}
+
+// Configurazione pasti della struttura (cosa offre, a che prezzo)
+model ConfigPastoStruttura {
+  id              String    @id @default(cuid())
+  strutturaId     String
+  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  tipoPasto       TipoPasto
+  disponibile     Boolean   @default(true)
+  orarioInizio    String?   // "07:30"
+  orarioFine      String?   // "10:00"
+  prezzo          Float     @default(0)   // prezzo per persona se non incluso nel piano
+  prezzoRidotto   Float?    // prezzo bambini/ridotto
+  luogo           String?   // "Sala colazioni piano terra", "Ristorante La Terrazza"
+  note            String?   // "Buffet", "Servito al tavolo", ecc.
+
+  createdAt       DateTime  @default(now())
+
+  @@unique([strutturaId, tipoPasto])
+  @@map("config_pasto_struttura")
+}
+
+// Piano pasto assegnato a una prenotazione
+model PastoPrenotazione {
+  id              String        @id @default(cuid())
+  prenotazioneId  String
+  prenotazione    Prenotazione  @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  piano           PianoPasto    @default(PERNOTTAMENTO_COLAZIONE)
+  incluso         Boolean       @default(true) // se il pasto è incluso nel prezzo o va addebitato extra
+  note            String?       // "Ospite celiaco", "Vegano", "Intolleranza lattosio"
+
+  // Override prezzo (se diverso dal listino struttura)
+  sovraprezzoGiornaliero Float?  // extra per persona/giorno se non incluso
+
+  // Pasti specifici aggiunti/rimossi (override del piano)
+  pastiExtra      TipoPasto[]   @default([])   // pasti aggiunti oltre al piano
+  pastiEsclusi    TipoPasto[]   @default([])   // pasti esclusi dal piano
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([prenotazioneId])
+  @@map("pasti_prenotazione")
 }
 
 // ─── Alert Ospite (avvisi automatici a check-in/checkout) ─────────────────────
