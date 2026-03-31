@@ -239,6 +239,10 @@ model Host {
   // Biancheria
   richiesteBiancheria   RichiestaBiancheria[]
 
+  // Catalogo servizi
+  serviziStruttura      ServizioStruttura[]
+  pacchettiServizio     PacchettoServizio[]
+
   @@map("hosts")
 }
 
@@ -427,6 +431,8 @@ model Struttura {
   regoleTariffa   RegolaTariffa[]
   configPasti     ConfigPastoStruttura[]
   canaliEsterni   CanaleEsterno[]
+  serviziStruttura ServizioStruttura[]
+  pacchettiServizio PacchettoServizio[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String?  @default("MANUALE")
@@ -614,6 +620,7 @@ model Prenotazione {
   oggettiSmarriti OggettoSmarrito[]
   alertOspite     AlertOspite[]
   pianoPasto      PastoPrenotazione?
+  addebiti        AddebitoPrenotazione[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -732,6 +739,122 @@ model MovimentoMagazzino {
 
   @@index([articoloId, createdAt])
   @@map("movimenti_magazzino")
+}
+
+// ─── Catalogo Servizi & Prodotti (con IVA) ────────────────────────────────────
+
+// Singolo servizio/prodotto offerto dalla struttura (completamente personalizzabile)
+model ServizioStruttura {
+  id              String    @id @default(cuid())
+  hostId          String
+  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId     String?   // null = disponibile in tutte le strutture dell'host
+  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome            String     // "Colazione buffet", "Degustazione vini", "Bottiglia Barolo", "Massaggio 60min"
+  descrizione     String?
+  categoria       String     // libero: ALLOGGIO, RISTORAZIONE, BEVANDE, SPA, SERVIZI, PRODOTTI, PACCHETTO, ALTRO
+  sottocategoria  String?    // libero: "Colazione", "Cena", "Vino rosso", "Massaggio", ecc.
+
+  // Prezzo & IVA
+  prezzo          Float      @default(0)
+  aliquotaIva     Float      @default(22)    // 4, 5, 10, 22, 0 (esente)
+  unitaMisura     String     @default("a persona") // "a persona", "a camera", "a notte", "forfait", "a consumo", "a bottiglia"
+
+  // Disponibilità
+  attivo          Boolean    @default(true)
+  prenotabileOnline Boolean  @default(false) // visibile nel booking pubblico
+  immagine        String?    // URL immagine
+
+  // Per servizi ricorrenti (colazione, pranzo, cena)
+  ricorrente      Boolean    @default(false)  // se true, si addebita per ogni notte
+  orarioInizio    String?    // "07:30"
+  orarioFine      String?    // "10:00"
+  luogo           String?    // "Sala colazioni piano terra"
+
+  // Relazioni
+  addebitiPrenotazione AddebitoPrenotazione[]
+  vociPacchetto        VocePacchetto[]
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([hostId, categoria])
+  @@index([strutturaId])
+  @@map("servizi_struttura")
+}
+
+// Pacchetto = combinazione di servizi con prezzo speciale
+model PacchettoServizio {
+  id              String    @id @default(cuid())
+  hostId          String
+  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId     String?
+  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome            String     // "Weekend Degustazione", "Romantico", "Business Pack"
+  descrizione     String?
+  immagine        String?
+  prezzo          Float      @default(0)      // prezzo pacchetto (può essere diverso dalla somma dei servizi)
+  prezzoOriginale Float?                      // prezzo pieno senza sconto (per mostrare il risparmio)
+  attivo          Boolean    @default(true)
+  prenotabileOnline Boolean  @default(false)
+
+  // Validità
+  dataInizio      DateTime?  @db.Date
+  dataFine        DateTime?  @db.Date
+
+  voci            VocePacchetto[]
+  addebitiPrenotazione AddebitoPrenotazione[]
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([hostId])
+  @@map("pacchetti_servizio")
+}
+
+// Singola voce dentro un pacchetto
+model VocePacchetto {
+  id              String    @id @default(cuid())
+  pacchettoId     String
+  pacchetto       PacchettoServizio @relation(fields: [pacchettoId], references: [id], onDelete: Cascade)
+  servizioId      String
+  servizio        ServizioStruttura @relation(fields: [servizioId], references: [id], onDelete: Cascade)
+
+  quantita        Int        @default(1)
+  incluso         Boolean    @default(true) // se false, è opzionale/extra
+
+  @@map("voci_pacchetto")
+}
+
+// Addebito di un servizio/pacchetto su una prenotazione (conto ospite)
+model AddebitoPrenotazione {
+  id              String    @id @default(cuid())
+  prenotazioneId  String
+  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  // Può essere un servizio singolo O un pacchetto
+  servizioId      String?
+  servizio        ServizioStruttura? @relation(fields: [servizioId], references: [id])
+  pacchettoId     String?
+  pacchetto       PacchettoServizio? @relation(fields: [pacchettoId], references: [id])
+
+  descrizione     String     // descrizione leggibile in fattura
+  quantita        Int        @default(1)
+  prezzoUnitario  Float
+  aliquotaIva     Float      @default(22)
+  totale          Float      // quantita × prezzoUnitario
+  data            DateTime   @default(now()) @db.Date // data dell'addebito
+
+  // Chi ha addebitato
+  addebitatoDa    String?    // "Reception", "Ristorante", "SPA", "Minibar", "Sistema"
+  note            String?
+
+  createdAt       DateTime   @default(now())
+
+  @@index([prenotazioneId])
+  @@map("addebiti_prenotazione")
 }
 
 // ─── Channel Manager (connessioni iCal con OTA) ──────────────────────────────

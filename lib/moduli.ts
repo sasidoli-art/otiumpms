@@ -45,6 +45,7 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   { id: 'fatturazione',  nome: 'Fatturazione',        descrizione: 'Fatture, FatturaPA XML, scadenziario crediti',         icona: 'FileText',        categoria: 'avanzato',     defaultAttivo: false },
   { id: 'tariffeDurata', nome: 'Tariffe Durata',      descrizione: 'Sconti automatici per soggiorni lunghi',              icona: 'TrendingUp',      categoria: 'avanzato',     defaultAttivo: false },
   { id: 'ristorazione', nome: 'Ristorazione & Pasti', descrizione: 'Piani pasto (B&B, MP, PC), coperti giornalieri, cucina', icona: 'UtensilsCrossed', categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'catalogo',     nome: 'Catalogo Servizi',    descrizione: 'Prodotti, servizi, pacchetti con IVA per fatturazione', icona: 'ShoppingBag',    categoria: 'avanzato',     defaultAttivo: false },
 
   // Integrazioni
   { id: 'concierge',     nome: 'AI Concierge',        descrizione: 'Assistente WhatsApp 24/7 con AI per ospiti',           icona: 'Bot',             categoria: 'integrazioni', defaultAttivo: false },
