@@ -1,0 +1,188 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Otium Week PMS — API",
+    "description": "API REST del gestionale hospitality Otium Week. Autenticazione via NextAuth JWT. Tutte le route /host/* richiedono ruolo HOST, /admin/* richiede ADMIN, /book/* e /checkin/* sono pubbliche.",
+    "version": "1.0.0",
+    "contact": { "email": "info@otiumweek.it" }
+  },
+  "servers": [
+    { "url": "http://localhost:3000/api", "description": "Sviluppo locale" }
+  ],
+  "tags": [
+    { "name": "Auth", "description": "Autenticazione NextAuth" },
+    { "name": "Booking pubblico", "description": "Prenotazioni e SPA booking (pubblico)" },
+    { "name": "Check-in", "description": "Self check-in ospite (pubblico)" },
+    { "name": "Prenotazioni", "description": "Gestione prenotazioni (HOST)" },
+    { "name": "Strutture", "description": "Gestione strutture e unità (HOST)" },
+    { "name": "CRM", "description": "Anagrafica ospiti (HOST)" },
+    { "name": "Housekeeping", "description": "Pulizie e task HK (HOST)" },
+    { "name": "Manutenzione", "description": "Segnalazioni e interventi (HOST)" },
+    { "name": "SPA", "description": "Trattamenti, terapisti, appuntamenti (HOST)" },
+    { "name": "Promemoria", "description": "Traces — task interni (HOST)" },
+    { "name": "Ristorazione", "description": "Piani pasto e coperti (HOST)" },
+    { "name": "Channel Manager", "description": "Sync iCal con OTA (HOST)" },
+    { "name": "Report", "description": "KPI, PDF, statistiche (HOST)" },
+    { "name": "GDPR", "description": "Export dati e diritto all'oblio (HOST)" },
+    { "name": "Oggetti Smarriti", "description": "Lost & Found (HOST)" },
+    { "name": "Alert", "description": "Alert ospite a check-in/checkout (HOST)" },
+    { "name": "Staff", "description": "Bacheca comunicazioni staff (HOST)" },
+    { "name": "Notifiche", "description": "Notifiche in-app (HOST)" },
+    { "name": "Moduli", "description": "Configurazione moduli attivabili (HOST)" },
+    { "name": "Audit", "description": "Registro attività (HOST)" },
+    { "name": "Admin Clienti", "description": "Gestione host/clienti (ADMIN)" },
+    { "name": "Admin Fatture", "description": "Fatturazione e FatturaPA XML (ADMIN)" },
+    { "name": "Admin Pagamenti", "description": "Pagamenti abbonamenti (ADMIN)" },
+    { "name": "Cron", "description": "Job automatici (nessuna auth)" }
+  ],
+  "paths": {
+    "/host/prenotazioni": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Lista prenotazioni", "parameters": [{"name":"stato","in":"query","schema":{"type":"string","enum":["RICHIESTA","CONFERMATA","ANNULLATA","COMPLETATA","NO_SHOW"]}},{"name":"q","in":"query","schema":{"type":"string"}}], "responses": {"200":{"description":"Array di prenotazioni"}} },
+      "post": { "tags": ["Prenotazioni"], "summary": "Crea prenotazione manuale", "responses": {"201":{"description":"Prenotazione creata"}} }
+    },
+    "/host/prenotazioni/{id}": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Dettaglio prenotazione", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Prenotazione con relazioni"}} },
+      "patch": { "tags": ["Prenotazioni"], "summary": "Aggiorna prenotazione", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Prenotazione aggiornata"}} }
+    },
+    "/host/prenotazioni/{id}/accompagnatori": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Lista accompagnatori", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Array accompagnatori"}} },
+      "post": { "tags": ["Prenotazioni"], "summary": "Aggiungi accompagnatore", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"201":{"description":"Accompagnatore creato"}} },
+      "delete": { "tags": ["Prenotazioni"], "summary": "Rimuovi accompagnatore", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}},{"name":"accId","in":"query","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"OK"}} }
+    },
+    "/host/prenotazioni/{id}/pasto": {
+      "get": { "tags": ["Ristorazione"], "summary": "Piano pasto della prenotazione", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Piano pasto con calcolo coperti"}} },
+      "post": { "tags": ["Ristorazione"], "summary": "Assegna/aggiorna piano pasto", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Piano pasto aggiornato"}} }
+    },
+    "/host/prenotazioni/{id}/scheda-ospite": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Scarica Scheda Ospite PDF", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"PDF","content":{"application/pdf":{}}}} }
+    },
+    "/host/prenotazioni/{id}/conto": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Scarica Conto Ospite PDF", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"PDF","content":{"application/pdf":{}}}} }
+    },
+    "/host/strutture": {
+      "get": { "tags": ["Strutture"], "summary": "Lista strutture", "responses": {"200":{"description":"Array strutture"}} },
+      "post": { "tags": ["Strutture"], "summary": "Crea struttura", "responses": {"201":{"description":"Struttura creata"}} }
+    },
+    "/host/strutture/{id}/pasti": {
+      "get": { "tags": ["Ristorazione"], "summary": "Config pasti della struttura", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Array ConfigPastoStruttura"}} },
+      "post": { "tags": ["Ristorazione"], "summary": "Configura pasto (upsert)", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Config aggiornata"}} }
+    },
+    "/host/ristorazione": {
+      "get": { "tags": ["Ristorazione"], "summary": "Coperti previsti per data", "parameters": [{"name":"data","in":"query","schema":{"type":"string","format":"date"}}], "responses": {"200":{"description":"Coperti colazione/pranzo/cena + dettaglio"}} }
+    },
+    "/host/crm": {
+      "get": { "tags": ["CRM"], "summary": "Lista ospiti CRM", "responses": {"200":{"description":"Array ospiti"}} }
+    },
+    "/host/housekeeping": {
+      "get": { "tags": ["Housekeeping"], "summary": "Board housekeeping", "responses": {"200":{"description":"Unità con stato HK"}} }
+    },
+    "/host/housekeeping/task": {
+      "post": { "tags": ["Housekeeping"], "summary": "Crea task HK", "responses": {"201":{"description":"Task creato"}} }
+    },
+    "/host/manutenzione": {
+      "get": { "tags": ["Manutenzione"], "summary": "Lista segnalazioni", "responses": {"200":{"description":"Array segnalazioni"}} },
+      "post": { "tags": ["Manutenzione"], "summary": "Crea segnalazione", "responses": {"201":{"description":"Segnalazione creata"}} }
+    },
+    "/host/traces": {
+      "get": { "tags": ["Promemoria"], "summary": "Lista promemoria", "parameters": [{"name":"stato","in":"query","schema":{"type":"string"}},{"name":"reparto","in":"query","schema":{"type":"string"}},{"name":"prenotazioneId","in":"query","schema":{"type":"string"}}], "responses": {"200":{"description":"Traces + KPI"}} },
+      "post": { "tags": ["Promemoria"], "summary": "Crea promemoria", "responses": {"201":{"description":"Trace creato"}} }
+    },
+    "/host/canali": {
+      "get": { "tags": ["Channel Manager"], "summary": "Lista canali esterni", "responses": {"200":{"description":"Array canali con stato sync"}} },
+      "post": { "tags": ["Channel Manager"], "summary": "Aggiungi canale iCal", "responses": {"201":{"description":"Canale creato"}} }
+    },
+    "/host/canali/{id}/sync": {
+      "post": { "tags": ["Channel Manager"], "summary": "Sincronizza canale", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Risultato sync"}} }
+    },
+    "/host/oggetti-smarriti": {
+      "get": { "tags": ["Oggetti Smarriti"], "summary": "Lista oggetti smarriti", "parameters": [{"name":"stato","in":"query","schema":{"type":"string","enum":["IN_CUSTODIA","RESTITUITO","SPEDITO","NON_RECLAMATO","SMALTITO"]}}], "responses": {"200":{"description":"Oggetti + KPI"}} },
+      "post": { "tags": ["Oggetti Smarriti"], "summary": "Registra oggetto trovato", "responses": {"201":{"description":"Oggetto registrato"}} }
+    },
+    "/host/alert-ospite": {
+      "get": { "tags": ["Alert"], "summary": "Lista alert per prenotazione", "parameters": [{"name":"prenotazioneId","in":"query","schema":{"type":"string"}},{"name":"trigger","in":"query","schema":{"type":"string","enum":["CHECKIN","CHECKOUT","ACCESSO"]}}], "responses": {"200":{"description":"Array alert"}} },
+      "post": { "tags": ["Alert"], "summary": "Crea alert", "responses": {"201":{"description":"Alert creato"}} }
+    },
+    "/host/report": {
+      "get": { "tags": ["Report"], "summary": "Report mensile KPI", "parameters": [{"name":"anno","in":"query","required":true,"schema":{"type":"integer"}},{"name":"mese","in":"query","required":true,"schema":{"type":"integer"}}], "responses": {"200":{"description":"KPI: revenue, occupazione, RevPAR, ADR, durata, cancellazioni, fonti, YoY, forecast"}} }
+    },
+    "/host/report/pdf": {
+      "get": { "tags": ["Report"], "summary": "Scarica report mensile PDF", "parameters": [{"name":"anno","in":"query","required":true,"schema":{"type":"integer"}},{"name":"mese","in":"query","required":true,"schema":{"type":"integer"}}], "responses": {"200":{"description":"PDF","content":{"application/pdf":{}}}} }
+    },
+    "/host/report/crediti": {
+      "get": { "tags": ["Report"], "summary": "Scadenziario crediti (30/60/90+ giorni)", "responses": {"200":{"description":"Crediti + scadenziario per fascia"}} }
+    },
+    "/host/report/crediti/sollecito": {
+      "post": { "tags": ["Report"], "summary": "Invia sollecito pagamento via email", "responses": {"200":{"description":"Email inviata"}} }
+    },
+    "/host/report/statistiche-istat": {
+      "get": { "tags": ["Report"], "summary": "Statistiche arrivi per nazionalità", "parameters": [{"name":"anno","in":"query","schema":{"type":"integer"}},{"name":"mese","in":"query","schema":{"type":"integer"}}], "responses": {"200":{"description":"Arrivi per nazionalità + province"}} }
+    },
+    "/host/report/tassa-soggiorno": {
+      "get": { "tags": ["Report"], "summary": "Report tassa di soggiorno mensile", "parameters": [{"name":"anno","in":"query","schema":{"type":"integer"}},{"name":"mese","in":"query","schema":{"type":"integer"}}], "responses": {"200":{"description":"Dettaglio tassa per prenotazione + struttura"}} }
+    },
+    "/host/gdpr": {
+      "get": { "tags": ["GDPR"], "summary": "Export dati personali ospite (art. 15)", "parameters": [{"name":"email","in":"query","required":true,"schema":{"type":"string","format":"email"}}], "responses": {"200":{"description":"JSON con tutti i dati personali"}} },
+      "delete": { "tags": ["GDPR"], "summary": "Diritto all'oblio (art. 17)", "parameters": [{"name":"email","in":"query","required":true,"schema":{"type":"string","format":"email"}},{"name":"conferma","in":"query","required":true,"schema":{"type":"string","enum":["true"]}}], "responses": {"200":{"description":"Dati anonimizzati"}} }
+    },
+    "/host/alloggiati": {
+      "get": { "tags": ["Prenotazioni"], "summary": "Dati Alloggiati Web per periodo", "parameters": [{"name":"strutturaId","in":"query","required":true,"schema":{"type":"string"}},{"name":"da","in":"query","required":true,"schema":{"type":"string","format":"date"}},{"name":"a","in":"query","required":true,"schema":{"type":"string","format":"date"}}], "responses": {"200":{"description":"Ospiti con validazione"}} },
+      "post": { "tags": ["Prenotazioni"], "summary": "Genera file .txt Questura", "responses": {"200":{"description":"File TXT","content":{"text/plain":{}}}} }
+    },
+    "/host/moduli": {
+      "get": { "tags": ["Moduli"], "summary": "Lista moduli con stato attivo/inattivo", "responses": {"200":{"description":"Moduli per categoria"}} },
+      "patch": { "tags": ["Moduli"], "summary": "Attiva/disattiva moduli", "responses": {"200":{"description":"Moduli aggiornati"}} }
+    },
+    "/host/audit": {
+      "get": { "tags": ["Audit"], "summary": "Registro attività", "parameters": [{"name":"limit","in":"query","schema":{"type":"integer"}},{"name":"offset","in":"query","schema":{"type":"integer"}},{"name":"entita","in":"query","schema":{"type":"string"}},{"name":"azione","in":"query","schema":{"type":"string"}}], "responses": {"200":{"description":"Log + totale"}} }
+    },
+    "/host/spa/trattamenti": {
+      "get": { "tags": ["SPA"], "summary": "Lista trattamenti SPA", "responses": {"200":{"description":"Array trattamenti"}} },
+      "post": { "tags": ["SPA"], "summary": "Crea trattamento", "responses": {"201":{"description":"Trattamento creato"}} }
+    },
+    "/host/spa/appuntamenti": {
+      "get": { "tags": ["SPA"], "summary": "Lista appuntamenti SPA", "parameters": [{"name":"data","in":"query","schema":{"type":"string","format":"date"}},{"name":"stato","in":"query","schema":{"type":"string"}}], "responses": {"200":{"description":"Array appuntamenti"}} }
+    },
+    "/admin/clienti": {
+      "get": { "tags": ["Admin Clienti"], "summary": "Lista host/clienti", "responses": {"200":{"description":"Array host"}} },
+      "post": { "tags": ["Admin Clienti"], "summary": "Crea nuovo host", "responses": {"201":{"description":"Host creato"}} }
+    },
+    "/admin/fatture": {
+      "get": { "tags": ["Admin Fatture"], "summary": "Lista fatture", "responses": {"200":{"description":"Array fatture"}} },
+      "post": { "tags": ["Admin Fatture"], "summary": "Crea fattura", "responses": {"201":{"description":"Fattura creata"}} }
+    },
+    "/admin/fatture/{id}/xml": {
+      "get": { "tags": ["Admin Fatture"], "summary": "Scarica FatturaPA XML (SDI)", "parameters": [{"name":"id","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"XML FatturaPA v1.2.2","content":{"application/xml":{}}}} }
+    },
+    "/admin/password": {
+      "post": { "tags": ["Auth"], "summary": "Cambia password admin", "responses": {"200":{"description":"Password aggiornata"}} }
+    },
+    "/book/{strutturaId}": {
+      "get": { "tags": ["Booking pubblico"], "summary": "Dati struttura per booking", "parameters": [{"name":"strutturaId","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Struttura con unità"}} },
+      "post": { "tags": ["Booking pubblico"], "summary": "Crea prenotazione pubblica", "parameters": [{"name":"strutturaId","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"201":{"description":"Prenotazione creata"}} }
+    },
+    "/book/{strutturaId}/spa/prenota": {
+      "post": { "tags": ["Booking pubblico"], "summary": "Prenota appuntamento SPA", "parameters": [{"name":"strutturaId","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"201":{"description":"Appuntamento creato"}} }
+    },
+    "/checkin/{token}": {
+      "get": { "tags": ["Check-in"], "summary": "Dati prenotazione per self check-in", "parameters": [{"name":"token","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Prenotazione"}} },
+      "post": { "tags": ["Check-in"], "summary": "Completa self check-in con accompagnatori", "parameters": [{"name":"token","in":"path","required":true,"schema":{"type":"string"}}], "responses": {"200":{"description":"Check-in completato"}} }
+    },
+    "/cron/sync-canali": {
+      "get": { "tags": ["Cron"], "summary": "Sync tutti i canali iCal attivi", "responses": {"200":{"description":"Risultato sync"}} }
+    },
+    "/cron/email-automatiche": {
+      "get": { "tags": ["Cron"], "summary": "Invia email automatiche (reminder, follow-up)", "responses": {"200":{"description":"Email inviate"}} }
+    },
+    "/cron/reminder-spa": {
+      "get": { "tags": ["Cron"], "summary": "Invia reminder appuntamenti SPA", "responses": {"200":{"description":"Reminder inviati"}} }
+    },
+    "/spa/waiver": {
+      "get": { "tags": ["SPA"], "summary": "Recupera waiver per appuntamento", "responses": {"200":{"description":"WaiverSpa"}} },
+      "post": { "tags": ["SPA"], "summary": "Crea/aggiorna dichiarazione salute SPA", "responses": {"200":{"description":"Waiver salvato"}} }
+    },
+    "/spa/pagamento": {
+      "get": { "tags": ["SPA"], "summary": "Recupera pagamento SPA", "responses": {"200":{"description":"PagamentoSpa"}} },
+      "post": { "tags": ["SPA"], "summary": "Registra pagamento SPA", "responses": {"200":{"description":"Pagamento registrato"}} }
+    }
+  }
+}
