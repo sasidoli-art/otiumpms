@@ -28,8 +28,17 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const locale = await getLocale()
-  const messages = await getMessages()
+  let locale = 'it'
+  let messages = {}
+
+  try {
+    locale = await getLocale()
+    messages = await getMessages()
+  } catch {
+    // Fallback: load Italian messages directly
+    const it = await import('../messages/it.json')
+    messages = it.default
+  }
 
   return (
     <html lang={locale}>
@@ -37,7 +46,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="antialiased">
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
         </NextIntlClientProvider>
         <PwaProvider />
