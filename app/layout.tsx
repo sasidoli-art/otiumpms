@@ -3,6 +3,8 @@ import './globals.css'
 import { Providers } from './providers'
 import { PwaProvider } from '@/components/pwa-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale, getMessages } from 'next-intl/server'
 
 export const metadata: Metadata = {
   title: 'Otium Week — Gestionale',
@@ -21,18 +23,23 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getLocale()
+  const messages = await getMessages()
+
   return (
-    <html lang="it">
+    <html lang={locale}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="antialiased">
-        <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
+        <NextIntlClientProvider messages={messages}>
+          <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
+        </NextIntlClientProvider>
         <PwaProvider />
       </body>
     </html>

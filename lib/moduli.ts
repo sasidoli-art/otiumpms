@@ -47,6 +47,11 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   { id: 'ristorazione', nome: 'Ristorazione & Pasti', descrizione: 'Piani pasto (B&B, MP, PC), coperti giornalieri, cucina', icona: 'UtensilsCrossed', categoria: 'avanzato',     defaultAttivo: false },
   { id: 'catalogo',     nome: 'Catalogo Servizi',    descrizione: 'Prodotti, servizi, pacchetti con IVA per fatturazione', icona: 'ShoppingBag',    categoria: 'avanzato',     defaultAttivo: false },
   { id: 'upselling',   nome: 'Upselling Camera',    descrizione: 'Proposta upgrade al check-in con incentivi operatore',  icona: 'TrendingUp',     categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'giftCard',   nome: 'Gift Card SPA',       descrizione: 'Buoni regalo con saldo, ricarica, scadenza e riscatto', icona: 'Gift',           categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'pos',        nome: 'Point of Sale',       descrizione: 'Cassa integrata per vendita trattamenti e prodotti',    icona: 'CreditCard',     categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'loyalty',    nome: 'Programma Fedeltà',   descrizione: 'Punti fedeltà, livelli reward, accumulo automatico',    icona: 'Award',          categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'waitingList', nome: 'Waiting List SPA',   descrizione: 'Lista d\'attesa con notifica e turnaway tracking',      icona: 'Clock',          categoria: 'avanzato',     defaultAttivo: false },
+  { id: 'cassa',      nome: 'Cassa & Incassi',    descrizione: 'Chiusura cassa, report incassi per metodo, riconciliazione', icona: 'Banknote',     categoria: 'avanzato',     defaultAttivo: false },
 
   // Integrazioni
   { id: 'concierge',     nome: 'AI Concierge',        descrizione: 'Assistente WhatsApp 24/7 con AI per ospiti',           icona: 'Bot',             categoria: 'integrazioni', defaultAttivo: false },
@@ -59,11 +64,28 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
 
 export type ModuliAttivi = Record<string, boolean>
 
+/** Stato esteso di un modulo (usato dal SuperAdmin) */
+export interface ModuloStatoEsteso {
+  attivo: boolean
+  modalita: 'incluso' | 'demo' | 'pagamento' | 'off'
+  prezzo: number           // €/mese (0 se incluso o demo)
+  scadenzaDemo?: string    // ISO date, solo se modalita=demo
+}
+
+/** Prezzi add-on suggeriti per modulo */
+export const PREZZI_ADDON: Record<string, number> = {
+  spa: 30, giftCard: 20, pos: 20, loyalty: 20, waitingList: 10, cassa: 20,
+  concierge: 25, fatturazione: 15, channelMgr: 15, ristorazione: 15,
+  catalogo: 10, upselling: 10, alloggiati: 10, manutenzione: 10,
+  magazzino: 10, lostFound: 5, alertOspite: 5, tariffeDurata: 10,
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
  * Parsa il campo JSON moduliAttivi dal DB.
- * Se null/undefined, restituisce i default.
+ * Retrocompatibile: supporta sia il vecchio formato { "spa": true }
+ * che il nuovo { "spa": { "attivo": true, "modalita": "demo", "prezzo": 0 } }
  */
 export function parseModuli(moduliJson: unknown): ModuliAttivi {
   const defaults: ModuliAttivi = {}
@@ -73,8 +95,66 @@ export function parseModuli(moduliJson: unknown): ModuliAttivi {
 
   if (!moduliJson || typeof moduliJson !== 'object') return defaults
 
-  const stored = moduliJson as Record<string, boolean>
-  return { ...defaults, ...stored }
+  const stored = moduliJson as Record<string, unknown>
+  const result = { ...defaults }
+
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === 'boolean') {
+      // Vecchio formato: { "spa": true }
+      result[key] = value
+    } else if (value && typeof value === 'object' && 'attivo' in value) {
+      // Nuovo formato: { "spa": { "attivo": true, "modalita": "demo" } }
+      result[key] = !!(value as ModuloStatoEsteso).attivo
+    }
+  }
+
+  return result
+}
+
+/**
+ * Parsa i moduli nel formato esteso (per SuperAdmin).
+ */
+export function parseModuliEsteso(moduliJson: unknown): Record<string, ModuloStatoEsteso> {
+  const result: Record<string, ModuloStatoEsteso> = {}
+
+  for (const m of CATALOGO_MODULI) {
+    result[m.id] = {
+      attivo: m.defaultAttivo,
+      modalita: m.defaultAttivo ? 'incluso' : 'off',
+      prezzo: 0,
+    }
+  }
+
+  if (!moduliJson || typeof moduliJson !== 'object') return result
+
+  const stored = moduliJson as Record<string, unknown>
+  for (const [key, value] of Object.entries(stored)) {
+    if (typeof value === 'boolean') {
+      result[key] = {
+        attivo: value,
+        modalita: value ? 'incluso' : 'off',
+        prezzo: 0,
+      }
+    } else if (value && typeof value === 'object') {
+      result[key] = value as ModuloStatoEsteso
+    }
+  }
+
+  return result
+}
+
+/**
+ * Calcola il canone mensile add-on di un host.
+ */
+export function calcolaCanoneAddon(moduliJson: unknown): number {
+  const moduli = parseModuliEsteso(moduliJson)
+  let totale = 0
+  for (const m of Object.values(moduli)) {
+    if (m.modalita === 'pagamento' && m.prezzo > 0) {
+      totale += m.prezzo
+    }
+  }
+  return totale
 }
 
 /**
@@ -115,6 +195,10 @@ export const MODULO_ROUTES: Record<string, string[]> = {
   emailAuto:     ['/host/email-automatiche'],
   concierge:     ['/host/concierge'],
   lostFound:     ['/host/oggetti-smarriti'],
+  giftCard:      ['/host/spa/gift-card'],
+  pos:           ['/host/pos'],
+  loyalty:       ['/host/spa/loyalty'],
+  waitingList:   ['/host/spa/waiting-list'],
 }
 
 /**

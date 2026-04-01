@@ -42,6 +42,7 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
       descrizione: body.descrizione,
       capacita: body.capacita ? Number(body.capacita) : 1,
       prezzoBase: body.prezzoBase ? Number(body.prezzoBase) : 0,
+      immagine: body.immagine || null,
     },
   })
 

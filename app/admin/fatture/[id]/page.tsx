@@ -5,8 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { ArrowLeft, FileDown, Send } from 'lucide-react'
 import { FatturaActions } from './fattura-actions'
+import { getTranslations } from 'next-intl/server'
 
 export default async function FatturaDettaglioPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const tc = await getTranslations('common')
   const params = await paramsPromise
   const fattura = await prisma.fattura.findUnique({
     where: { id: params.id },
@@ -36,10 +38,10 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900 font-mono">Fattura {fattura.numero}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 font-mono">Fattura {fattura.numero}</h1>{/* TODO: i18n */}
               <Badge className={statoFatturaColor(fattura.stato)}>{statoFatturaLabel(fattura.stato)}</Badge>
             </div>
-            <p className="text-gray-500 text-sm mt-0.5">Emessa il {formatData(fattura.dataEmissione)}</p>
+            <p className="text-gray-500 text-sm mt-0.5">Emessa il {formatData(fattura.dataEmissione)}</p>{/* TODO: i18n */}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -49,7 +51,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
             className="btn-secondary flex items-center gap-2"
           >
             <FileDown size={16} />
-            Scarica PDF
+            {tc('downloadPdf')}
           </a>
           <FatturaActions fatturaId={fattura.id} statoAttuale={fattura.stato} emailCliente={fattura.clienteEmail ?? fattura.host.user.email} />
         </div>
@@ -76,7 +78,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
             <p className="text-3xl font-bold text-gray-800 font-mono mb-2">FATTURA</p>
             <p className="text-xl font-mono font-semibold text-brand-700">{fattura.numero}</p>
             <div className="mt-3 text-sm text-gray-500 space-y-0.5">
-              <p>Data: <span className="font-medium text-gray-700">{formatData(fattura.dataEmissione)}</span></p>
+              <p>{tc('date')}: <span className="font-medium text-gray-700">{formatData(fattura.dataEmissione)}</span></p>
               {fattura.dataScadenza && (
                 <p>Scadenza: <span className="font-medium text-gray-700">{formatData(fattura.dataScadenza)}</span></p>
               )}
@@ -86,7 +88,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
 
         {/* Dati cliente */}
         <div className="bg-gray-50 rounded-xl p-5 mb-8">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Fatturato a</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Fatturato a</p>{/* TODO: i18n */}
           <p className="font-bold text-gray-900">{fattura.clienteNome}</p>
           {fattura.clientePIva && <p className="text-sm text-gray-600">P.IVA: {fattura.clientePIva}</p>}
           {fattura.clienteIndirizzo && <p className="text-sm text-gray-600">{fattura.clienteIndirizzo}</p>}
@@ -104,11 +106,11 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
         <table className="w-full mb-8">
           <thead>
             <tr className="border-b-2 border-gray-200">
-              <th className="text-left py-2 text-sm font-semibold text-gray-600">Descrizione</th>
-              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-20">Qtà</th>
-              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-28">Prezzo</th>
+              <th className="text-left py-2 text-sm font-semibold text-gray-600">{tc('description')}</th>
+              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-20">Qtà</th>{/* TODO: i18n */}
+              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-28">{tc('price')}</th>
               <th className="text-right py-2 text-sm font-semibold text-gray-600 w-20">IVA</th>
-              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-28">Totale</th>
+              <th className="text-right py-2 text-sm font-semibold text-gray-600 w-28">{tc('total')}</th>
             </tr>
           </thead>
           <tbody>
@@ -128,7 +130,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
         <div className="flex justify-end">
           <div className="w-64 space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Imponibile</span>
+              <span>Imponibile</span>{/* TODO: i18n */}
               <span>{formatValuta(fattura.imponibile)}</span>
             </div>
             <div className="flex justify-between text-sm text-gray-600">
@@ -136,7 +138,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
               <span>{formatValuta(fattura.iva)}</span>
             </div>
             <div className="flex justify-between text-base font-bold text-gray-900 border-t-2 border-gray-900 pt-2">
-              <span>Totale</span>
+              <span>{tc('total')}</span>
               <span>{formatValuta(fattura.totale)}</span>
             </div>
           </div>
@@ -145,7 +147,7 @@ export default async function FatturaDettaglioPage({ params: paramsPromise }: { 
         {/* Note */}
         {fattura.note && (
           <div className="mt-8 pt-6 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Note</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{tc('notes')}</p>
             <p className="text-sm text-gray-600">{fattura.note}</p>
           </div>
         )}

@@ -1,9 +1,12 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import GuestChatBox from './guest-chat-box'
+import { getTranslations } from 'next-intl/server'
 
 export default async function GuestChatPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = await paramsPromise
+  const t = await getTranslations('booking.chat')
+
   const chat = await prisma.chat.findUnique({
     where: { id: params.id },
     include: {
@@ -27,7 +30,7 @@ export default async function GuestChatPage({ params: paramsPromise }: { params:
         <div className="text-center mb-6">
           <div className="text-xs text-gray-400 mb-1">Otium Week</div>
           <h1 className="text-xl font-bold text-gray-900">
-            Chat con {chat.host.nomeAzienda}
+            {t('chatWith')} {chat.host.nomeAzienda}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {chat.prenotazione.struttura?.nome}
@@ -37,7 +40,7 @@ export default async function GuestChatPage({ params: paramsPromise }: { params:
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
             <p className="text-sm text-gray-600">
-              Stai chattando come{' '}
+              {t('chattingAs')}{' '}
               <span className="font-semibold text-gray-900">
                 {chat.prenotazione.guestNome} {chat.prenotazione.guestCognome}
               </span>

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
@@ -32,6 +33,9 @@ type Appuntamento = {
 }
 
 export function SpaWaiverDashboard() {
+  const t = useTranslations('spa.waiver')
+  const tc = useTranslations('common')
+
   const [appuntamenti, setAppuntamenti] = useState<Appuntamento[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'appuntamenti' | 'dichiarazioni' | 'pagamenti'>('appuntamenti')
@@ -93,46 +97,46 @@ export function SpaWaiverDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
           <FileText className="w-8 h-8 text-blue-600" />
-          Dashboard SPA - Waiver & Pagamenti
+          {t('dashboardTitle')}
         </h1>
-        <p className="text-gray-600 mt-1">Gestione dichiarazioni cliniche e pagamenti</p>
+        <p className="text-gray-600 mt-1">{t('dashboardSubtitle')}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-600 mb-1">Appuntamenti</p>
+          <p className="text-sm text-gray-600 mb-1">{t('appointmentsTab')}</p>
           <p className="text-2xl font-bold text-gray-900">{stats.totali}</p>
         </div>
         <div className="bg-white rounded-lg border border-green-200 p-4">
-          <p className="text-sm text-green-700 mb-1">Waiver Completati</p>
+          <p className="text-sm text-green-700 mb-1">{t('waiverCompleted')}</p>
           <p className="text-2xl font-bold text-green-600">{stats.waiverCompletati}</p>
         </div>
         <div className="bg-white rounded-lg border border-red-200 p-4">
-          <p className="text-sm text-red-700 mb-1">Waiver Mancanti</p>
+          <p className="text-sm text-red-700 mb-1">{t('waiverMissing')}</p>
           <p className="text-2xl font-bold text-red-600">{stats.waiverMancanti}</p>
         </div>
         <div className="bg-white rounded-lg border border-blue-200 p-4">
-          <p className="text-sm text-blue-700 mb-1">Incassi</p>
+          <p className="text-sm text-blue-700 mb-1">{t('collections')}</p>
           <p className="text-2xl font-bold text-blue-600">€ {importoRiscosso.toFixed(0)}</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200">
-        {['appuntamenti', 'dichiarazioni', 'pagamenti'].map(t => (
+        {['appuntamenti', 'dichiarazioni', 'pagamenti'].map(tKey => (
           <button
-            key={t}
-            onClick={() => { setTab(t as any); setFiltro('tutti') }}
+            key={tKey}
+            onClick={() => { setTab(tKey as any); setFiltro('tutti') }}
             className={`px-4 py-3 font-medium transition ${
-              tab === t
+              tab === tKey
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            {t === 'appuntamenti' && '📋 Appuntamenti'}
-            {t === 'dichiarazioni' && '⚠️ Dichiarazioni'}
-            {t === 'pagamenti' && '💰 Pagamenti'}
+            {tKey === 'appuntamenti' && `📋 ${t('appointmentsTab')}`}
+            {tKey === 'dichiarazioni' && `⚠️ ${t('declarationsTab')}`}
+            {tKey === 'pagamenti' && `💰 ${t('paymentsTab')}`}
           </button>
         ))}
       </div>
@@ -152,9 +156,9 @@ export function SpaWaiverDashboard() {
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {f === 'tutti' && `Tutti (${stats.totali})`}
-                {f === 'mancanti' && `Mancanti (${stats.waiverMancanti})`}
-                {f === 'completati' && `Completati (${stats.waiverCompletati})`}
+                {f === 'tutti' && `${tc('all')} (${stats.totali})`}
+                {f === 'mancanti' && `${t('missing')} (${stats.waiverMancanti})`}
+                {f === 'completati' && `${t('completed')} (${stats.waiverCompletati})`}
               </button>
             ))}
           </div>
@@ -175,7 +179,7 @@ export function SpaWaiverDashboard() {
                           ? 'bg-green-100 text-green-700'
                           : 'bg-yellow-100 text-yellow-700'
                       }`}>
-                        {a.waiver?.confermato ? '✓ Waiver' : '⚠ In Attesa'}
+                        {a.waiver?.confermato ? `✓ ${t('waiver')}` : `⚠ ${t('pending')}`}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
@@ -198,7 +202,7 @@ export function SpaWaiverDashboard() {
                       onClick={() => window.location.href = `/host/spa/appuntamenti/${a.id}`}
                       className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
                     >
-                      Dettagli
+                      {tc('details')}
                     </button>
                   </div>
                 </div>
@@ -208,7 +212,7 @@ export function SpaWaiverDashboard() {
 
           {appuntamentiFiltrati.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              Nessun appuntamento trovato
+              {t('noAppointments')}
             </div>
           )}
         </div>
@@ -221,7 +225,7 @@ export function SpaWaiverDashboard() {
           <div className="bg-pink-50 rounded-lg border border-pink-200 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Baby className="w-6 h-6 text-pink-600" />
-              <h3 className="font-bold text-gray-900">Gravidanze</h3>
+              <h3 className="font-bold text-gray-900">{t('pregnancies')}</h3>
             </div>
             <p className="text-3xl font-bold text-pink-600 mb-4">{stats.totaleDonne}</p>
             <div className="space-y-2 text-sm">
@@ -233,7 +237,7 @@ export function SpaWaiverDashboard() {
                       {a.guestNome} {a.guestCognome}
                     </p>
                     <p className="text-xs text-gray-600">
-                      Mese {a.waiver?.incintaMesi || '?'}
+                      {t('month')} {a.waiver?.incintaMesi || '?'}
                     </p>
                   </div>
                 ))}
@@ -244,7 +248,7 @@ export function SpaWaiverDashboard() {
           <div className="bg-orange-50 rounded-lg border border-orange-200 p-6">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle className="w-6 h-6 text-orange-600" />
-              <h3 className="font-bold text-gray-900">Allergie</h3>
+              <h3 className="font-bold text-gray-900">{t('allergies')}</h3>
             </div>
             <p className="text-3xl font-bold text-orange-600 mb-4">{stats.totaleAllergie}</p>
             <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
@@ -265,7 +269,7 @@ export function SpaWaiverDashboard() {
           <div className="bg-red-50 rounded-lg border border-red-200 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Heart className="w-6 h-6 text-red-600" />
-              <h3 className="font-bold text-gray-900">Patologie</h3>
+              <h3 className="font-bold text-gray-900">{t('conditions')}</h3>
             </div>
             <p className="text-3xl font-bold text-red-600 mb-4">{stats.totalePatologie}</p>
             <div className="space-y-2 text-sm max-h-64 overflow-y-auto">
@@ -290,15 +294,15 @@ export function SpaWaiverDashboard() {
           {/* Summary */}
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-600 mb-1">Totale Dovuto</p>
+              <p className="text-sm text-gray-600 mb-1">{t('totalDue')}</p>
               <p className="text-2xl font-bold text-gray-900">€ {importoTotale.toFixed(2)}</p>
             </div>
             <div className="bg-green-50 rounded-lg border border-green-200 p-4">
-              <p className="text-sm text-green-700 mb-1">Riscosso</p>
+              <p className="text-sm text-green-700 mb-1">{t('collected')}</p>
               <p className="text-2xl font-bold text-green-600">€ {importoRiscosso.toFixed(2)}</p>
             </div>
             <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-4">
-              <p className="text-sm text-yellow-700 mb-1">In Sospeso</p>
+              <p className="text-sm text-yellow-700 mb-1">{t('outstanding')}</p>
               <p className="text-2xl font-bold text-yellow-600">€ {(importoTotale - importoRiscosso).toFixed(2)}</p>
             </div>
           </div>
@@ -308,11 +312,11 @@ export function SpaWaiverDashboard() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Ospite</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{tc('guest')}</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Servizio</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Metodo</th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">Importo</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Stato</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{t('method')}</th>
+                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900">{tc('amount')}</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">{tc('status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -348,7 +352,7 @@ export function SpaWaiverDashboard() {
           {/* Export */}
           <button className="w-full px-4 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition flex items-center justify-center gap-2">
             <Download size={18} />
-            Esporta CSV
+            {tc('exportCsv')}
           </button>
         </div>
       )}

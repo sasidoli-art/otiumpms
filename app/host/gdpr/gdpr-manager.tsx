@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Shield, Search, Download, Trash2, Loader2, AlertTriangle,
-  CheckCircle2, FileText, X,
+  CheckCircle2, FileText, X, Clock, Play, RefreshCw,
 } from 'lucide-react'
 
 const inp = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none'
@@ -182,6 +183,108 @@ export default function GdprManager() {
           <pre className="text-xs text-green-800 bg-green-100 rounded-lg p-3 overflow-x-auto">
             {JSON.stringify(deleteResult, null, 2)}
           </pre>
+        </div>
+      )}
+      {/* ═══ Sezione Retention Automatica ═══ */}
+      <RetentionSection />
+    </div>
+  )
+}
+
+// ─── Retention Section ───────────────────────────────────────────────────────
+
+type Policy = { id: string; label: string; description: string; retention: string; legalBasis: string; action: string }
+type RetentionResult = { policy: string; processed: number; errors: number; details: string[] }
+
+function RetentionSection() {
+  const [policies, setPolicies] = useState<Policy[]>([])
+  const [loading, setLoading] = useState(false)
+  const [running, setRunning] = useState(false)
+  const [results, setResults] = useState<RetentionResult[] | null>(null)
+
+  useEffect(() => {
+    fetch('/api/host/gdpr/retention')
+      .then(r => r.json())
+      .then(d => setPolicies(d.policies ?? []))
+      .catch(() => {})
+  }, [])
+
+  async function runRetention() {
+    setRunning(true); setResults(null)
+    try {
+      const res = await fetch('/api/host/gdpr/retention', { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setResults(data.results)
+      }
+    } catch {}
+    setRunning(false)
+  }
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-purple-500" /> Policy di conservazione dati
+        </h3>
+        <button
+          onClick={runRetention}
+          disabled={running}
+          className="btn-secondary flex items-center gap-2 text-xs"
+        >
+          {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
+          {running ? 'Pulizia in corso...' : 'Esegui pulizia manuale'}
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500">
+        La pulizia automatica viene eseguita ogni notte alle 03:00 dal cron job.
+        Puoi anche eseguirla manualmente con il pulsante qui sopra.
+      </p>
+
+      {/* Policy table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-2 pr-3 text-gray-500 font-semibold">Dato</th>
+              <th className="text-left py-2 pr-3 text-gray-500 font-semibold">Conservazione</th>
+              <th className="text-left py-2 pr-3 text-gray-500 font-semibold">Base giuridica</th>
+              <th className="text-left py-2 text-gray-500 font-semibold">Azione</th>
+            </tr>
+          </thead>
+          <tbody>
+            {policies.map(p => (
+              <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
+                <td className="py-2.5 pr-3">
+                  <p className="font-medium text-gray-900">{p.label}</p>
+                  <p className="text-gray-400 text-[10px]">{p.description}</p>
+                </td>
+                <td className="py-2.5 pr-3 text-gray-600">{p.retention}</td>
+                <td className="py-2.5 pr-3 text-gray-500">{p.legalBasis}</td>
+                <td className="py-2.5 text-gray-500">{p.action}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Results */}
+      {results && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600" />
+            <p className="text-sm font-semibold text-green-900">Pulizia completata</p>
+          </div>
+          {results.map(r => (
+            <div key={r.policy} className="text-xs text-green-800">
+              <span className="font-medium">{r.policy}</span>: {r.processed} record processati
+              {r.errors > 0 && <span className="text-red-600"> ({r.errors} errori)</span>}
+              {r.details.map((d, i) => (
+                <p key={i} className="ml-4 text-green-600">→ {d}</p>
+              ))}
+            </div>
+          ))}
         </div>
       )}
     </div>

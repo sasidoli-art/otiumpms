@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { motion } from 'framer-motion'
 
 interface BodyMapProps {
@@ -32,6 +33,7 @@ const ZONE_CORPO = [
  * Consente di specificare zone da trattare o evitare.
  */
 export function BodyMap({ zoneSelezionate, onChange, tipo, disabilitato }: BodyMapProps) {
+  const t = useTranslations('spa.bodyMap')
   const [view, setView] = useState<'front' | 'back'>('front')
 
   const colore = tipo === 'trattate' ? 'bg-green-100 hover:bg-green-200' : 'bg-red-100 hover:bg-red-200'
@@ -46,25 +48,39 @@ export function BodyMap({ zoneSelezionate, onChange, tipo, disabilitato }: BodyM
     }
   }
 
-  // Mapping zone a posizioni approssimative nel SVG
-  const zoneMap: Record<string, { front?: string; back?: string; label: string }> = {
-    // Front view
-    testa: { front: 'M100,30 L130,30 L130,70 L100,70 Z', label: 'Testa' },
-    viso: { front: 'M105,40 L125,40 L125,65 L105,65 Z', label: 'Viso' },
-    collo: { front: 'M110,70 L120,70 L120,85 L110,85 Z', label: 'Collo' },
-    spalle: { front: 'M80,85 L140,85 L140,100 L80,100 Z', label: 'Spalle' },
-    petto: { front: 'M90,100 L130,100 L130,150 L90,150 Z', label: 'Petto' },
-    addome: { front: 'M90,150 L130,150 L130,200 L90,200 Z', label: 'Addome' },
-    fianchi: { front: 'M75,200 L145,200 L145,230 L75,230 Z', label: 'Fianchi' },
-    braccia: { front: 'M60,100 L85,100 L85,180 L70,180 M135,100 L160,100 L160,180 L145,180', label: 'Braccia' },
-    avambracci: { front: 'M65,180 L80,180 L80,240 L65,240 M140,180 L155,180 L155,240 L140,240 Z', label: 'Avambracci' },
-    mani: { front: 'M60,240 L85,240 L85,270 L60,270 M135,240 L160,240 L160,270 L135,270 Z', label: 'Mani' },
-    gambe: { front: 'M85,230 L105,230 L105,320 L85,320 M115,230 L135,230 L135,320 L115,320 Z', label: 'Gambe' },
-    caviglie: { front: 'M85,320 L105,320 L105,340 L85,340 M115,320 L135,320 L135,340 L115,340 Z', label: 'Caviglie' },
-    piedi: { front: 'M80,340 L110,340 L110,370 L80,370 M110,340 L140,340 L140,370 L110,370 Z', label: 'Piedi' },
+  const ZONE_LABELS: Record<string, string> = {
+    testa: t('head'),
+    viso: t('face'),
+    collo: t('neck'),
+    spalle: t('shoulders'),
+    petto: t('chest'),
+    addome: t('abdomen'),
+    fianchi: t('hips'),
+    braccia: t('arms'),
+    avambracci: t('forearms'),
+    mani: t('hands'),
+    gambe: t('legs'),
+    caviglie: t('ankles'),
+    piedi: t('feet'),
+    schiena: t('back'),
+  }
 
-    // Back view
-    schiena: { back: 'M90,100 L130,100 L130,200 L90,200 Z', label: 'Schiena' },
+  // Mapping zone a posizioni approssimative nel SVG
+  const zoneMap: Record<string, { front?: string; back?: string }> = {
+    testa: { front: 'M100,30 L130,30 L130,70 L100,70 Z' },
+    viso: { front: 'M105,40 L125,40 L125,65 L105,65 Z' },
+    collo: { front: 'M110,70 L120,70 L120,85 L110,85 Z' },
+    spalle: { front: 'M80,85 L140,85 L140,100 L80,100 Z' },
+    petto: { front: 'M90,100 L130,100 L130,150 L90,150 Z' },
+    addome: { front: 'M90,150 L130,150 L130,200 L90,200 Z' },
+    fianchi: { front: 'M75,200 L145,200 L145,230 L75,230 Z' },
+    braccia: { front: 'M60,100 L85,100 L85,180 L70,180 M135,100 L160,100 L160,180 L145,180' },
+    avambracci: { front: 'M65,180 L80,180 L80,240 L65,240 M140,180 L155,180 L155,240 L140,240 Z' },
+    mani: { front: 'M60,240 L85,240 L85,270 L60,270 M135,240 L160,240 L160,270 L135,270 Z' },
+    gambe: { front: 'M85,230 L105,230 L105,320 L85,320 M115,230 L135,230 L135,320 L115,320 Z' },
+    caviglie: { front: 'M85,320 L105,320 L105,340 L85,340 M115,320 L135,320 L135,340 L115,340 Z' },
+    piedi: { front: 'M80,340 L110,340 L110,370 L80,370 M110,340 L140,340 L140,370 L110,370 Z' },
+    schiena: { back: 'M90,100 L130,100 L130,200 L90,200 Z' },
   }
 
   return (
@@ -78,6 +94,7 @@ export function BodyMap({ zoneSelezionate, onChange, tipo, disabilitato }: BodyM
           }`}
           disabled={disabilitato}
         >
+          {/* TODO: i18n */}
           Fronte
         </button>
         <button
@@ -87,6 +104,7 @@ export function BodyMap({ zoneSelezionate, onChange, tipo, disabilitato }: BodyM
           }`}
           disabled={disabilitato}
         >
+          {/* TODO: i18n */}
           Retro
         </button>
       </div>
@@ -182,7 +200,7 @@ export function BodyMap({ zoneSelezionate, onChange, tipo, disabilitato }: BodyM
                 tipo === 'trattate' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               }`}
             >
-              {ZONE_CORPO.find(z => z === zona)?.charAt(0).toUpperCase() + zona.slice(1) || zona}
+              {ZONE_LABELS[zona] || zona.charAt(0).toUpperCase() + zona.slice(1)}
               <button
                 onClick={() => toggleZona(zona)}
                 className="ml-1 hover:opacity-70 transition"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Edit2, Trash2, Star, Clock, Euro, ChevronDown, ChevronUp, GripVertical, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 import { cn, formatValuta } from '@/lib/utils'
 
 interface Trattamento {
@@ -40,6 +41,8 @@ interface Percorso {
 const COLORS = ['#f59e0b', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444', '#f97316', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6']
 
 export default function PercorsiManager() {
+  const t = useTranslations('spa.paths')
+  const tc = useTranslations('common')
   const [percorsi, setPercorsi] = useState<Percorso[]>([])
   const [trattamenti, setTrattamenti] = useState<Trattamento[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,7 +122,7 @@ export default function PercorsiManager() {
           <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center">
             <Star className="w-5 h-5 text-rose-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Percorsi Benessere</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Nuovo percorso

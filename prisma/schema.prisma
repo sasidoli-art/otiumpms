@@ -13,15 +13,27 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum Role {
-  SUPERADMIN  // piattaforma — vede tutto, gestisce host, billing, piani
-  ADMIN       // proprietario hotel — gestisce le sue strutture, staff, moduli
-  HOST        // operatore/receptionist — accesso operativo quotidiano
+  SUPERADMIN // piattaforma — vede tutto, gestisce host, billing, piani
+  ADMIN // proprietario hotel — gestisce le sue strutture, staff, moduli
+  HOST // operatore/receptionist — accesso operativo quotidiano
+  STAFF // membro staff con permessi granulari per ruolo
+}
+
+enum RuoloStaff {
+  MANAGER
+  RECEPTIONIST
+  HOUSEKEEPING
+  SPA_OPERATOR
+  RESTAURANT
+  CONCIERGE
+  READONLY
 }
 
 enum PianoTipo {
-  EVENTO_SINGOLO
-  VISIBILITA_MENSILE
-  PARTNER_PREMIUM
+  LIGHT              // €29/mese — B&B base (prenotazioni, check-in, HK, chat, report, email)
+  EVENTO_SINGOLO     // €49 una tantum
+  VISIBILITA_MENSILE // €149/mese — tutti i moduli base + operativi
+  PARTNER_PREMIUM    // €349/mese — tutto incluso + SPA + POS + AI
 }
 
 enum StatoAbbonamento {
@@ -116,18 +128,25 @@ enum TipoStruttura {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  password      String
-  nome          String
-  cognome       String
-  role          Role      @default(HOST)
-  attivo        Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  nome      String
+  cognome   String
+  role      Role     @default(HOST)
+  attivo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  host          Host?
-  sessioni      Session[]
+  // 2FA
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String[] @default([])
+
+  host             Host?
+  sessioni         Session[]
+  tickets          Ticket[]
+  staffMemberships StaffMember[]
 
   @@map("users")
 }
@@ -143,158 +162,191 @@ model Session {
 }
 
 model Host {
-  id                String           @id @default(cuid())
-  userId            String           @unique
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Dati azienda
-  nomeAzienda       String
-  partitaIva        String?
-  codiceFiscale     String?
-  telefono          String?
-  sitoWeb           String?
-  indirizzo         String?
-  citta             String?
-  provincia         String?
-  cap               String?
-  regione           String?
-  logo              String?          // URL logo
-  note              String?
+  nomeAzienda   String
+  partitaIva    String?
+  codiceFiscale String?
+  telefono      String?
+  sitoWeb       String?
+  indirizzo     String?
+  citta         String?
+  provincia     String?
+  cap           String?
+  regione       String?
+  logo          String? // URL logo
+  note          String?
 
   // Canali di comunicazione (email SMTP per-host)
-  smtpHost          String?
-  smtpPort          Int?
-  smtpUser          String?
-  smtpPass          String?
-  emailMittente     String?          // es. "Villa Otium <info@villa.it>"
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPass      String?
+  emailMittente String? // es. "Villa Otium <info@villa.it>"
 
   // AI Concierge WhatsApp
-  conciergeAttivo       Boolean   @default(false)
-  conciergeProvider     String?   @default("ollama")  // "ollama" | "claude" | "openai"
-  conciergeApiKey       String?   // API key AI dell'host (non della piattaforma)
-  conciergeModel        String?   @default("llama3.1") // modello AI da usare
-  conciergeSystemPrompt String?   // info hotel: orari colazione, checkout, Wi-Fi, ecc.
-  whatsappNumeroId      String?   // Phone Number ID da Meta Cloud API
-  whatsappAccessToken   String?   // token API WhatsApp Business dell'host
-  whatsappVerifyToken   String?   // token verifica webhook Meta
+  conciergeAttivo       Boolean @default(false)
+  conciergeProvider     String? @default("ollama") // "ollama" | "claude" | "openai"
+  conciergeApiKey       String? // API key AI dell'host (non della piattaforma)
+  conciergeModel        String? @default("llama3.1") // modello AI da usare
+  conciergeSystemPrompt String? // info hotel: orari colazione, checkout, Wi-Fi, ecc.
+  whatsappNumeroId      String? // Phone Number ID da Meta Cloud API
+  whatsappAccessToken   String? // token API WhatsApp Business dell'host
+  whatsappVerifyToken   String? // token verifica webhook Meta
+
+  // Onboarding
+  onboardingCompletato Boolean @default(false)
+
+  // Registration Card HTML (personalizzabile dall'host)
+  regCardTerminiHtml    String?
+  regCardPrivacyHtml    String?
+  regCardSpaTerminiHtml String?
+  regCardCampiExtra     Json?
 
   // Moduli attivabili per struttura
   // JSON: { "spa": true, "concierge": false, "lostFound": true, ... }
-  moduliAttivi          Json?     @default("{}")
+  moduliAttivi Json? @default("{}")
 
   // Abbonamento
-  piano             PianoTipo        @default(EVENTO_SINGOLO)
-  statoAbbonamento  StatoAbbonamento @default(IN_PROVA)
-  dataInizioAbb     DateTime?
-  dataFineAbb       DateTime?
-  
+  piano            PianoTipo        @default(EVENTO_SINGOLO)
+  statoAbbonamento StatoAbbonamento @default(IN_PROVA)
+  dataInizioAbb    DateTime?
+  dataFineAbb      DateTime?
+
   // Dati fatturazione (possono differire dai dati azienda)
-  fattNomeAzienda   String?
-  fattPartitaIva    String?
-  fattIndirizzo     String?
-  fattCitta         String?
-  fattCap           String?
-  fattProvincia     String?
-  fattPaese         String?          @default("Italia")
-  fattEmail         String?          // email per invio fatture
-  fattPec           String?
-  fattCodiceSDI     String?
-  regimeFiscale     String?          @default("RF01") // RF01=Ordinario, RF02=Minimi, RF04=Agricoltura, ecc.
+  fattNomeAzienda String?
+  fattPartitaIva  String?
+  fattIndirizzo   String?
+  fattCitta       String?
+  fattCap         String?
+  fattProvincia   String?
+  fattPaese       String? @default("Italia")
+  fattEmail       String? // email per invio fatture
+  fattPec         String?
+  fattCodiceSDI   String?
+  regimeFiscale   String? @default("RF01") // RF01=Ordinario, RF02=Minimi, RF04=Agricoltura, ecc.
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  eventi            Evento[]
-  abbonamenti       Abbonamento[]
-  pagamenti         Pagamento[]
-  fatture           Fattura[]
-  strutture         Struttura[]
-  prenotazioni      Prenotazione[]
-  chat              Chat[]
-  ospiti            OspiteCRM[]
-  segnalazioni      SegnalazioneManutenzione[]
-  comunicazioni     ComunicazioneStaff[]
-  notifiche         Notifica[]
-  pacchetti         Pacchetto[]
+  eventi        Evento[]
+  abbonamenti   Abbonamento[]
+  pagamenti     Pagamento[]
+  fatture       Fattura[]
+  strutture     Struttura[]
+  prenotazioni  Prenotazione[]
+  chat          Chat[]
+  ospiti        OspiteCRM[]
+  segnalazioni  SegnalazioneManutenzione[]
+  comunicazioni ComunicazioneStaff[]
+  notifiche     Notifica[]
+  pacchetti     Pacchetto[]
 
   // SPA module
-  terapistiSpa          TerapistaSpa[]
-  cabineSpa             CabinaSpa[]
-  trattamentiSpa        TrattamentoSpa[]
-  percorsiBenessere     PercorsoBenessere[]
-  appuntamentiSpa       AppuntamentoSpa[]
-  disponibilitaSpa      DisponibilitaTerapista[]
+  terapistiSpa      TerapistaSpa[]
+  cabineSpa         CabinaSpa[]
+  trattamentiSpa    TrattamentoSpa[]
+  percorsiBenessere PercorsoBenessere[]
+  appuntamentiSpa   AppuntamentoSpa[]
+  disponibilitaSpa  DisponibilitaTerapista[]
 
   // AI Concierge
-  conversazioniWA       ConversazioneWhatsApp[]
+  conversazioniWA ConversazioneWhatsApp[]
 
   // Promemoria operativi
-  traces                Trace[]
+  traces Trace[]
 
   // Oggetti smarriti
-  oggettiSmarriti       OggettoSmarrito[]
+  oggettiSmarriti OggettoSmarrito[]
 
   // Magazzino
-  articoliMagazzino     ArticoloMagazzino[]
+  articoliMagazzino ArticoloMagazzino[]
 
   // Biancheria
-  richiesteBiancheria   RichiestaBiancheria[]
+  richiesteBiancheria RichiestaBiancheria[]
 
   // Catalogo servizi
-  serviziStruttura      ServizioStruttura[]
-  pacchettiServizio     PacchettoServizio[]
+  serviziStruttura  ServizioStruttura[]
+  pacchettiServizio PacchettoServizio[]
 
   // Pagamenti
-  paymentConfig         PaymentProviderConfig?
+  paymentConfig PaymentProviderConfig?
 
   // Upselling
-  regoleUpsell          RegolaUpsell[]
+  regoleUpsell RegolaUpsell[]
+
+  // Ticket support
+  tickets Ticket[]
+
+  // Staff management
+  staffMembers StaffMember[]
+  staffInvites StaffInvite[]
+
+  // Gift Card
+  giftCards GiftCard[]
+
+  // POS
+  transazioniPOS TransazionePOS[]
+
+  // Fedelta
+  programmiFedelta ProgrammaFedelta[]
+
+  // SPA Waiting List & Turnaway
+  waitingListSpa   WaitingListSpa[]
+  turnawayTracking TurnawayTracking[]
+
+  // Cassa
+  chiusureCassa ChiusuraCassa[]
+  incassi       Incasso[]
 
   @@map("hosts")
 }
 
 model Evento {
-  id               String          @id @default(cuid())
-  hostId           String
-  host             Host            @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  titolo           String
-  descrizione      String?
-  categoria        CategoriaEvento
-  stato            StatoEvento     @default(IN_ATTESA)
-  
-  dataInizio       DateTime
-  dataFine         DateTime?
-  orario           String?
-  
-  luogo            String?
-  citta            String
-  regione          String
-  indirizzo        String?
-  
-  prezzo           String?          // es. "Gratuito", "€12", "da €5"
-  urlBiglietti     String?
-  urlEvento        String?
-  immagine         String?
-  
+  titolo      String
+  descrizione String?
+  categoria   CategoriaEvento
+  stato       StatoEvento     @default(IN_ATTESA)
+
+  dataInizio DateTime
+  dataFine   DateTime?
+  orario     String?
+
+  luogo     String?
+  citta     String
+  regione   String
+  indirizzo String?
+
+  prezzo       String? // es. "Gratuito", "€12", "da €5"
+  urlBiglietti String?
+  urlEvento    String?
+  immagine     String?
+
   // Visibilità
-  inEvidenza       Boolean         @default(false)
-  inNewsletter     Boolean         @default(false)
-  visibilitaNaz    Boolean         @default(false)
-  regioni          String[]        @default([])  // regioni target
-  
-  // Note admin
-  noteAdmin        String?
-  
-  // Analytics
-  visualizzazioni  Int             @default(0)
-  click            Int             @default(0)
-  
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  inEvidenza    Boolean  @default(false)
+  inNewsletter  Boolean  @default(false)
+  visibilitaNaz Boolean  @default(false)
+  regioni       String[] @default([]) // regioni target
 
-  analyticsGiorn   AnalyticsGiornalieri[]
-  pacchetti        Pacchetto[]
+  // Note admin
+  noteAdmin String?
+
+  // Analytics
+  visualizzazioni Int @default(0)
+  click           Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analyticsGiorn AnalyticsGiornalieri[]
+  pacchetti      Pacchetto[]
 
   @@index([hostId])
   @@index([hostId, stato])
@@ -314,45 +366,45 @@ model AnalyticsGiornalieri {
 }
 
 model Abbonamento {
-  id              String           @id @default(cuid())
-  hostId          String
-  host            Host             @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  piano           PianoTipo
-  stato           StatoAbbonamento
-  dataInizio      DateTime
-  dataFine        DateTime?
-  prezzoMensile   Float
-  note            String?
-  
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  piano         PianoTipo
+  stato         StatoAbbonamento
+  dataInizio    DateTime
+  dataFine      DateTime?
+  prezzoMensile Float
+  note          String?
 
-  pagamenti       Pagamento[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pagamenti Pagamento[]
 
   @@map("abbonamenti")
 }
 
 model Pagamento {
-  id              String         @id @default(cuid())
-  hostId          String
-  host            Host           @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  abbonamentoId   String?
-  abbonamento     Abbonamento?   @relation(fields: [abbonamentoId], references: [id])
+  id            String       @id @default(cuid())
+  hostId        String
+  host          Host         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  abbonamentoId String?
+  abbonamento   Abbonamento? @relation(fields: [abbonamentoId], references: [id])
 
-  importo         Float
-  stato           StatoPagamento @default(IN_ATTESA)
-  metodo          String?        // "Bonifico", "Carta", etc.
-  riferimento     String?        // numero transazione / CRO
-  dataScadenza    DateTime?
-  dataPagamento   DateTime?
-  note            String?
-  descrizione     String?
+  importo       Float
+  stato         StatoPagamento @default(IN_ATTESA)
+  metodo        String? // "Bonifico", "Carta", etc.
+  riferimento   String? // numero transazione / CRO
+  dataScadenza  DateTime?
+  dataPagamento DateTime?
+  note          String?
+  descrizione   String?
 
-  fattura         Fattura?
+  fattura Fattura?
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId])
   @@index([hostId, stato])
@@ -360,45 +412,45 @@ model Pagamento {
 }
 
 model Fattura {
-  id              String       @id @default(cuid())
-  hostId          String
-  host            Host         @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  pagamentoId     String?      @unique
-  pagamento       Pagamento?   @relation(fields: [pagamentoId], references: [id])
+  id          String     @id @default(cuid())
+  hostId      String
+  host        Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  pagamentoId String?    @unique
+  pagamento   Pagamento? @relation(fields: [pagamentoId], references: [id])
 
-  numero          String       @unique  // es. "2026/001"
-  anno            Int
-  stato           StatoFattura @default(BOZZA)
+  numero String       @unique // es. "2026/001"
+  anno   Int
+  stato  StatoFattura @default(BOZZA)
 
   // Dati cliente al momento emissione
-  clienteNome     String
-  clientePIva     String?
-  clienteCF       String?
+  clienteNome      String
+  clientePIva      String?
+  clienteCF        String?
   clienteIndirizzo String?
-  clienteCitta    String?
-  clienteCap      String?
+  clienteCitta     String?
+  clienteCap       String?
   clienteProvincia String?
-  clientePaese    String       @default("Italia")
-  clienteEmail    String?
-  clientePec      String?
-  clienteSDI      String?
+  clientePaese     String  @default("Italia")
+  clienteEmail     String?
+  clientePec       String?
+  clienteSDI       String?
 
   // Righe fattura (JSON array)
-  righe           Json         // [{descrizione, quantita, prezzoUnitario, iva, totale}]
-  
-  imponibile      Float
-  iva             Float
-  totale          Float
-  aliquotaIva     Float        @default(22)
+  righe Json // [{descrizione, quantita, prezzoUnitario, iva, totale}]
 
-  dataEmissione   DateTime     @default(now())
-  dataScadenza    DateTime?
-  note            String?
-  
-  prenotazioni    Prenotazione[]
+  imponibile  Float
+  iva         Float
+  totale      Float
+  aliquotaIva Float @default(22)
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  dataEmissione DateTime  @default(now())
+  dataScadenza  DateTime?
+  note          String?
+
+  prenotazioni Prenotazione[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId])
   @@index([hostId, stato])
@@ -409,9 +461,9 @@ model Fattura {
 // ─── Booking Engine ────────────────────────────────────────────────────────────
 
 model Struttura {
-  id              String        @id @default(cuid())
-  hostId          String
-  host            Host          @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   nome            String
   tipo            TipoStruttura @default(EVENTO)
@@ -419,66 +471,68 @@ model Struttura {
   indirizzo       String?
   citta           String?
   regione         String?
-  capacitaTotale  Int           @default(1)   // posti / unità totali
+  capacitaTotale  Int           @default(1) // posti / unità totali
   prezzoBase      Float         @default(0)
   immagini        String[]      @default([])
   attiva          Boolean       @default(true)
-  urlPrenotazione String?       // slug pubblico per booking page
+  urlPrenotazione String? // slug pubblico per booking page
 
   // ─── Alloggiati Web (Questura / PS) ───────────────────────────────────────
-  alloggiatiAbilitato       Boolean  @default(false)
-  alloggiatiCodiceStruttura String?  // codice assegnato dalla questura (es. "IT099001")
-  alloggiatiComuneIstat     String?  // codice ISTAT comune struttura (es. "H501")
+  alloggiatiAbilitato           Boolean @default(false)
+  alloggiatiCodiceStruttura     String? // codice assegnato dalla questura (es. "IT099001")
+  alloggiatiComuneIstat         String? // codice ISTAT comune struttura (es. "H501")
   alloggiatiDenominazioneComune String? // nome comune per leggibilità
 
-  unita           UnitaPrenotabile[]
-  prenotazioni    Prenotazione[]
-  segnalazioni    SegnalazioneManutenzione[]
-  pacchetti       Pacchetto[]
-  regoleTariffa   RegolaTariffa[]
-  configPasti     ConfigPastoStruttura[]
-  canaliEsterni   CanaleEsterno[]
-  serviziStruttura ServizioStruttura[]
+  unita             UnitaPrenotabile[]
+  prenotazioni      Prenotazione[]
+  segnalazioni      SegnalazioneManutenzione[]
+  pacchetti         Pacchetto[]
+  regoleTariffa     RegolaTariffa[]
+  configPasti       ConfigPastoStruttura[]
+  canaliEsterni     CanaleEsterno[]
+  serviziStruttura  ServizioStruttura[]
   pacchettiServizio PacchettoServizio[]
-  regoleUpsell    RegolaUpsell[]
+  regoleUpsell      RegolaUpsell[]
+  menuGiornalieri   MenuGiornaliero[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
-  modalitaAssegnazione String?  @default("MANUALE")
+  modalitaAssegnazione String? @default("MANUALE")
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("strutture")
 }
 
 // Unità prenotabile (camera, tavolo, posto, slot orario, ecc.)
 model UnitaPrenotabile {
-  id              String    @id @default(cuid())
-  strutturaId     String
-  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nome            String     // es. "Posto VIP", "Camera Standard", "Slot ore 10-12"
-  descrizione     String?
-  capacita        Int        @default(1)
-  lettiExtra      Int        @default(0)   // letti aggiuntivi disponibili su richiesta
-  piano           Int?                     // piano dell'edificio (0 = terra, 1, 2, ...)
-  prezzoBase      Float      @default(0)
-  prezzoLettoExtra Float?                  // sovrapprezzo per letto extra a notte
-  attiva          Boolean    @default(true)
+  nome             String // es. "Posto VIP", "Camera Standard", "Slot ore 10-12"
+  descrizione      String?
+  capacita         Int     @default(1)
+  lettiExtra       Int     @default(0) // letti aggiuntivi disponibili su richiesta
+  piano            Int? // piano dell'edificio (0 = terra, 1, 2, ...)
+  prezzoBase       Float   @default(0)
+  prezzoLettoExtra Float? // sovrapprezzo per letto extra a notte
+  immagine         String? // URL immagine unità
+  attiva           Boolean @default(true)
 
   // Housekeeping
-  statoHK         StatoHK    @default(PULITA)
-  noteHK          String?    // note visibili allo staff HK
-  ultimaPulizia   DateTime?
+  statoHK       StatoHK   @default(PULITA)
+  noteHK        String? // note visibili allo staff HK
+  ultimaPulizia DateTime?
 
-  disponibilita   Disponibilita[]
-  tariffe         TariffaPeriodo[]
-  regoleTariffa   RegolaTariffa[]
-  prenotazioni    Prenotazione[]
-  taskHK          TaskHK[]
-  segnalazioni    SegnalazioneManutenzione[]
-  pagamentiSpa    PagamentoSpa[]
-  canaliEsterni   CanaleEsterno[]
+  disponibilita       Disponibilita[]
+  tariffe             TariffaPeriodo[]
+  regoleTariffa       RegolaTariffa[]
+  prenotazioni        Prenotazione[]
+  taskHK              TaskHK[]
+  segnalazioni        SegnalazioneManutenzione[]
+  pagamentiSpa        PagamentoSpa[]
+  canaliEsterni       CanaleEsterno[]
   dotazioneBiancheria DotazioneBiancheria[]
 
   @@map("unita_prenotabili")
@@ -486,14 +540,14 @@ model UnitaPrenotabile {
 
 // Disponibilità giornaliera per unità
 model Disponibilita {
-  id               String           @id @default(cuid())
-  unitaId          String
-  unita            UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  id      String           @id @default(cuid())
+  unitaId String
+  unita   UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
 
-  data             DateTime         @db.Date
-  postiDisponibili Int              @default(1)
-  postiOccupati    Int              @default(0)
-  chiuso           Boolean          @default(false)  // blocco manuale host
+  data             DateTime @db.Date
+  postiDisponibili Int      @default(1)
+  postiOccupati    Int      @default(0)
+  chiuso           Boolean  @default(false) // blocco manuale host
   noteInterno      String?
 
   @@unique([unitaId, data])
@@ -502,138 +556,150 @@ model Disponibilita {
 
 // Tariffa per periodo (alta stagione, weekend, promo ecc.)
 model TariffaPeriodo {
-  id              String           @id @default(cuid())
-  unitaId         String
-  unita           UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  id      String           @id @default(cuid())
+  unitaId String
+  unita   UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
 
-  nome            String           // es. "Alta stagione", "Promo Pasqua"
-  dataInizio      DateTime         @db.Date
-  dataFine        DateTime         @db.Date
-  prezzo          Float
-  colore          String?          @default("#6366f1") // per il calendario
+  nome       String // es. "Alta stagione", "Promo Pasqua"
+  dataInizio DateTime @db.Date
+  dataFine   DateTime @db.Date
+  prezzo     Float
+  colore     String?  @default("#6366f1") // per il calendario
 
   @@map("tariffe_periodo")
 }
 
 // Regola tariffa automatica (weekend, stagione, festivi)
 model RegolaTariffa {
-  id              String             @id @default(cuid())
-  strutturaId     String
-  struttura       Struttura          @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
-  unitaId         String?            // null = tutte le unità della struttura
-  unita           UnitaPrenotabile?  @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  id          String            @id @default(cuid())
+  strutturaId String
+  struttura   Struttura         @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  unitaId     String? // null = tutte le unità della struttura
+  unita       UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: Cascade)
 
-  nome            String             // es. "Weekend +20%", "Alta stagione agosto"
-  tipo            TipoRegolaTariffa  // WEEKEND, STAGIONE, FESTIVO
-  attiva          Boolean            @default(true)
-  priorita        Int                @default(0) // regola con priorità più alta vince
+  nome     String // es. "Weekend +20%", "Alta stagione agosto"
+  tipo     TipoRegolaTariffa // WEEKEND, STAGIONE, FESTIVO
+  attiva   Boolean           @default(true)
+  priorita Int               @default(0) // regola con priorità più alta vince
 
   // Modificatore prezzo
-  modificatore    TipoModificatore   // PERCENTUALE, FISSO
-  valore          Float              // es. 20 = +20% oppure 30 = +€30
+  modificatore TipoModificatore // PERCENTUALE, FISSO
+  valore       Float // es. 20 = +20% oppure 30 = +€30
 
   // Periodo (solo per STAGIONE)
-  meseInizio      Int?               // 1-12
-  giornoInizio    Int?               // 1-31
-  meseFine        Int?               // 1-12
-  giornoFine      Int?               // 1-31
+  meseInizio   Int? // 1-12
+  giornoInizio Int? // 1-31
+  meseFine     Int? // 1-12
+  giornoFine   Int? // 1-31
 
   // Giorni settimana (solo per WEEKEND / personalizzato) — 0=Lun, 6=Dom
-  giorniSettimana Int[]              @default([])  // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
+  giorniSettimana Int[] @default([]) // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
 
   // Durata soggiorno (solo per DURATA) — notti minime per attivare lo sconto
-  nottiMinime     Int?               // es. 3 = sconto attivo per soggiorni >= 3 notti
+  nottiMinime Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
 
-  createdAt       DateTime           @default(now())
+  createdAt DateTime @default(now())
 
   @@map("regole_tariffa")
 }
 
 enum TipoRegolaTariffa {
-  WEEKEND    // applica a giorni settimana selezionati
-  STAGIONE   // applica a range date annuale (si ripete ogni anno)
-  FESTIVO    // applica a date specifiche (Natale, Capodanno, ecc.)
-  DURATA     // sconto per soggiorni lunghi (es. 3+ notti -10%, 7+ notti -20%)
+  WEEKEND // applica a giorni settimana selezionati
+  STAGIONE // applica a range date annuale (si ripete ogni anno)
+  FESTIVO // applica a date specifiche (Natale, Capodanno, ecc.)
+  DURATA // sconto per soggiorni lunghi (es. 3+ notti -10%, 7+ notti -20%)
 }
 
 enum TipoModificatore {
   PERCENTUALE // +X% sul prezzo base
-  FISSO       // +€X sul prezzo base
+  FISSO // +€X sul prezzo base
 }
 
 // Prenotazione / richiesta da ospite
 model Prenotazione {
-  id              String             @id @default(cuid())
-  hostId          String
-  host            Host               @relation(fields: [hostId], references: [id])
-  strutturaId     String?
-  struttura       Struttura?         @relation(fields: [strutturaId], references: [id])
-  unitaId         String?
-  unita           UnitaPrenotabile?  @relation(fields: [unitaId], references: [id])
+  id          String            @id @default(cuid())
+  hostId      String
+  host        Host              @relation(fields: [hostId], references: [id])
+  strutturaId String?
+  struttura   Struttura?        @relation(fields: [strutturaId], references: [id])
+  unitaId     String?
+  unita       UnitaPrenotabile? @relation(fields: [unitaId], references: [id])
 
   // Dati ospite
-  guestNome       String
-  guestCognome    String
-  guestEmail      String
-  guestTelefono   String?
-  guestNote       String?
+  guestNome     String
+  guestCognome  String
+  guestEmail    String
+  guestTelefono String?
+  guestNote     String?
 
   // Dettagli prenotazione
-  dataArrivo      DateTime           @db.Date
-  dataPartenza    DateTime?          @db.Date
-  numOspiti       Int                @default(1)
-  stato           StatoPrenotazione  @default(RICHIESTA)
-  fonte           String?            @default("Diretto") // "Diretto", "Web", "Tel", "Email"
+  dataArrivo   DateTime          @db.Date
+  dataPartenza DateTime?         @db.Date
+  numOspiti    Int               @default(1)
+  stato        StatoPrenotazione @default(RICHIESTA)
+  fonte        String?           @default("Diretto") // "Diretto", "Web", "Tel", "Email"
 
   // Economici
-  prezzoTotale    Float?
-  acconto         Float?
-  tassaSoggiorno  Float?         // tassa di soggiorno: € per notte
-  noteInterne     String?
+  prezzoTotale   Float?
+  acconto        Float?
+  tassaSoggiorno Float? // tassa di soggiorno: € per notte
+  noteInterne    String?
 
   // ─── Dati anagrafici ospite per Alloggiati Web ───────────────────────────
-  guestSesso                String?   // "M" o "F"
-  guestDataNascita          DateTime? @db.Date
-  guestLuogoNascita         String?   // nome comune (display)
-  guestComuneNascitaIstat   String?   // codice ISTAT comune nascita
-  guestProvinciaNascita     String?   // sigla 2 lettere
-  guestStatoNascitaIstat    String?   @default("100000100") // ISTAT stato nascita
-  guestCittadinanzaIstat    String?   @default("100000100") // ISTAT cittadinanza
-  guestTipoDocumento        String?   // PPORT, IDENTE, PATEN, PATEN_INT, ALTRO
-  guestNumeroDocumento      String?
-  guestLuogoRilascio        String?   // nome comune (display)
-  guestComuneRilascioIstat  String?   // ISTAT comune rilascio
-  guestProvinciaRilascio    String?   // sigla 2 lettere
-  guestStatoRilascioIstat   String?   // ISTAT stato rilascio
+  guestSesso               String? // "M" o "F"
+  guestDataNascita         DateTime? @db.Date
+  guestLuogoNascita        String? // nome comune (display)
+  guestComuneNascitaIstat  String? // codice ISTAT comune nascita
+  guestProvinciaNascita    String? // sigla 2 lettere
+  guestStatoNascitaIstat   String?   @default("100000100") // ISTAT stato nascita
+  guestCittadinanzaIstat   String?   @default("100000100") // ISTAT cittadinanza
+  guestTipoDocumento       String? // PPORT, IDENTE, PATEN, PATEN_INT, ALTRO
+  guestNumeroDocumento     String?
+  guestLuogoRilascio       String? // nome comune (display)
+  guestComuneRilascioIstat String? // ISTAT comune rilascio
+  guestProvinciaRilascio   String? // sigla 2 lettere
+  guestStatoRilascioIstat  String? // ISTAT stato rilascio
 
   // Notifiche / Email automatiche
-  emailInviata        Boolean  @default(false)
-  reminderInviato     Boolean  @default(false) // reminder pre-arrivo inviato
-  followUpInviato     Boolean  @default(false) // follow-up post-soggiorno inviato
+  emailInviata    Boolean @default(false)
+  reminderInviato Boolean @default(false) // reminder pre-arrivo inviato
+  followUpInviato Boolean @default(false) // follow-up post-soggiorno inviato
 
   // Lingua preferita ospite (per email multilingua)
-  guestLingua     String?            @default("it") // "it", "en", "de", "fr", "es"
+  guestLingua String? @default("it") // "it", "en", "de", "fr", "es"
+
+  // Registration Card (firma digitale)
+  regCardFirmata      Boolean   @default(false)
+  regCardFirmaBase64  String?
+  regCardAccTermini   Boolean   @default(false)
+  regCardAccPrivacy   Boolean   @default(false)
+  regCardAccMarketing Boolean   @default(false)
+  regCardDataFirma    DateTime?
 
   // Self check-in ospite
-  checkInToken        String?  @unique
-  checkInCompletato   Boolean  @default(false)
+  checkInToken      String? @unique
+  checkInCompletato Boolean @default(false)
 
-  chat            Chat?
-  fattura         Fattura?           @relation(fields: [fatturaId], references: [id])
-  fatturaId       String?
-  appuntamentiSpa AppuntamentoSpa[]
-  conversazioniWA ConversazioneWhatsApp[]
-  accompagnatori  Accompagnatore[]
-  traces          Trace[]
-  oggettiSmarriti OggettoSmarrito[]
-  alertOspite     AlertOspite[]
-  pianoPasto      PastoPrenotazione?
-  addebiti        AddebitoPrenotazione[]
+  chat              Chat?
+  fattura           Fattura?                @relation(fields: [fatturaId], references: [id])
+  fatturaId         String?
+  appuntamentiSpa   AppuntamentoSpa[]
+  conversazioniWA   ConversazioneWhatsApp[]
+  accompagnatori    Accompagnatore[]
+  traces            Trace[]
+  oggettiSmarriti   OggettoSmarrito[]
+  alertOspite       AlertOspite[]
+  pianoPasto        PastoPrenotazione?
+  addebiti          AddebitoPrenotazione[]
   pagamentiCheckout PagamentoCheckout[]
-  proposteUpsell  PropostaUpsell[]
+  proposteUpsell    PropostaUpsell[]
+  sceltePasto       SceltaPastoOspite[]
+  transazioniPOS    TransazionePOS[]
+  waitingListSpa    WaitingListSpa[]
+  incassi           Incasso[]
 
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Indici per le query più frequenti nei route handler
   @@index([hostId])
@@ -651,29 +717,29 @@ enum TipoPasto {
 }
 
 enum PianoPasto {
-  SOLO_PERNOTTAMENTO   // Room Only
-  PERNOTTAMENTO_COLAZIONE  // B&B
-  MEZZA_PENSIONE       // HB: colazione + cena
-  PENSIONE_COMPLETA    // FB: colazione + pranzo + cena
-  ALL_INCLUSIVE         // tutto incluso
+  SOLO_PERNOTTAMENTO // Room Only
+  PERNOTTAMENTO_COLAZIONE // B&B
+  MEZZA_PENSIONE // HB: colazione + cena
+  PENSIONE_COMPLETA // FB: colazione + pranzo + cena
+  ALL_INCLUSIVE // tutto incluso
 }
 
 // Configurazione pasti della struttura (cosa offre, a che prezzo)
 model ConfigPastoStruttura {
-  id              String    @id @default(cuid())
-  strutturaId     String
-  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  tipoPasto       TipoPasto
-  disponibile     Boolean   @default(true)
-  orarioInizio    String?   // "07:30"
-  orarioFine      String?   // "10:00"
-  prezzo          Float     @default(0)   // prezzo per persona se non incluso nel piano
-  prezzoRidotto   Float?    // prezzo bambini/ridotto
-  luogo           String?   // "Sala colazioni piano terra", "Ristorante La Terrazza"
-  note            String?   // "Buffet", "Servito al tavolo", ecc.
+  tipoPasto     TipoPasto
+  disponibile   Boolean   @default(true)
+  orarioInizio  String? // "07:30"
+  orarioFine    String? // "10:00"
+  prezzo        Float     @default(0) // prezzo per persona se non incluso nel piano
+  prezzoRidotto Float? // prezzo bambini/ridotto
+  luogo         String? // "Sala colazioni piano terra", "Ristorante La Terrazza"
+  note          String? // "Buffet", "Servito al tavolo", ecc.
 
-  createdAt       DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([strutturaId, tipoPasto])
   @@map("config_pasto_struttura")
@@ -681,23 +747,23 @@ model ConfigPastoStruttura {
 
 // Piano pasto assegnato a una prenotazione
 model PastoPrenotazione {
-  id              String        @id @default(cuid())
-  prenotazioneId  String
-  prenotazione    Prenotazione  @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
-  piano           PianoPasto    @default(PERNOTTAMENTO_COLAZIONE)
-  incluso         Boolean       @default(true) // se il pasto è incluso nel prezzo o va addebitato extra
-  note            String?       // "Ospite celiaco", "Vegano", "Intolleranza lattosio"
+  piano   PianoPasto @default(PERNOTTAMENTO_COLAZIONE)
+  incluso Boolean    @default(true) // se il pasto è incluso nel prezzo o va addebitato extra
+  note    String? // "Ospite celiaco", "Vegano", "Intolleranza lattosio"
 
   // Override prezzo (se diverso dal listino struttura)
-  sovraprezzoGiornaliero Float?  // extra per persona/giorno se non incluso
+  sovraprezzoGiornaliero Float? // extra per persona/giorno se non incluso
 
   // Pasti specifici aggiunti/rimossi (override del piano)
-  pastiExtra      TipoPasto[]   @default([])   // pasti aggiunti oltre al piano
-  pastiEsclusi    TipoPasto[]   @default([])   // pasti esclusi dal piano
+  pastiExtra   TipoPasto[] @default([]) // pasti aggiunti oltre al piano
+  pastiEsclusi TipoPasto[] @default([]) // pasti esclusi dal piano
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([prenotazioneId])
   @@map("pasti_prenotazione")
@@ -706,46 +772,46 @@ model PastoPrenotazione {
 // ─── Magazzino (Inventory) ────────────────────────────────────────────────────
 
 model ArticoloMagazzino {
-  id              String    @id @default(cuid())
-  hostId          String
-  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  nome            String     // "Asciugamano grande", "Lenzuola singolo", "Sapone 30ml", "Minibar Cola"
-  categoria       String     @default("ALTRO") // BIANCHERIA, PULIZIA, MINIBAR, AMENITIES, CANCELLERIA, MANUTENZIONE, ALTRO
-  unita           String     @default("pz")    // pz, kg, lt, rotoli, conf
+  nome      String // "Asciugamano grande", "Lenzuola singolo", "Sapone 30ml", "Minibar Cola"
+  categoria String @default("ALTRO") // BIANCHERIA, PULIZIA, MINIBAR, AMENITIES, CANCELLERIA, MANUTENZIONE, ALTRO
+  unita     String @default("pz") // pz, kg, lt, rotoli, conf
 
   // Scorte
-  quantita        Int        @default(0)       // giacenza attuale
-  scorteMinime    Int        @default(0)       // soglia allarme riordino
-  scorteOttimali  Int?                         // livello ideale
-  costoUnitario   Float?                       // costo acquisto unitario
+  quantita       Int    @default(0) // giacenza attuale
+  scorteMinime   Int    @default(0) // soglia allarme riordino
+  scorteOttimali Int? // livello ideale
+  costoUnitario  Float? // costo acquisto unitario
 
   // Info
-  fornitore       String?    // nome fornitore
-  codiceArticolo  String?    // SKU / codice interno
-  ubicazione      String?    // "Magazzino piano -1", "Ripostiglio piano 2"
-  note            String?
+  fornitore      String? // nome fornitore
+  codiceArticolo String? // SKU / codice interno
+  ubicazione     String? // "Magazzino piano -1", "Ripostiglio piano 2"
+  note           String?
 
-  movimenti       MovimentoMagazzino[]
+  movimenti MovimentoMagazzino[]
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, categoria])
   @@map("articoli_magazzino")
 }
 
 model MovimentoMagazzino {
-  id              String    @id @default(cuid())
-  articoloId      String
-  articolo        ArticoloMagazzino @relation(fields: [articoloId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  articoloId String
+  articolo   ArticoloMagazzino @relation(fields: [articoloId], references: [id], onDelete: Cascade)
 
-  tipo            String     // CARICO, SCARICO, RETTIFICA, CONSUMO
-  quantita        Int        // positivo per carico, negativo per scarico
-  motivo          String?    // "Rifornimento", "Consumo camera 204", "Inventario", "Rotto"
-  operatore       String?    // chi ha fatto il movimento
+  tipo      String // CARICO, SCARICO, RETTIFICA, CONSUMO
+  quantita  Int // positivo per carico, negativo per scarico
+  motivo    String? // "Rifornimento", "Consumo camera 204", "Inventario", "Rotto"
+  operatore String? // chi ha fatto il movimento
 
-  createdAt       DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@index([articoloId, createdAt])
   @@map("movimenti_magazzino")
@@ -755,52 +821,52 @@ model MovimentoMagazzino {
 
 // Configurazione provider pagamento per host
 model PaymentProviderConfig {
-  id              String   @id @default(cuid())
-  hostId          String   @unique
-  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String @unique
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Provider attivo: MANUALE, STRIPE, ADYEN, NEXI, SUMUP
-  providerAttivo  String   @default("MANUALE")
+  providerAttivo String @default("MANUALE")
 
   // Stripe Terminal
-  stripeSecretKey    String?
-  stripeLocationId   String?
-  stripeReaderId     String?
+  stripeSecretKey  String?
+  stripeLocationId String?
+  stripeReaderId   String?
 
   // Adyen
-  adyenApiKey        String?
+  adyenApiKey          String?
   adyenMerchantAccount String?
-  adyenTerminalId    String?
-  adyenEnvironment   String?  @default("test") // "test" | "live"
+  adyenTerminalId      String?
+  adyenEnvironment     String? @default("test") // "test" | "live"
 
   // Nexi
-  nexiApiKey         String?
-  nexiTerminalId     String?
+  nexiApiKey     String?
+  nexiTerminalId String?
 
   // SumUp
-  sumupApiKey        String?
-  sumupDeviceId      String?
+  sumupApiKey   String?
+  sumupDeviceId String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("payment_provider_config")
 }
 
 // Singola transazione di pagamento al checkout
 model PagamentoCheckout {
-  id              String   @id @default(cuid())
-  hostId          String
-  prenotazioneId  String
-  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  hostId         String
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
   // Importo
-  importo         Float
-  divisa          String   @default("EUR")
+  importo Float
+  divisa  String @default("EUR")
 
   // Metodo
-  metodo          String   // CARTA, CONTANTI, BONIFICO, CAMERA_CREDIT, ASSEGNO, ALTRO
-  provider        String   @default("MANUALE") // MANUALE, STRIPE, ADYEN, NEXI, SUMUP
+  metodo   String // CARTA, CONTANTI, BONIFICO, CAMERA_CREDIT, ASSEGNO, ALTRO
+  provider String @default("MANUALE") // MANUALE, STRIPE, ADYEN, NEXI, SUMUP
 
   // Riferimenti
   riferimentoEsterno String? // transaction ID dal POS/provider
@@ -809,14 +875,14 @@ model PagamentoCheckout {
   autorizzazione     String? // codice autorizzazione
 
   // Stato
-  stato           String   @default("COMPLETATO") // PENDENTE, COMPLETATO, RIFIUTATO, ANNULLATO, RIMBORSATO
-  errore          String?  // motivo se rifiutato
+  stato  String  @default("COMPLETATO") // PENDENTE, COMPLETATO, RIFIUTATO, ANNULLATO, RIMBORSATO
+  errore String? // motivo se rifiutato
 
   // Chi ha gestito
-  operatore       String?
-  note            String?
+  operatore String?
+  note      String?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([prenotazioneId])
   @@index([hostId, createdAt])
@@ -827,39 +893,40 @@ model PagamentoCheckout {
 
 // Singolo servizio/prodotto offerto dalla struttura (completamente personalizzabile)
 model ServizioStruttura {
-  id              String    @id @default(cuid())
-  hostId          String
-  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  strutturaId     String?   // null = disponibile in tutte le strutture dell'host
-  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  hostId      String
+  host        Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String? // null = disponibile in tutte le strutture dell'host
+  struttura   Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nome            String     // "Colazione buffet", "Degustazione vini", "Bottiglia Barolo", "Massaggio 60min"
-  descrizione     String?
-  categoria       String     // libero: ALLOGGIO, RISTORAZIONE, BEVANDE, SPA, SERVIZI, PRODOTTI, PACCHETTO, ALTRO
-  sottocategoria  String?    // libero: "Colazione", "Cena", "Vino rosso", "Massaggio", ecc.
+  nome           String // "Colazione buffet", "Degustazione vini", "Bottiglia Barolo", "Massaggio 60min"
+  descrizione    String?
+  categoria      String // libero: ALLOGGIO, RISTORAZIONE, BEVANDE, SPA, SERVIZI, PRODOTTI, PACCHETTO, ALTRO
+  sottocategoria String? // libero: "Colazione", "Cena", "Vino rosso", "Massaggio", ecc.
 
   // Prezzo & IVA
-  prezzo          Float      @default(0)
-  aliquotaIva     Float      @default(22)    // 4, 5, 10, 22, 0 (esente)
-  unitaMisura     String     @default("a persona") // "a persona", "a camera", "a notte", "forfait", "a consumo", "a bottiglia"
+  prezzo      Float  @default(0)
+  aliquotaIva Float  @default(22) // 4, 5, 10, 22, 0 (esente)
+  unitaMisura String @default("a persona") // "a persona", "a camera", "a notte", "forfait", "a consumo", "a bottiglia"
 
   // Disponibilità
-  attivo          Boolean    @default(true)
-  prenotabileOnline Boolean  @default(false) // visibile nel booking pubblico
-  immagine        String?    // URL immagine
+  attivo            Boolean @default(true)
+  prenotabileOnline Boolean @default(false) // visibile nel booking pubblico
+  immagine          String? // URL immagine
 
   // Per servizi ricorrenti (colazione, pranzo, cena)
-  ricorrente      Boolean    @default(false)  // se true, si addebita per ogni notte
-  orarioInizio    String?    // "07:30"
-  orarioFine      String?    // "10:00"
-  luogo           String?    // "Sala colazioni piano terra"
+  ricorrente   Boolean @default(false) // se true, si addebita per ogni notte
+  orarioInizio String? // "07:30"
+  orarioFine   String? // "10:00"
+  luogo        String? // "Sala colazioni piano terra"
 
   // Relazioni
   addebitiPrenotazione AddebitoPrenotazione[]
   vociPacchetto        VocePacchetto[]
+  vociPOS              VocePOS[]
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, categoria])
   @@index([strutturaId])
@@ -868,29 +935,29 @@ model ServizioStruttura {
 
 // Pacchetto = combinazione di servizi con prezzo speciale
 model PacchettoServizio {
-  id              String    @id @default(cuid())
-  hostId          String
-  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  strutturaId     String?
-  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  hostId      String
+  host        Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String?
+  struttura   Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nome            String     // "Weekend Degustazione", "Romantico", "Business Pack"
-  descrizione     String?
-  immagine        String?
-  prezzo          Float      @default(0)      // prezzo pacchetto (può essere diverso dalla somma dei servizi)
-  prezzoOriginale Float?                      // prezzo pieno senza sconto (per mostrare il risparmio)
-  attivo          Boolean    @default(true)
-  prenotabileOnline Boolean  @default(false)
+  nome              String // "Weekend Degustazione", "Romantico", "Business Pack"
+  descrizione       String?
+  immagine          String?
+  prezzo            Float   @default(0) // prezzo pacchetto (può essere diverso dalla somma dei servizi)
+  prezzoOriginale   Float? // prezzo pieno senza sconto (per mostrare il risparmio)
+  attivo            Boolean @default(true)
+  prenotabileOnline Boolean @default(false)
 
   // Validità
-  dataInizio      DateTime?  @db.Date
-  dataFine        DateTime?  @db.Date
+  dataInizio DateTime? @db.Date
+  dataFine   DateTime? @db.Date
 
-  voci            VocePacchetto[]
+  voci                 VocePacchetto[]
   addebitiPrenotazione AddebitoPrenotazione[]
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId])
   @@map("pacchetti_servizio")
@@ -898,42 +965,42 @@ model PacchettoServizio {
 
 // Singola voce dentro un pacchetto
 model VocePacchetto {
-  id              String    @id @default(cuid())
-  pacchettoId     String
-  pacchetto       PacchettoServizio @relation(fields: [pacchettoId], references: [id], onDelete: Cascade)
-  servizioId      String
-  servizio        ServizioStruttura @relation(fields: [servizioId], references: [id], onDelete: Cascade)
+  id          String            @id @default(cuid())
+  pacchettoId String
+  pacchetto   PacchettoServizio @relation(fields: [pacchettoId], references: [id], onDelete: Cascade)
+  servizioId  String
+  servizio    ServizioStruttura @relation(fields: [servizioId], references: [id], onDelete: Cascade)
 
-  quantita        Int        @default(1)
-  incluso         Boolean    @default(true) // se false, è opzionale/extra
+  quantita Int     @default(1)
+  incluso  Boolean @default(true) // se false, è opzionale/extra
 
   @@map("voci_pacchetto")
 }
 
 // Addebito di un servizio/pacchetto su una prenotazione (conto ospite)
 model AddebitoPrenotazione {
-  id              String    @id @default(cuid())
-  prenotazioneId  String
-  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
   // Può essere un servizio singolo O un pacchetto
-  servizioId      String?
-  servizio        ServizioStruttura? @relation(fields: [servizioId], references: [id])
-  pacchettoId     String?
-  pacchetto       PacchettoServizio? @relation(fields: [pacchettoId], references: [id])
+  servizioId  String?
+  servizio    ServizioStruttura? @relation(fields: [servizioId], references: [id])
+  pacchettoId String?
+  pacchetto   PacchettoServizio? @relation(fields: [pacchettoId], references: [id])
 
-  descrizione     String     // descrizione leggibile in fattura
-  quantita        Int        @default(1)
-  prezzoUnitario  Float
-  aliquotaIva     Float      @default(22)
-  totale          Float      // quantita × prezzoUnitario
-  data            DateTime   @default(now()) @db.Date // data dell'addebito
+  descrizione    String // descrizione leggibile in fattura
+  quantita       Int      @default(1)
+  prezzoUnitario Float
+  aliquotaIva    Float    @default(22)
+  totale         Float // quantita × prezzoUnitario
+  data           DateTime @default(now()) @db.Date // data dell'addebito
 
   // Chi ha addebitato
-  addebitatoDa    String?    // "Reception", "Ristorante", "SPA", "Minibar", "Sistema"
-  note            String?
+  addebitatoDa String? // "Reception", "Ristorante", "SPA", "Minibar", "Sistema"
+  note         String?
 
-  createdAt       DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@index([prenotazioneId])
   @@map("addebiti_prenotazione")
@@ -942,16 +1009,16 @@ model AddebitoPrenotazione {
 // ─── Channel Manager (connessioni iCal con OTA) ──────────────────────────────
 
 model CanaleEsterno {
-  id              String    @id @default(cuid())
-  strutturaId     String
-  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
-  unitaId         String?
-  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
+  id          String            @id @default(cuid())
+  strutturaId String
+  struttura   Struttura         @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  unitaId     String?
+  unita       UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
 
-  nome            String    // "Booking.com", "Airbnb", "VRBO", "Google Calendar", ecc.
-  urlIcal         String    // URL feed iCal da importare
-  attivo          Boolean   @default(true)
-  colore          String    @default("#f59e0b") // colore nel calendario
+  nome    String // "Booking.com", "Airbnb", "VRBO", "Google Calendar", ecc.
+  urlIcal String // URL feed iCal da importare
+  attivo  Boolean @default(true)
+  colore  String  @default("#f59e0b") // colore nel calendario
 
   // Stato sync
   ultimoSync      DateTime?
@@ -962,8 +1029,8 @@ model CanaleEsterno {
   // Prenotazioni importate da questo canale
   prenotazioniImportate PrenotazioneCanale[]
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([strutturaId])
   @@map("canali_esterni")
@@ -971,18 +1038,18 @@ model CanaleEsterno {
 
 // Singola prenotazione/blocco importato da un canale iCal
 model PrenotazioneCanale {
-  id              String         @id @default(cuid())
-  canaleId        String
-  canale          CanaleEsterno  @relation(fields: [canaleId], references: [id], onDelete: Cascade)
+  id       String        @id @default(cuid())
+  canaleId String
+  canale   CanaleEsterno @relation(fields: [canaleId], references: [id], onDelete: Cascade)
 
-  uidEvento       String         // UID iCal dell'evento (per dedup)
-  sommario        String         // SUMMARY dell'evento ("Booked", "Not available", nome ospite)
-  dataInizio      DateTime       @db.Date
-  dataFine        DateTime       @db.Date
-  descrizione     String?
+  uidEvento   String // UID iCal dell'evento (per dedup)
+  sommario    String // SUMMARY dell'evento ("Booked", "Not available", nome ospite)
+  dataInizio  DateTime @db.Date
+  dataFine    DateTime @db.Date
+  descrizione String?
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([canaleId, uidEvento])
   @@index([canaleId])
@@ -992,19 +1059,19 @@ model PrenotazioneCanale {
 // ─── Alert Ospite (avvisi automatici a check-in/checkout) ─────────────────────
 
 model AlertOspite {
-  id              String       @id @default(cuid())
-  hostId          String
-  prenotazioneId  String
-  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  hostId         String
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
-  messaggio       String       // "Ospite VIP — upgrade se possibile", "Allergia noci — avvisare cucina"
-  tipo            String       @default("INFO") // INFO, WARNING, DANGER
-  triggerEvento   String       // "CHECKIN", "CHECKOUT", "ACCESSO" (quando si apre la prenotazione)
-  attivo          Boolean      @default(true)
-  vistoAt         DateTime?    // quando l'operatore l'ha visto/confermato
-  vistoDa         String?
+  messaggio     String // "Ospite VIP — upgrade se possibile", "Allergia noci — avvisare cucina"
+  tipo          String    @default("INFO") // INFO, WARNING, DANGER
+  triggerEvento String // "CHECKIN", "CHECKOUT", "ACCESSO" (quando si apre la prenotazione)
+  attivo        Boolean   @default(true)
+  vistoAt       DateTime? // quando l'operatore l'ha visto/confermato
+  vistoDa       String?
 
-  createdAt       DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([prenotazioneId, triggerEvento])
   @@map("alert_ospite")
@@ -1013,44 +1080,44 @@ model AlertOspite {
 // ─── Oggetti Smarriti (Lost & Found) ──────────────────────────────────────────
 
 enum StatoOggettoSmarrito {
-  IN_CUSTODIA      // trovato, in attesa
-  RESTITUITO       // riconsegnato al proprietario
-  SPEDITO          // spedito al proprietario
-  NON_RECLAMATO    // nessuno l'ha reclamato (dopo N giorni)
-  SMALTITO         // eliminato/donato
+  IN_CUSTODIA // trovato, in attesa
+  RESTITUITO // riconsegnato al proprietario
+  SPEDITO // spedito al proprietario
+  NON_RECLAMATO // nessuno l'ha reclamato (dopo N giorni)
+  SMALTITO // eliminato/donato
 }
 
 model OggettoSmarrito {
-  id              String                @id @default(cuid())
-  hostId          String
-  host            Host                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Cosa
-  descrizione     String                // "Orologio da polso argento", "Zaino nero North Face"
-  categoria       String                @default("ALTRO") // ABBIGLIAMENTO, ELETTRONICA, DOCUMENTI, GIOIELLI, BAGAGLIO, ALTRO
-  foto            String?               // URL foto
+  descrizione String // "Orologio da polso argento", "Zaino nero North Face"
+  categoria   String  @default("ALTRO") // ABBIGLIAMENTO, ELETTRONICA, DOCUMENTI, GIOIELLI, BAGAGLIO, ALTRO
+  foto        String? // URL foto
 
   // Dove e quando trovato
-  luogoRitrovamento String?             // "Camera 204", "Ristorante", "Lobby", "Parcheggio"
-  dataRitrovamento  DateTime            @default(now()) @db.Date
-  trovatoDa       String?               // nome di chi l'ha trovato
+  luogoRitrovamento String? // "Camera 204", "Ristorante", "Lobby", "Parcheggio"
+  dataRitrovamento  DateTime @default(now()) @db.Date
+  trovatoDa         String? // nome di chi l'ha trovato
 
   // Proprietario (se identificato)
   proprietarioNome     String?
   proprietarioEmail    String?
   proprietarioTelefono String?
-  prenotazioneId       String?          // collegamento opzionale a prenotazione
-  prenotazione         Prenotazione?    @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
+  prenotazioneId       String? // collegamento opzionale a prenotazione
+  prenotazione         Prenotazione? @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
 
   // Stato
-  stato           StatoOggettoSmarrito  @default(IN_CUSTODIA)
-  luogoCustodia   String?               // "Cassaforte reception", "Magazzino piano -1"
+  stato            StatoOggettoSmarrito @default(IN_CUSTODIA)
+  luogoCustodia    String? // "Cassaforte reception", "Magazzino piano -1"
   dataRestituzione DateTime?
-  noteRestituzione String?              // "Spedito via corriere DHL tracking XXX"
-  note            String?
+  noteRestituzione String? // "Spedito via corriere DHL tracking XXX"
+  note             String?
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, stato])
   @@map("oggetti_smarriti")
@@ -1059,55 +1126,55 @@ model OggettoSmarrito {
 // ─── Upselling Camera ────────────────────────────────────────────────────────
 
 model RegolaUpsell {
-  id              String    @id @default(cuid())
-  hostId          String
-  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  strutturaId     String?
-  struttura       Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  hostId      String
+  host        Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String?
+  struttura   Struttura? @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nome            String     // "Standard → Deluxe", "Doppia → Suite"
-  daUnitaId       String?    // camera/tipo di partenza (null = qualsiasi)
-  aUnitaId        String     // camera/tipo target upgrade
+  nome      String // "Standard → Deluxe", "Doppia → Suite"
+  daUnitaId String? // camera/tipo di partenza (null = qualsiasi)
+  aUnitaId  String // camera/tipo target upgrade
 
-  tipoSupplemento String     @default("FISSO") // FISSO (€/notte), PERCENTUALE
-  supplemento     Float      @default(0)
+  tipoSupplemento String @default("FISSO") // FISSO (€/notte), PERCENTUALE
+  supplemento     Float  @default(0)
 
   // Incentivo operatore
-  incentivo       Float      @default(0)       // € premio per operatore
-  incentivoPct    Float?                       // % del supplemento
+  incentivo    Float  @default(0) // € premio per operatore
+  incentivoPct Float? // % del supplemento
 
   // Limiti
-  maxOccupazione  Float?     @default(80)
-  maxNotti        Int?
-  soloCheckIn     Boolean    @default(true)
-  attiva          Boolean    @default(true)
+  maxOccupazione Float?  @default(80)
+  maxNotti       Int?
+  soloCheckIn    Boolean @default(true)
+  attiva         Boolean @default(true)
 
-  proposte        PropostaUpsell[]
-  createdAt       DateTime   @default(now())
+  proposte  PropostaUpsell[]
+  createdAt DateTime         @default(now())
 
   @@index([hostId])
   @@map("regole_upsell")
 }
 
 model PropostaUpsell {
-  id              String    @id @default(cuid())
-  regolaId        String
-  regola          RegolaUpsell @relation(fields: [regolaId], references: [id], onDelete: Cascade)
-  prenotazioneId  String
-  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  regolaId       String
+  regola         RegolaUpsell @relation(fields: [regolaId], references: [id], onDelete: Cascade)
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
-  daCameraNome    String
-  aCameraNome     String
-  supplementoNotte Float
+  daCameraNome      String
+  aCameraNome       String
+  supplementoNotte  Float
   supplementoTotale Float
 
-  stato           String     @default("PROPOSTA") // PROPOSTA, ACCETTATA, RIFIUTATA
-  propostaDa      String     // operatore, "AI Concierge", "Sistema"
-  rispostaOspite  String?
+  stato          String  @default("PROPOSTA") // PROPOSTA, ACCETTATA, RIFIUTATA
+  propostaDa     String // operatore, "AI Concierge", "Sistema"
+  rispostaOspite String?
 
-  incentivoOperatore Float   @default(0)
-  accettatoAt     DateTime?
-  createdAt       DateTime   @default(now())
+  incentivoOperatore Float     @default(0)
+  accettatoAt        DateTime?
+  createdAt          DateTime  @default(now())
 
   @@index([prenotazioneId])
   @@index([propostaDa, createdAt])
@@ -1118,17 +1185,17 @@ model PropostaUpsell {
 
 // Dotazione standard per camera/unità (quanta biancheria serve per N ospiti)
 model DotazioneBiancheria {
-  id              String           @id @default(cuid())
-  hostId          String
-  unitaId         String?          // null = default per tutte le unità
-  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  id      String            @id @default(cuid())
+  hostId  String
+  unitaId String? // null = default per tutte le unità
+  unita   UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: Cascade)
 
-  articolo        String           // "Lenzuola matrimoniale", "Asciugamano grande", "Tappetino bagno", ecc.
-  quantitaPerOspite Int            @default(1) // quanti pezzi per ospite
-  quantitaFissa   Int              @default(0) // pezzi fissi per camera (indipendenti da ospiti)
-  categoria       String           @default("BIANCHERIA") // BIANCHERIA, BAGNO, ACCESSORI
+  articolo          String // "Lenzuola matrimoniale", "Asciugamano grande", "Tappetino bagno", ecc.
+  quantitaPerOspite Int    @default(1) // quanti pezzi per ospite
+  quantitaFissa     Int    @default(0) // pezzi fissi per camera (indipendenti da ospiti)
+  categoria         String @default("BIANCHERIA") // BIANCHERIA, BAGNO, ACCESSORI
 
-  createdAt       DateTime         @default(now())
+  createdAt DateTime @default(now())
 
   @@index([hostId])
   @@map("dotazione_biancheria")
@@ -1136,28 +1203,28 @@ model DotazioneBiancheria {
 
 // Richiesta biancheria generata (per giorno, per camera)
 model RichiestaBiancheria {
-  id              String   @id @default(cuid())
-  hostId          String
-  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  dataConsegna    DateTime @db.Date          // giorno per cui serve la biancheria
-  generataIl      DateTime @default(now())
+  dataConsegna DateTime @db.Date // giorno per cui serve la biancheria
+  generataIl   DateTime @default(now())
 
   // Dettaglio righe (JSON): [{camera, ospiti, articoli: [{nome, quantita}]}]
-  righe           Json
+  righe Json
 
-  totaleArticoli  Int      @default(0)       // somma totale pezzi
-  totaleCamere    Int      @default(0)
+  totaleArticoli Int @default(0) // somma totale pezzi
+  totaleCamere   Int @default(0)
 
   // Stato
-  stato           String   @default("BOZZA") // BOZZA, INVIATA, CONFERMATA, COMPLETATA
-  canaleInvio     String?                    // EMAIL, WHATSAPP, SMS, CHAT
-  inviatoA        String?                    // email/numero destinatario
-  inviatoIl       DateTime?
-  note            String?
+  stato       String    @default("BOZZA") // BOZZA, INVIATA, CONFERMATA, COMPLETATA
+  canaleInvio String? // EMAIL, WHATSAPP, SMS, CHAT
+  inviatoA    String? // email/numero destinatario
+  inviatoIl   DateTime?
+  note        String?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, dataConsegna])
   @@map("richieste_biancheria")
@@ -1180,37 +1247,37 @@ enum PrioritaTrace {
 }
 
 model Trace {
-  id              String         @id @default(cuid())
-  hostId          String
-  host            Host           @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Collegamento opzionale a prenotazione
-  prenotazioneId  String?
-  prenotazione    Prenotazione?  @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
+  prenotazioneId String?
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
 
   // Contenuto
-  titolo          String
-  descrizione     String?
-  reparto         String         // "RECEPTION", "HOUSEKEEPING", "MANUTENZIONE", "SPA", "RISTORANTE", "DIREZIONE", "ALTRO"
-  priorita        PrioritaTrace  @default(NORMALE)
-  stato           StatoTrace     @default(APERTO)
+  titolo      String
+  descrizione String?
+  reparto     String // "RECEPTION", "HOUSEKEEPING", "MANUTENZIONE", "SPA", "RISTORANTE", "DIREZIONE", "ALTRO"
+  priorita    PrioritaTrace @default(NORMALE)
+  stato       StatoTrace    @default(APERTO)
 
   // Scadenza e assegnazione
-  dataScadenza    DateTime?      @db.Date
-  oraScadenza     String?        // "HH:mm" — per trace time-sensitive (es. "preparare camera entro le 14:00")
-  assegnatoA      String?        // nome operatore/reparto
-  creatoDa        String?        // nome di chi ha creato il trace
+  dataScadenza DateTime? @db.Date
+  oraScadenza  String? // "HH:mm" — per trace time-sensitive (es. "preparare camera entro le 14:00")
+  assegnatoA   String? // nome operatore/reparto
+  creatoDa     String? // nome di chi ha creato il trace
 
   // Trigger automatico (quando mostrare il promemoria)
-  triggerEvento   String?        // "CHECKIN", "CHECKOUT", "ARRIVO_GIORNO", null = sempre visibile
+  triggerEvento String? // "CHECKIN", "CHECKOUT", "ARRIVO_GIORNO", null = sempre visibile
 
   // Risoluzione
   completatoAt    DateTime?
-  completatoDa    String?        // chi ha marcato come completato
+  completatoDa    String? // chi ha marcato come completato
   noteRisoluzione String?
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, stato])
   @@index([hostId, dataScadenza])
@@ -1221,40 +1288,40 @@ model Trace {
 // ─── Accompagnatori (profili aggiuntivi per prenotazione) ─────────────────────
 
 model Accompagnatore {
-  id                String       @id @default(cuid())
-  prenotazioneId    String
-  prenotazione      Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
 
   // Anagrafica
-  nome              String
-  cognome           String
-  sesso             String?      // "M" o "F"
-  dataNascita       DateTime?    @db.Date
-  luogoNascita      String?
-  provinciaNascita  String?      // sigla 2 lettere
-  nazionalita       String?      // es. "Italiana", "Tedesca"
+  nome             String
+  cognome          String
+  sesso            String? // "M" o "F"
+  dataNascita      DateTime? @db.Date
+  luogoNascita     String?
+  provinciaNascita String? // sigla 2 lettere
+  nazionalita      String? // es. "Italiana", "Tedesca"
 
   // Documento (per Alloggiati Web)
-  tipoDocumento     String?      // PPORT, IDENTE, PATEN, ecc.
+  tipoDocumento     String? // PPORT, IDENTE, PATEN, ecc.
   numeroDocumento   String?
   luogoRilascio     String?
   provinciaRilascio String?
 
   // Codici ISTAT (per export Alloggiati Web)
-  comuneNascitaIstat   String?
-  statoNascitaIstat    String?   @default("100000100")
-  cittadinanzaIstat    String?   @default("100000100")
-  comuneRilascioIstat  String?
-  statoRilascioIstat   String?
+  comuneNascitaIstat  String?
+  statoNascitaIstat   String? @default("100000100")
+  cittadinanzaIstat   String? @default("100000100")
+  comuneRilascioIstat String?
+  statoRilascioIstat  String?
 
   // Extra
-  email             String?
-  telefono          String?
-  note              String?
-  isMinore          Boolean      @default(false) // < 18 anni
+  email    String?
+  telefono String?
+  note     String?
+  isMinore Boolean @default(false) // < 18 anni
 
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([prenotazioneId])
   @@map("accompagnatori")
@@ -1263,30 +1330,30 @@ model Accompagnatore {
 // ─── Chat ──────────────────────────────────────────────────────────────────────
 
 model Chat {
-  id              String       @id @default(cuid())
-  prenotazioneId  String       @unique
-  prenotazione    Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
-  hostId          String
-  host            Host         @relation(fields: [hostId], references: [id])
+  id             String       @id @default(cuid())
+  prenotazioneId String       @unique
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+  hostId         String
+  host           Host         @relation(fields: [hostId], references: [id])
 
-  messaggi        Messaggio[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  messaggi  Messaggio[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@map("chat")
 }
 
 model Messaggio {
-  id              String            @id @default(cuid())
-  chatId          String
-  chat            Chat              @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
-  mittente        MessaggioMittente
-  canale          CanaleMessaggio   @default(CHAT)
-  testo           String
-  letto           Boolean           @default(false)
+  mittente MessaggioMittente
+  canale   CanaleMessaggio   @default(CHAT)
+  testo    String
+  letto    Boolean           @default(false)
 
-  createdAt       DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   // Indici per updateMany (segna letti) e ordinamento cronologico
   @@index([chatId])
@@ -1304,26 +1371,26 @@ enum TipoComunicazione {
 }
 
 model ComunicazioneStaff {
-  id          String             @id @default(cuid())
-  hostId      String
-  host        Host               @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  tipo        TipoComunicazione  @default(AVVISO)
+  tipo        TipoComunicazione @default(AVVISO)
   titolo      String
   testo       String?
-  autore      String             // nome di chi scrive (libero, non collegato a User)
-  destinatari String[]           @default([])  // nomi destinatari oppure [] = tutti
+  autore      String // nome di chi scrive (libero, non collegato a User)
+  destinatari String[]          @default([]) // nomi destinatari oppure [] = tutti
 
-  fissato     Boolean            @default(false)  // pin in cima
-  archiviato  Boolean            @default(false)
+  fissato    Boolean @default(false) // pin in cima
+  archiviato Boolean @default(false)
 
   // Reazioni / letto da
-  letti       String[]           @default([])  // nomi di chi ha confermato lettura
+  letti String[] @default([]) // nomi di chi ha confermato lettura
 
-  dataScadenza DateTime?         @db.Date
+  dataScadenza DateTime? @db.Date
 
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("comunicazioni_staff")
 }
@@ -1331,46 +1398,47 @@ model ComunicazioneStaff {
 // ─── CRM Ospiti ───────────────────────────────────────────────────────────────
 
 model OspiteCRM {
-  id                String    @id @default(cuid())
-  hostId            String
-  host              Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Anagrafica
-  nome              String
-  cognome           String
-  email             String
-  telefono          String?
-  nazionalita       String?
-  lingua            String?   @default("it")
+  nome        String
+  cognome     String
+  email       String
+  telefono    String?
+  nazionalita String?
+  lingua      String? @default("it")
 
   // Preferenze & CRM
-  note              String?
-  preferenze        String?   // es. "piano alto, cuscino extra, allergia noci"
-  vip               Boolean   @default(false)
-  blacklist         Boolean   @default(false)
-  blacklistMotivo   String?
+  note            String?
+  preferenze      String? // es. "piano alto, cuscino extra, allergia noci"
+  vip             Boolean @default(false)
+  blacklist       Boolean @default(false)
+  blacklistMotivo String?
 
   // Tag liberi
-  tags              String[]  @default([])
+  tags String[] @default([])
 
   // Statistiche (aggiornate automaticamente)
-  numSoggiorni      Int       @default(0)
-  totaleSpeso       Float     @default(0)
+  numSoggiorni        Int       @default(0)
+  totaleSpeso         Float     @default(0)
   dataUltimoSoggiorno DateTime?
 
   // Preferenze SPA
-  spaAllergie              String?   // es. "allergia oli essenziali, sensibile alle fragranze"
-  spaNote                  String?   // note per i terapisti
-  spaPreferenzeTerapistaId String?   // terapista preferito
+  spaAllergie              String? // es. "allergia oli essenziali, sensibile alle fragranze"
+  spaNote                  String? // note per i terapisti
+  spaPreferenzeTerapistaId String? // terapista preferito
   spaPreferenzeTerapista   TerapistaSpa? @relation("OspiteTerapistaPreferito", fields: [spaPreferenzeTerapistaId], references: [id])
-  spaTrattamentiPreferiti  String[]  @default([])  // nomi/id trattamenti preferiti
+  spaTrattamentiPreferiti  String[]      @default([]) // nomi/id trattamenti preferiti
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Collegamento prenotazioni via email (lookup dinamico)
   appuntamentiSpa AppuntamentoSpa[]
   conversazioniWA ConversazioneWhatsApp[]
+  membriFedelta   MembroFedelta[]
 
   @@unique([hostId, email])
   @@map("ospiti_crm")
@@ -1394,32 +1462,32 @@ enum PrioritaManutenzione {
 }
 
 model SegnalazioneManutenzione {
-  id              String               @id @default(cuid())
-  hostId          String
-  host            Host                 @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  strutturaId     String?
-  struttura       Struttura?           @relation(fields: [strutturaId], references: [id])
-  unitaId         String?
-  unita           UnitaPrenotabile?    @relation(fields: [unitaId], references: [id])
+  id          String            @id @default(cuid())
+  hostId      String
+  host        Host              @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String?
+  struttura   Struttura?        @relation(fields: [strutturaId], references: [id])
+  unitaId     String?
+  unita       UnitaPrenotabile? @relation(fields: [unitaId], references: [id])
 
-  titolo          String
-  descrizione     String?
-  categoria       String               // "IDRAULICA", "ELETTRICA", "SERRATURA", "ARREDO", "PULIZIA_STRAORD", "ALTRO"
-  stato           StatoManutenzione    @default(APERTA)
-  priorita        PrioritaManutenzione @default(NORMALE)
+  titolo      String
+  descrizione String?
+  categoria   String // "IDRAULICA", "ELETTRICA", "SERRATURA", "ARREDO", "PULIZIA_STRAORD", "ALTRO"
+  stato       StatoManutenzione    @default(APERTA)
+  priorita    PrioritaManutenzione @default(NORMALE)
 
-  assegnatoA      String?              // nome tecnico/fornitore
-  costoStimato    Float?
-  costoReale      Float?
-  note            String?
+  assegnatoA   String? // nome tecnico/fornitore
+  costoStimato Float?
+  costoReale   Float?
+  note         String?
 
-  dataScadenza    DateTime?            @db.Date
+  dataScadenza    DateTime? @db.Date
   dataRisoluzione DateTime?
 
-  immagineUrl     String?
+  immagineUrl String?
 
-  createdAt       DateTime             @default(now())
-  updatedAt       DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("segnalazioni_manutenzione")
 }
@@ -1427,23 +1495,23 @@ model SegnalazioneManutenzione {
 // ─── Housekeeping ─────────────────────────────────────────────────────────────
 
 model TaskHK {
-  id              String           @id @default(cuid())
-  unitaId         String
-  unita           UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
-  hostId          String
+  id      String           @id @default(cuid())
+  unitaId String
+  unita   UnitaPrenotabile @relation(fields: [unitaId], references: [id], onDelete: Cascade)
+  hostId  String
 
-  tipo            String           // "PULIZIA", "CAMBIO_BIANCHERIA", "MANUTENZIONE", "ALTRO"
-  descrizione     String?
-  priorita        PrioritaHK       @default(NORMALE)
-  assegnatoA      String?          // nome operatore HK
-  completato      Boolean          @default(false)
-  completatoAt    DateTime?
-  note            String?
+  tipo         String // "PULIZIA", "CAMBIO_BIANCHERIA", "MANUTENZIONE", "ALTRO"
+  descrizione  String?
+  priorita     PrioritaHK @default(NORMALE)
+  assegnatoA   String? // nome operatore HK
+  completato   Boolean    @default(false)
+  completatoAt DateTime?
+  note         String?
 
-  dataScadenza    DateTime?        @db.Date
+  dataScadenza DateTime? @db.Date
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("task_hk")
 }
@@ -1451,36 +1519,36 @@ model TaskHK {
 // ─── Pacchetti evento + soggiorno ─────────────────────────────────────────
 
 model Pacchetto {
-  id              String    @id @default(cuid())
-  hostId          String
-  host            Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  strutturaId     String
-  struttura       Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  hostId      String
+  host        Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nome            String     // es. "Weekend Sagra del Tartufo"
-  descrizione     String?
-  immagine        String?
+  nome        String // es. "Weekend Sagra del Tartufo"
+  descrizione String?
+  immagine    String?
 
   // Evento collegato (può essere evento host o evento esterno Otiumweek)
-  eventoId        String?    // ID evento host locale (nullable)
-  evento          Evento?    @relation(fields: [eventoId], references: [id])
-  eventoEsterno   String?    // URL o titolo evento Otiumweek esterno (quando non è evento host)
+  eventoId      String? // ID evento host locale (nullable)
+  evento        Evento? @relation(fields: [eventoId], references: [id])
+  eventoEsterno String? // URL o titolo evento Otiumweek esterno (quando non è evento host)
 
   // Dettagli pacchetto
-  notti           Int        @default(1)
-  numOspiti       Int        @default(2)
-  prezzo          Float                    // prezzo pacchetto tutto incluso
-  prezzoOriginale Float?                   // prezzo senza sconto (per mostrare risparmio)
+  notti           Int    @default(1)
+  numOspiti       Int    @default(2)
+  prezzo          Float // prezzo pacchetto tutto incluso
+  prezzoOriginale Float? // prezzo senza sconto (per mostrare risparmio)
 
   // Incluso nel pacchetto (testo libero, visualizzato come bullet list)
-  incluso         String[]   @default([])  // es. ["2 notti in camera doppia", "Ingresso sagra", "Colazione"]
+  incluso String[] @default([]) // es. ["2 notti in camera doppia", "Ingresso sagra", "Colazione"]
 
-  attivo          Boolean    @default(true)
-  dataInizio      DateTime?  @db.Date      // periodo validità
-  dataFine        DateTime?  @db.Date
+  attivo     Boolean   @default(true)
+  dataInizio DateTime? @db.Date // periodo validità
+  dataFine   DateTime? @db.Date
 
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("pacchetti")
 }
@@ -1488,15 +1556,15 @@ model Pacchetto {
 // ─── Notifiche ────────────────────────────────────────────────────────────────
 
 model Notifica {
-  id        String   @id @default(cuid())
-  hostId    String
-  host      Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  tipo      String   // "prenotazione", "checkin", "manutenzione", "sistema"
+  tipo      String // "prenotazione", "checkin", "manutenzione", "sistema"
   titolo    String
   messaggio String?
-  letta     Boolean  @default(false)
-  linkUrl   String?  // es. "/host/prenotazioni/abc123"
+  letta     Boolean @default(false)
+  linkUrl   String? // es. "/host/prenotazioni/abc123"
 
   createdAt DateTime @default(now())
 
@@ -1506,20 +1574,20 @@ model Notifica {
 // ─── Audit Log ────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  hostId      String?
-  userId      String?  // chi ha eseguito l'azione
-  userEmail   String?
+  id        String  @id @default(cuid())
+  hostId    String?
+  userId    String? // chi ha eseguito l'azione
+  userEmail String?
 
-  azione      String   // "prenotazione.creata", "checkin.completato", "fattura.emessa", ecc.
-  entita      String   // "prenotazione", "fattura", "struttura", "ospite", ecc.
-  entitaId    String?  // ID dell'entità coinvolta
-  dettagli    String?  // descrizione leggibile
-  datiJson    Json?    // payload completo (old/new values)
-  ip          String?  // IP del client
-  userAgent   String?
+  azione    String // "prenotazione.creata", "checkin.completato", "fattura.emessa", ecc.
+  entita    String // "prenotazione", "fattura", "struttura", "ospite", ecc.
+  entitaId  String? // ID dell'entità coinvolta
+  dettagli  String? // descrizione leggibile
+  datiJson  Json? // payload completo (old/new values)
+  ip        String? // IP del client
+  userAgent String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([hostId, createdAt])
   @@index([entita, entitaId])
@@ -1548,13 +1616,13 @@ enum StatoAppuntamentoSpa {
 }
 
 enum TipoDisponibilita {
-  SETTIMANALE  // fascia oraria ricorrente ogni settimana
-  SPECIFICA    // giorno specifico
-  BLOCCO       // blocco: ferie, indisponibilità
+  SETTIMANALE // fascia oraria ricorrente ogni settimana
+  SPECIFICA // giorno specifico
+  BLOCCO // blocco: ferie, indisponibilità
 }
 
 enum MetodoPagamentoSpa {
-  CAMERA_CREDIT  // addebito su camera della prenotazione
+  CAMERA_CREDIT // addebito su camera della prenotazione
   CONTANTI
   CARTA
   TRANSFERWISE
@@ -1568,52 +1636,53 @@ enum StatoPagamentoSpa {
 }
 
 model TerapistaSpa {
-  id               String   @id @default(cuid())
-  hostId           String
-  host             Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   nome             String
   cognome          String
   email            String?
   telefono         String?
   colore           String   @default("#6366f1") // colore nel calendario
-  specializzazioni String[] @default([])        // es. ["massaggio", "estetica"]
+  specializzazioni String[] @default([]) // es. ["massaggio", "estetica"]
   note             String?
   attivo           Boolean  @default(true)
 
   // Profilo pubblico
-  profiloPublico   Boolean  @default(false)
-  bio              String?
+  profiloPublico Boolean @default(false)
+  bio            String?
 
-  createdAt        DateTime @default(now())
+  createdAt        DateTime                 @default(now())
   appuntamenti     AppuntamentoSpa[]
   disponibilita    DisponibilitaTerapista[]
-  ospitePreferenza OspiteCRM[] @relation("OspiteTerapistaPreferito")
+  ospitePreferenza OspiteCRM[]              @relation("OspiteTerapistaPreferito")
+  waitingList      WaitingListSpa[]
 
   @@map("terapisti_spa")
 }
 
 model CabinaSpa {
-  id          String   @id @default(cuid())
-  hostId      String
-  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  nome        String   // es. "Cabina 1", "Suite Relax", "Grotta del sale"
+  nome        String // es. "Cabina 1", "Suite Relax", "Grotta del sale"
   descrizione String?
-  colore      String   @default("#8b5cf6")
-  capacita    Int      @default(1) // n. persone simultanee
-  attiva      Boolean  @default(true)
+  colore      String  @default("#8b5cf6")
+  capacita    Int     @default(1) // n. persone simultanee
+  attiva      Boolean @default(true)
 
   // Housekeeping cabina SPA
-  statoHK             String    @default("PULITA")  // PULITA, OCCUPATA, IN_PULIZIA, NON_DISPONIBILE
+  statoHK             String    @default("PULITA") // PULITA, OCCUPATA, IN_PULIZIA, NON_DISPONIBILE
   ultimaPulizia       DateTime?
-  durataPuliziaMinuti Int       @default(15)  // turnaround tra appuntamenti
+  durataPuliziaMinuti Int       @default(15) // turnaround tra appuntamenti
   noteHK              String?
 
   // Dotazione configurabile per cabina
-  dotazione   DotazioneCabinaSpa[]
+  dotazione DotazioneCabinaSpa[]
 
-  createdAt   DateTime @default(now())
+  createdAt    DateTime          @default(now())
   appuntamenti AppuntamentoSpa[]
 
   @@map("cabine_spa")
@@ -1621,54 +1690,58 @@ model CabinaSpa {
 
 // Dotazione articoli per cabina SPA — completamente configurabile dall'host
 model DotazioneCabinaSpa {
-  id          String    @id @default(cuid())
-  cabinaId    String
-  cabina      CabinaSpa @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
+  id       String    @id @default(cuid())
+  cabinaId String
+  cabina   CabinaSpa @relation(fields: [cabinaId], references: [id], onDelete: Cascade)
 
-  articolo    String    // nome libero: "Asciugamano grande", "Olio lavanda", "Cuffia monouso", ecc.
-  quantita    Int       @default(1) // pezzi per appuntamento
-  categoria   String    @default("BIANCHERIA") // BIANCHERIA, PRODOTTI, MONOUSO, ATTREZZATURA, ALTRO
+  articolo  String // nome libero: "Asciugamano grande", "Olio lavanda", "Cuffia monouso", ecc.
+  quantita  Int    @default(1) // pezzi per appuntamento
+  categoria String @default("BIANCHERIA") // BIANCHERIA, PRODOTTI, MONOUSO, ATTREZZATURA, ALTRO
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   @@index([cabinaId])
   @@map("dotazione_cabina_spa")
 }
 
 model TrattamentoSpa {
-  id          String        @id @default(cuid())
-  hostId      String
-  host        Host          @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  nome              String        // es. "Massaggio svedese 50 min"
-  categoria         CategoriaSpa  @default(MASSAGGIO)
-  durata            Int           // minuti
+  nome              String // es. "Massaggio svedese 50 min"
+  categoria         CategoriaSpa @default(MASSAGGIO)
+  durata            Int // minuti
   prezzo            Float
   descrizione       String?
-  colore            String        @default("#06b6d4")
-  attivo            Boolean       @default(true)
-  prenotabileOnline Boolean       @default(false) // visibile e prenotabile sul booking engine pubblico
+  colore            String       @default("#06b6d4")
+  attivo            Boolean      @default(true)
+  prenotabileOnline Boolean      @default(false) // visibile e prenotabile sul booking engine pubblico
 
-  createdAt   DateTime      @default(now())
+  createdAt    DateTime            @default(now())
   appuntamenti AppuntamentoSpa[]
-  passaggi    PassaggioPercorso[]
+  passaggi     PassaggioPercorso[]
+  giftCards    GiftCard[]
+  waitingList  WaitingListSpa[]
+  turnaway     TurnawayTracking[]
+  VocePOS      VocePOS[]
 
   @@map("trattamenti_spa")
 }
 
 model PercorsoBenessere {
-  id           String   @id @default(cuid())
-  hostId       String
-  host         Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  nome         String   // es. "Weekend della Coppia", "Percorso Detox"
+  nome         String // es. "Weekend della Coppia", "Percorso Detox"
   descrizione  String?
   prezzo       Float
-  durataMinuti Int      @default(0) // calcolata automaticamente dalla somma dei passaggi
-  attivo       Boolean  @default(true)
-  colore       String   @default("#f59e0b")
+  durataMinuti Int     @default(0) // calcolata automaticamente dalla somma dei passaggi
+  attivo       Boolean @default(true)
+  colore       String  @default("#f59e0b")
 
-  createdAt    DateTime @default(now())
+  createdAt    DateTime            @default(now())
   passaggi     PassaggioPercorso[]
   appuntamenti AppuntamentoSpa[]
 
@@ -1676,82 +1749,85 @@ model PercorsoBenessere {
 }
 
 model PassaggioPercorso {
-  id             String            @id @default(cuid())
-  percorsoId     String
-  percorso       PercorsoBenessere @relation(fields: [percorsoId], references: [id], onDelete: Cascade)
-  trattamentoId  String
-  trattamento    TrattamentoSpa    @relation(fields: [trattamentoId], references: [id], onDelete: Cascade)
+  id            String            @id @default(cuid())
+  percorsoId    String
+  percorso      PercorsoBenessere @relation(fields: [percorsoId], references: [id], onDelete: Cascade)
+  trattamentoId String
+  trattamento   TrattamentoSpa    @relation(fields: [trattamentoId], references: [id], onDelete: Cascade)
 
-  ordine         Int               @default(0)
-  durata         Int               // minuti (può sovrascrivere quella del trattamento)
-  note           String?
+  ordine Int     @default(0)
+  durata Int // minuti (può sovrascrivere quella del trattamento)
+  note   String?
 
   @@map("passaggi_percorso")
 }
 
 model AppuntamentoSpa {
-  id             String               @id @default(cuid())
-  hostId         String
-  host           Host                 @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Ospite
   guestNome      String
-  guestCognome   String
+  guestCognome   String?
   guestEmail     String?
   guestTelefono  String?
-  ospiteId       String?              // link opzionale a OspiteCRM
-  ospite         OspiteCRM?           @relation(fields: [ospiteId], references: [id])
-  prenotazioneId String?              // link opzionale a prenotazione soggiorno
-  prenotazione   Prenotazione?        @relation(fields: [prenotazioneId], references: [id])
+  ospiteId       String? // link opzionale a OspiteCRM
+  ospite         OspiteCRM?    @relation(fields: [ospiteId], references: [id])
+  prenotazioneId String? // link opzionale a prenotazione soggiorno
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id])
 
   // Risorse
-  cabinaId       String?
-  cabina         CabinaSpa?           @relation(fields: [cabinaId], references: [id])
-  terapistaId    String?
-  terapista      TerapistaSpa?        @relation(fields: [terapistaId], references: [id])
+  cabinaId    String?
+  cabina      CabinaSpa?    @relation(fields: [cabinaId], references: [id])
+  terapistaId String?
+  terapista   TerapistaSpa? @relation(fields: [terapistaId], references: [id])
 
   // Servizio
-  trattamentoId  String?
-  trattamento    TrattamentoSpa?      @relation(fields: [trattamentoId], references: [id])
-  percorsoId     String?
-  percorso       PercorsoBenessere?   @relation(fields: [percorsoId], references: [id])
+  trattamentoId String?
+  trattamento   TrattamentoSpa?    @relation(fields: [trattamentoId], references: [id])
+  percorsoId    String?
+  percorso      PercorsoBenessere? @relation(fields: [percorsoId], references: [id])
 
   // Slot temporale
-  dataOra        DateTime             // inizio appuntamento
-  durata         Int                  // minuti
+  dataOra DateTime // inizio appuntamento
+  durata  Int // minuti
 
   // Prezzo e stato
-  prezzoTotale   Float?
-  stato          StatoAppuntamentoSpa @default(CONFERMATO)
-  note           String?
-  reminderInviato Boolean             @default(false) // reminder giorno prima
-  waiverObbligatorio Boolean          @default(true)
+  prezzoTotale       Float?
+  stato              StatoAppuntamentoSpa @default(CONFERMATO)
+  note               String?
+  reminderInviato    Boolean              @default(false) // reminder giorno prima
+  waiverObbligatorio Boolean              @default(true)
 
   // Relazioni waiver e pagamento
-  waiver         WaiverSpa?
-  pagamento      PagamentoSpa?
+  waiver            WaiverSpa?
+  pagamento         PagamentoSpa?
+  movimentiGiftCard GiftCardMovimento[]
+  movimentiPunti    MovimentoPunti[]
+  transazioniPOS    TransazionePOS[]
 
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("appuntamenti_spa")
 }
 
 model DisponibilitaTerapista {
-  id           String            @id @default(cuid())
-  hostId       String
-  host         Host              @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  terapistaId  String
-  terapista    TerapistaSpa      @relation(fields: [terapistaId], references: [id], onDelete: Cascade)
+  id          String       @id @default(cuid())
+  hostId      String
+  host        Host         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  terapistaId String
+  terapista   TerapistaSpa @relation(fields: [terapistaId], references: [id], onDelete: Cascade)
 
   tipo         TipoDisponibilita @default(SETTIMANALE)
-  giorno       Int?              // 0=lun..6=dom, solo per SETTIMANALE
-  data         DateTime?         // data esatta, solo per SPECIFICA o BLOCCO
-  orarioInizio String            // "09:00"
-  orarioFine   String            // "18:00"
+  giorno       Int? // 0=lun..6=dom, solo per SETTIMANALE
+  data         DateTime? // data esatta, solo per SPECIFICA o BLOCCO
+  orarioInizio String // "09:00"
+  orarioFine   String // "18:00"
   attiva       Boolean           @default(true)
 
-  createdAt    DateTime          @default(now())
+  createdAt DateTime @default(now())
 
   @@map("disponibilita_terapisti")
 }
@@ -1759,82 +1835,82 @@ model DisponibilitaTerapista {
 // ─── SPA Waiver & Payments ────────────────────────────────────────────────────────
 
 model WaiverSpa {
-  id                    String          @id @default(cuid())
-  appuntamentoId        String          @unique
-  appuntamento          AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
+  id             String          @id @default(cuid())
+  appuntamentoId String          @unique
+  appuntamento   AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
 
   // Firma digitale
-  firmaBase64           String?         // Canvas drawing base64
-  dataRegistrazione     DateTime        @default(now())
+  firmaBase64       String? // Canvas drawing base64
+  dataRegistrazione DateTime @default(now())
 
   // Zone del corpo (semplici checkbox, no SVG)
-  zoneTrattate          String[]        @default([])
-  zoneEvitare           String[]        @default([])
+  zoneTrattate String[] @default([])
+  zoneEvitare  String[] @default([])
 
   // ─── Condizioni di salute (checkbox guidate) ───────────────────
-  incinta               Boolean         @default(false)
-  incintaMesi           Int?
-  condizioni            String[]        @default([])   // ["pressione_alta", "diabete", "epilessia", ...]
-  condizioneAltro       String?         // testo libero se seleziona "altro"
+  incinta         Boolean  @default(false)
+  incintaMesi     Int?
+  condizioni      String[] @default([]) // ["pressione_alta", "diabete", "epilessia", ...]
+  condizioneAltro String? // testo libero se seleziona "altro"
 
   // Allergie (checkbox + testo)
-  allergieSelezionate   String[]        @default([])   // ["lattice", "oli_essenziali", "profumi", "nichel"]
-  allergieAltro         String?         // testo libero se seleziona "altro"
+  allergieSelezionate String[] @default([]) // ["lattice", "oli_essenziali", "profumi", "nichel"]
+  allergieAltro       String? // testo libero se seleziona "altro"
 
   // Campi legacy (mantenuti per retrocompatibilità con waiver esistenti)
-  allergie              String?
-  patologie             String?
-  farmaci               String?
+  allergie  String?
+  patologie String?
+  farmaci   String?
 
   // ─── Preferenze trattamento ────────────────────────────────────
-  pressioneMassaggio    String?         // "leggera" | "media" | "forte"
-  temperaturaPreferita  String?         // "freddo" | "tiepido" | "caldo"
-  musicaPreferita       String?         // "si" | "no" | "indifferente"
-  aromiPreferiti        String?         // "si" | "senza"
-  notePreferenze        String?         // note libere preferenze
+  pressioneMassaggio   String? // "leggera" | "media" | "forte"
+  temperaturaPreferita String? // "freddo" | "tiepido" | "caldo"
+  musicaPreferita      String? // "si" | "no" | "indifferente"
+  aromiPreferiti       String? // "si" | "senza"
+  notePreferenze       String? // note libere preferenze
 
   // Accettazione T&C
-  accettazioneTermini   Boolean         @default(false)
-  accettazionePrivacy   Boolean         @default(false)
-  consensoFoto          Boolean         @default(false)
-  dichiarazioneNessuna  Boolean         @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
+  accettazioneTermini  Boolean @default(false)
+  accettazionePrivacy  Boolean @default(false)
+  consensoFoto         Boolean @default(false)
+  dichiarazioneNessuna Boolean @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
 
   // Status firma
-  confermato            Boolean         @default(false)
-  dataConfermaPaper     DateTime?
+  confermato        Boolean   @default(false)
+  dataConfermaPaper DateTime?
 
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("waivers_spa")
 }
 
 model PagamentoSpa {
-  id              String          @id @default(cuid())
-  appuntamentoId  String          @unique
-  appuntamento    AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
+  id             String          @id @default(cuid())
+  appuntamentoId String          @unique
+  appuntamento   AppuntamentoSpa @relation(fields: [appuntamentoId], references: [id], onDelete: Cascade)
 
   // Importo
-  importo         Float
-  tipoImporto     String          @default("TRATTAMENTO") // TRATTAMENTO|PERCORSO|PERSONALIZZATO
+  importo     Float
+  tipoImporto String @default("TRATTAMENTO") // TRATTAMENTO|PERCORSO|PERSONALIZZATO
 
   // Metodo pagamento
-  metodo          MetodoPagamentoSpa @default(CONTANTI)
+  metodo MetodoPagamentoSpa @default(CONTANTI)
 
   // Se camera credit
-  unitaId         String?
-  unita           UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
+  unitaId String?
+  unita   UnitaPrenotabile? @relation(fields: [unitaId], references: [id], onDelete: SetNull)
 
   // Se carta
-  ultimeQuatroCifre String?        // 4242
+  ultimeQuatroCifre String? // 4242
 
   // Stato
   stato           StatoPagamentoSpa @default(PENDENTE)
   dataRiscossione DateTime?
-  noteRiscossione String?          // ref number, check number, etc.
+  noteRiscossione String? // ref number, check number, etc.
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([appuntamentoId])
   @@index([unitaId])
@@ -1844,15 +1920,15 @@ model PagamentoSpa {
 // ─── AI Concierge WhatsApp ────────────────────────────────────────────────────
 
 enum StatoConversazioneWA {
-  ATTIVA           // gestita dall'AI
-  ESCALATA         // passata a operatore umano
-  CHIUSA           // conclusa
+  ATTIVA // gestita dall'AI
+  ESCALATA // passata a operatore umano
+  CHIUSA // conclusa
 }
 
 enum MittenteWA {
   OSPITE
   AI_CONCIERGE
-  HOST_UMANO       // quando l'host interviene manualmente
+  HOST_UMANO // quando l'host interviene manualmente
 }
 
 enum TipoAzioneConcierge {
@@ -1866,65 +1942,727 @@ enum TipoAzioneConcierge {
 }
 
 model ConversazioneWhatsApp {
-  id              String                @id @default(cuid())
-  hostId          String
-  host            Host                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   // Identificazione ospite
-  telefonoOspite  String                // numero WhatsApp (formato E.164: +393331234567)
-  nomeOspite      String?               // nome se identificato
-  prenotazioneId  String?               // prenotazione collegata (se trovata)
-  prenotazione    Prenotazione?         @relation(fields: [prenotazioneId], references: [id])
-  ospiteCrmId     String?               // collegamento CRM
-  ospiteCrm       OspiteCRM?            @relation(fields: [ospiteCrmId], references: [id])
+  telefonoOspite String // numero WhatsApp (formato E.164: +393331234567)
+  nomeOspite     String? // nome se identificato
+  prenotazioneId String? // prenotazione collegata (se trovata)
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id])
+  ospiteCrmId    String? // collegamento CRM
+  ospiteCrm      OspiteCRM?    @relation(fields: [ospiteCrmId], references: [id])
 
-  stato           StatoConversazioneWA  @default(ATTIVA)
-  lingua          String                @default("it")  // lingua rilevata dall'AI
+  stato  StatoConversazioneWA @default(ATTIVA)
+  lingua String               @default("it") // lingua rilevata dall'AI
 
-  messaggi        MessaggioWhatsApp[]
-  azioni          AzioneConcierge[]
+  messaggi MessaggioWhatsApp[]
+  azioni   AzioneConcierge[]
 
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@unique([hostId, telefonoOspite])  // una conversazione per ospite per host
+  @@unique([hostId, telefonoOspite]) // una conversazione per ospite per host
   @@index([hostId, stato])
   @@map("conversazioni_whatsapp")
 }
 
 model MessaggioWhatsApp {
-  id                String                @id @default(cuid())
-  conversazioneId   String
-  conversazione     ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
+  id              String                @id @default(cuid())
+  conversazioneId String
+  conversazione   ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
 
   mittente          MittenteWA
   testo             String
-  whatsappMessageId String?               // ID messaggio da Meta API (delivery tracking)
+  whatsappMessageId String? // ID messaggio da Meta API (delivery tracking)
 
   // Metadata AI
-  toolsUsati        String[]              @default([])  // nomi tool chiamati nella risposta
-  tokensUsati       Int?                  // token consumati per risposta AI
+  toolsUsati  String[] @default([]) // nomi tool chiamati nella risposta
+  tokensUsati Int? // token consumati per risposta AI
 
-  createdAt         DateTime              @default(now())
+  createdAt DateTime @default(now())
 
   @@index([conversazioneId])
   @@map("messaggi_whatsapp")
 }
 
 model AzioneConcierge {
-  id                String                @id @default(cuid())
-  conversazioneId   String
-  conversazione     ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
+  id              String                @id @default(cuid())
+  conversazioneId String
+  conversazione   ConversazioneWhatsApp @relation(fields: [conversazioneId], references: [id], onDelete: Cascade)
 
-  tipo              TipoAzioneConcierge
-  descrizione       String                // "Prenotato massaggio 60min ore 15:00"
-  datiJson          Json?                 // payload completo azione (ID task creato, slot prenotato, ecc.)
-  successo          Boolean               @default(true)
-  errore            String?               // se fallita, motivo
+  tipo        TipoAzioneConcierge
+  descrizione String // "Prenotato massaggio 60min ore 15:00"
+  datiJson    Json? // payload completo azione (ID task creato, slot prenotato, ecc.)
+  successo    Boolean             @default(true)
+  errore      String? // se fallita, motivo
 
-  createdAt         DateTime              @default(now())
+  createdAt DateTime @default(now())
 
   @@index([conversazioneId])
   @@map("azioni_concierge")
 }
 
+// ─── Ticket Support ───────────────────────────────────────────────────────────
+
+enum CategoriaTicket {
+  BUG
+  FEATURE_REQUEST
+  DOMANDA
+  PROBLEMA_ACCOUNT
+  ALTRO
+}
+
+enum PrioritaTicket {
+  BASSA
+  NORMALE
+  ALTA
+  URGENTE
+}
+
+enum StatoTicket {
+  APERTO
+  IN_LAVORAZIONE
+  IN_ATTESA_RISPOSTA
+  RISOLTO
+  CHIUSO
+}
+
+model Ticket {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hostId        String?
+  host          Host?           @relation(fields: [hostId], references: [id], onDelete: SetNull)
+  oggetto       String
+  descrizione   String
+  categoria     CategoriaTicket @default(BUG)
+  priorita      PrioritaTicket  @default(NORMALE)
+  stato         StatoTicket     @default(APERTO)
+  paginaUrl     String?
+  userAgent     String?
+  screenshot    String?
+  rispostaAdmin String?
+  rispostoDa    String?
+  rispostoAt    DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([hostId])
+  @@index([stato])
+  @@map("tickets")
+}
+
+// ─── Staff Management ─────────────────────────────────────────────────────────
+
+model StaffMember {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ruolo  RuoloStaff @default(RECEPTIONIST)
+  attivo Boolean    @default(true)
+  note   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostId, userId])
+  @@index([hostId])
+  @@map("staff_members")
+}
+
+enum StatoInvito {
+  INVIATO
+  ACCETTATO
+  SCADUTO
+  REVOCATO
+}
+
+model StaffInvite {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  email   String
+  nome    String
+  cognome String
+  ruolo   RuoloStaff  @default(RECEPTIONIST)
+  stato   StatoInvito @default(INVIATO)
+  token   String      @unique @default(cuid())
+
+  invitatoDa  String
+  accettatoAt DateTime?
+  scadenzaAt  DateTime // data scadenza invito
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId])
+  @@index([email])
+  @@map("staff_invites")
+}
+
+// ─── Menu & Ristorazione ──────────────────────────────────────────────────────
+
+enum CategoriaPiatto {
+  ANTIPASTO
+  PRIMO
+  SECONDO
+  CONTORNO
+  DOLCE
+  BEVANDA
+  FRUTTA
+  COLAZIONE_DOLCE
+  COLAZIONE_SALATA
+  COLAZIONE_BEVANDA
+  ALTRO
+}
+
+model MenuGiornaliero {
+  id          String    @id @default(cuid())
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  data            DateTime  @db.Date
+  tipoPasto       TipoPasto
+  isTemplate      Boolean   @default(false)
+  giornoSettimana Int?
+  nome            String?
+  note            String?
+  attivo          Boolean   @default(true)
+
+  piatti PiattoMenu[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([strutturaId, data, tipoPasto])
+  @@map("menu_giornalieri")
+}
+
+model PiattoMenu {
+  id     String          @id @default(cuid())
+  menuId String
+  menu   MenuGiornaliero @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  nome         String
+  descrizione  String?
+  categoria    CategoriaPiatto @default(ALTRO)
+  prezzo       Float?
+  immagine     String?
+  allergeni    String[]        @default([]) // "glutine", "lattosio", "noci", ecc.
+  vegetariano  Boolean         @default(false)
+  vegano       Boolean         @default(false)
+  senzaGlutine Boolean         @default(false)
+  ordine       Int             @default(0)
+  disponibile  Boolean         @default(true)
+
+  scelte SceltaPastoOspite[]
+
+  createdAt DateTime @default(now())
+
+  @@index([menuId])
+  @@map("piatti_menu")
+}
+
+model SceltaPastoOspite {
+  id             String       @id @default(cuid())
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  data         DateTime   @db.Date
+  tipoPasto    TipoPasto
+  piattoId     String
+  piatto       PiattoMenu @relation(fields: [piattoId], references: [id], onDelete: Cascade)
+  guestNome    String
+  quantita     Int        @default(1)
+  note         String?
+  confermatoAt DateTime?
+  emailInviata Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([prenotazioneId, data, tipoPasto])
+  @@map("scelte_pasto_ospite")
+}
+
+// ─── Gift Card ────────────────────────────────────────────────────────────────
+
+enum TipoGiftCard {
+  IMPORTO // valore monetario libero
+  TRATTAMENTO // singolo trattamento specifico
+  PACCHETTO // pacchetto trattamenti
+}
+
+enum StatoGiftCard {
+  ATTIVA
+  UTILIZZATA
+  SCADUTA
+  ANNULLATA
+}
+
+enum TipoMovimentoGiftCard {
+  EMISSIONE
+  UTILIZZO
+  RICARICA
+  RIMBORSO
+}
+
+model GiftCard {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  codice String        @unique // codice univoco gift card (es. "GC-XXXX-YYYY")
+  tipo   TipoGiftCard  @default(IMPORTO)
+  stato  StatoGiftCard @default(ATTIVA)
+
+  // Valore
+  valoreOriginale Float // importo iniziale
+  saldoResiduo    Float // saldo rimanente
+
+  // Se tipo TRATTAMENTO
+  trattamentoId String?
+  trattamento   TrattamentoSpa? @relation(fields: [trattamentoId], references: [id])
+
+  // Acquirente
+  acquirenteNome     String
+  acquirenteEmail    String
+  acquirenteTelefono String?
+
+  // Destinatario
+  destinatarioNome  String?
+  destinatarioEmail String?
+  messaggio         String?
+
+  // Validità
+  dataEmissione DateTime  @default(now())
+  dataScadenza  DateTime
+  dataUtilizzo  DateTime?
+
+  movimenti GiftCardMovimento[]
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  TransazionePOS TransazionePOS[]
+
+  @@index([hostId, stato])
+  @@index([codice])
+  @@map("gift_cards")
+}
+
+model GiftCardMovimento {
+  id         String   @id @default(cuid())
+  giftCardId String
+  giftCard   GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+
+  tipo      TipoMovimentoGiftCard
+  importo   Float // positivo per emissione/rimborso, negativo per utilizzo
+  saldoDopo Float // saldo residuo dopo il movimento
+
+  // Collegamento opzionale ad appuntamento
+  appuntamentoId String?
+  appuntamento   AppuntamentoSpa? @relation(fields: [appuntamentoId], references: [id])
+
+  descrizione String
+  operatore   String?
+  note        String?
+
+  createdAt DateTime @default(now())
+
+  @@index([giftCardId])
+  @@map("gift_card_movimenti")
+}
+
+// ─── POS (Point of Sale) ──────────────────────────────────────────────────────
+
+enum TipoTransazionePOS {
+  VENDITA
+  RESO
+  SCONTO
+}
+
+enum StatoTransazionePOS {
+  COMPLETATA
+  INVIATO
+  ANNULLATA
+  RIMBORSATA
+}
+
+enum MetodoPagamentoPOS {
+  CONTANTI
+  CARTA
+  CAMERA_CREDIT
+  GIFT_CARD
+  BONIFICO
+  MISTO
+}
+
+enum TipoCarta {
+  VISA
+  MASTERCARD
+  AMEX
+  BANCOMAT
+  MAESTRO
+  ALTRO
+}
+
+enum TipoVocePOS {
+  TRATTAMENTO
+  PRODOTTO
+  PACCHETTO
+}
+
+model TransazionePOS {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Collegamento opzionale
+  prenotazioneId String?
+  prenotazione   Prenotazione?    @relation(fields: [prenotazioneId], references: [id])
+  appuntamentoId String?
+  appuntamento   AppuntamentoSpa? @relation(fields: [appuntamentoId], references: [id])
+
+  // Transazione
+  numero String? // numero scontrino progressivo
+  tipo   TipoTransazionePOS  @default(VENDITA)
+  stato  StatoTransazionePOS @default(COMPLETATA)
+
+  // Pagamento
+  metodoPagamento MetodoPagamentoPOS @default(CONTANTI)
+  tipoCarta       TipoCarta?
+  ultime4Cifre    String?
+  autorizzazione  String?
+
+  // Importi
+  subtotale         Float
+  scontoPercentuale Float?
+  scontoImporto     Float?
+  totale            Float
+
+  // Operatore
+  operatore String
+  note      String?
+
+  // Gift Card payment
+  giftCardId String?
+  giftCard   GiftCard? @relation(fields: [giftCardId], references: [id])
+
+  // Split payment
+  guestNome       String?
+  guestEmail      String?
+  importoContanti Float?
+  importoCarta    Float?
+  importoBonifico Float?
+  importoGiftCard Float?
+  importoCamera   Float?
+  riferimentoPOS  String?
+
+  voci           VocePOS[]
+  movimentiPunti MovimentoPunti[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, createdAt])
+  @@index([prenotazioneId])
+  @@map("transazioni_pos")
+}
+
+model VocePOS {
+  id            String         @id @default(cuid())
+  transazioneId String
+  transazione   TransazionePOS @relation(fields: [transazioneId], references: [id], onDelete: Cascade)
+
+  // Collegamento opzionale a servizio catalogo
+  servizioId String?
+  servizio   ServizioStruttura? @relation(fields: [servizioId], references: [id])
+
+  trattamentoId String?
+  trattamento   TrattamentoSpa? @relation(fields: [trattamentoId], references: [id])
+
+  tipo           TipoVocePOS @default(PRODOTTO)
+  descrizione    String
+  quantita       Int         @default(1)
+  prezzoUnitario Float
+  sconto         Float?
+  totale         Float
+
+  createdAt DateTime @default(now())
+
+  @@index([transazioneId])
+  @@map("voci_pos")
+}
+
+// ─── Programma Fedeltà ────────────────────────────────────────────────────────
+
+enum TipoMovimentoPunti {
+  ACCUMULO
+  UTILIZZO
+  SCADENZA
+  BONUS
+  RETTIFICA
+}
+
+model ProgrammaFedelta {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome        String // "Club Benessere", "Loyalty SPA"
+  descrizione String?
+  attivo      Boolean @default(true)
+
+  // Configurazione punti
+  puntiPerEuro   Float @default(1) // quanti punti per ogni € speso
+  valorePerPunto Float @default(0.01) // valore in € di ogni punto
+  scadenzaMesi   Int? // mesi validità punti (null = mai)
+
+  livelli   LivelloFedelta[]
+  membri    MembroFedelta[]
+  movimenti MovimentoPunti[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId])
+  @@map("programmi_fedelta")
+}
+
+model LivelloFedelta {
+  id          String           @id @default(cuid())
+  programmaId String
+  programma   ProgrammaFedelta @relation(fields: [programmaId], references: [id], onDelete: Cascade)
+
+  nome              String // "Bronze", "Silver", "Gold", "Platinum"
+  puntiMinimi       Int // soglia punti per raggiungere il livello
+  colore            String   @default("#6366f1")
+  benefici          String[] @default([]) // descrizione benefici livello
+  scontoPercentuale Float    @default(0)
+  ordine            Int      @default(0)
+
+  membri MembroFedelta[]
+
+  createdAt DateTime @default(now())
+
+  @@index([programmaId])
+  @@map("livelli_fedelta")
+}
+
+model MembroFedelta {
+  id          String           @id @default(cuid())
+  programmaId String
+  programma   ProgrammaFedelta @relation(fields: [programmaId], references: [id], onDelete: Cascade)
+  ospiteId    String
+  ospite      OspiteCRM        @relation(fields: [ospiteId], references: [id], onDelete: Cascade)
+
+  puntiAccumulati Int             @default(0)
+  puntiUtilizzati Int             @default(0)
+  ultimaAttivita  DateTime?
+  livelloId       String?
+  livello         LivelloFedelta? @relation(fields: [livelloId], references: [id])
+
+  dataIscrizione DateTime @default(now())
+
+  movimenti MovimentoPunti[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([programmaId, ospiteId])
+  @@index([programmaId])
+  @@map("membri_fedelta")
+}
+
+model MovimentoPunti {
+  id       String        @id @default(cuid())
+  membroId String
+  membro   MembroFedelta @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  tipo        TipoMovimentoPunti
+  punti       Int
+  saldoDopo   Int
+  descrizione String
+
+  // Collegamento opzionale ad appuntamento
+  appuntamentoId String?
+  appuntamento   AppuntamentoSpa? @relation(fields: [appuntamentoId], references: [id])
+
+  operatore String?
+  note      String?
+
+  createdAt          DateTime          @default(now())
+  TransazionePOS     TransazionePOS?   @relation(fields: [transazionePOSId], references: [id])
+  transazionePOSId   String?
+  ProgrammaFedelta   ProgrammaFedelta? @relation(fields: [programmaFedeltaId], references: [id])
+  programmaFedeltaId String?
+
+  @@index([membroId])
+  @@map("movimenti_punti")
+}
+
+// ─── SPA Waiting List & Turnaway ──────────────────────────────────────────────
+
+enum StatoWaitingList {
+  IN_ATTESA
+  CONTATTATO
+  PRENOTATO
+  SCADUTO
+  CANCELLATO
+}
+
+enum MotivoTurnaway {
+  PIENO
+  NON_DISPONIBILE
+  PREZZO
+  ORARIO
+  ALTRO
+}
+
+model WaitingListSpa {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Ospite
+  guestNome      String
+  guestCognome   String?
+  guestEmail     String?
+  guestTelefono  String?
+  prenotazioneId String?
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id])
+
+  // Preferenze
+  trattamentoId   String?
+  trattamento     TrattamentoSpa? @relation(fields: [trattamentoId], references: [id])
+  terapistaId     String?
+  terapista       TerapistaSpa?   @relation(fields: [terapistaId], references: [id])
+  dataDesiderata  DateTime        @db.Date
+  fasceOrarie     String?
+  orarioPreferito String?
+
+  stato        StatoWaitingList @default(IN_ATTESA)
+  notificatoAt DateTime?
+  confermatoAt DateTime?
+  note         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, stato])
+  @@map("waiting_list_spa")
+}
+
+model TurnawayTracking {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Ospite (anonimo se non identificato)
+  guestNome  String?
+  guestEmail String?
+
+  // Cosa voleva
+  trattamentoId   String?
+  trattamento     TrattamentoSpa? @relation(fields: [trattamentoId], references: [id])
+  data            DateTime        @db.Date
+  orarioRichiesto String?
+
+  motivo MotivoTurnaway @default(PIENO)
+  note   String?
+
+  // Revenue persa stimata
+  ricavoPerso Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([hostId, createdAt])
+  @@index([trattamentoId])
+  @@map("turnaway_tracking")
+}
+
+// ─── Cassa & Chiusura Giornaliera ─────────────────────────────────────────────
+
+enum OrigineIncasso {
+  PRENOTAZIONE
+  SPA
+  RISTORAZIONE
+  POS
+  GIFT_CARD
+  ALTRO
+}
+
+model ChiusuraCassa {
+  id                  String   @id @default(cuid())
+  hostId              String
+  host                Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  data                DateTime
+  operatore           String
+  turno               String?
+  totaleContanti      Float    @default(0)
+  totaleCarta         Float    @default(0)
+  totaleBonifico      Float    @default(0)
+  totaleGiftCard      Float    @default(0)
+  totaleCamera        Float    @default(0)
+  totaleComplessivo   Float    @default(0)
+  totaleVisa          Float    @default(0)
+  totaleMastercard    Float    @default(0)
+  totaleAmex          Float    @default(0)
+  totaleBancomat      Float    @default(0)
+  totaleAltreCard     Float    @default(0)
+  numTransazioni      Int      @default(0)
+  numVendite          Int      @default(0)
+  numResi             Int      @default(0)
+  numSconti           Int      @default(0)
+  fondoCassaInizio    Float?
+  fondoCassaFine      Float?
+  differenza          Float?
+  riconciliato        Boolean  @default(false)
+  noteRiconciliazione String?
+  chiusoAt            DateTime @default(now())
+
+  incassi Incasso[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostId, data])
+  @@index([hostId, data])
+  @@map("chiusure_cassa")
+}
+
+model Incasso {
+  id              String             @id @default(cuid())
+  hostId          String
+  host            Host               @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  data            DateTime           @default(now())
+  importo         Float
+  metodo          MetodoPagamentoPOS
+  tipoCarta       TipoCarta?
+  ultime4Cifre    String?
+  riferimento     String?
+  origine         OrigineIncasso
+  prenotazioneId  String?
+  prenotazione    Prenotazione?      @relation(fields: [prenotazioneId], references: [id])
+  transazioneId   String?
+  appuntamentoId  String?
+  operatore       String
+  descrizione     String
+  note            String?
+  chiusuraCassaId String?
+  chiusura        ChiusuraCassa?     @relation(fields: [chiusuraCassaId], references: [id])
+  riconciliato    Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+
+  @@index([hostId, data])
+  @@index([hostId, metodo])
+  @@index([hostId, riconciliato])
+  @@index([chiusuraCassaId])
+  @@map("incassi")
+}

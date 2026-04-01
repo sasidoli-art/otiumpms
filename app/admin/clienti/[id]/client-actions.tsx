@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MoreVertical, Edit, Trash2, UserX, UserCheck } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function ClienteActions({ hostId }: { hostId: string }) {
   const [aperto, setAperto] = useState(false)
   const router = useRouter()
+  const tc = useTranslations('common')
 
   async function cambiaStato(stato: string) {
     await fetch(`/api/admin/clienti/${hostId}`, {
@@ -35,21 +37,21 @@ export function ClienteActions({ hostId }: { hostId: string }) {
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
             >
               <Edit size={14} />
-              Modifica
+              {tc('edit')}
             </a>
             <button
               onClick={() => cambiaStato('SOSPESO')}
               className="flex items-center gap-2 px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50 w-full"
             >
               <UserX size={14} />
-              Sospendi
+              Sospendi{/* TODO: i18n */}
             </button>
             <button
               onClick={() => cambiaStato('ATTIVO')}
               className="flex items-center gap-2 px-4 py-2 text-sm text-green-700 hover:bg-green-50 w-full"
             >
               <UserCheck size={14} />
-              Attiva
+              {tc('active')}
             </button>
           </div>
         </>

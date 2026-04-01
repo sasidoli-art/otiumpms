@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
+import { useTranslations } from 'next-intl'
 import { it } from 'date-fns/locale'
 import {
   UserPlus, Trash2, ChevronDown, ChevronUp, Loader2, X,

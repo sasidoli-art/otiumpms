@@ -8,6 +8,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, Loader2, X, Filter,
   ChevronDown, Trash2, Pencil, RefreshCw, Search
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,8 @@ export default function ManutenzioneBoard({
   strutture: Struttura[]
   segnalazioniIniziali: Segnalazione[]
 }) {
+  const t = useTranslations('host.maintenance')
+  const tc = useTranslations('common')
   const [segnalazioni, setSegnalazioni] = useState<Segnalazione[]>(segnalazioniIniziali)
   const [filtroStato, setFiltroStato] = useState('all')
   const [filtroStruttura, setFiltroStruttura] = useState('all')
@@ -138,11 +141,11 @@ export default function ManutenzioneBoard({
       {/* Header */}
       <div className="page-title-box">
         <div>
-          <h1 className="page-title">Manutenzione</h1>
-          <p className="text-sm text-gray-500">Segnalazioni guasti, interventi tecnici e riparazioni</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <button onClick={() => setModalAperto(true)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Nuova segnalazione
+          <Plus className="w-4 h-4" /> {t('newReport')}
         </button>
       </div>
 

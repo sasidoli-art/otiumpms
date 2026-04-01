@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useTranslations } from 'next-intl'
 import {
   Plus, X, Loader2, Pin, Archive, Trash2, Bell,
   CheckSquare, AlertTriangle as Urgent, FileText,
@@ -43,6 +44,8 @@ export default function StaffBoard({
   comunicazioniIniziali: Comunicazione[]
   totaleArchiviate: number
 }) {
+  const t = useTranslations('host.staff')
+  const tc = useTranslations('common')
   const [comunicazioni, setComunicazioni] = useState<Comunicazione[]>(comunicazioniIniziali)
   const [archiviate, setArchiviate] = useState<Comunicazione[]>([])
   const [mostraArchivio, setMostraArchivio] = useState(false)
@@ -167,7 +170,7 @@ export default function StaffBoard({
       {/* Header */}
       <div className="page-title-box">
         <div>
-          <h1 className="page-title">Bacheca Staff</h1>
+          <h1 className="page-title">{t('title')}</h1>
           <p className="text-sm text-gray-500">Avvisi, task e comunicazioni per il team</p>
         </div>
         <button onClick={() => setModalAperto(true)} className="btn-primary flex items-center gap-2">

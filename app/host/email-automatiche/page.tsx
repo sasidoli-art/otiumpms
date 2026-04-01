@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Mail, Clock, CheckCircle2, XCircle, Send, CalendarCheck, Star, Sparkles } from 'lucide-react'
 import EmailTriggerButton from './email-trigger-button'
+import { getTranslations } from 'next-intl/server'
 
 export default async function EmailAutomatichePage() {
   const session = await getServerSession(authOptions)
@@ -83,13 +84,15 @@ export default async function EmailAutomatichePage() {
     }),
   ])
 
+  const t = await getTranslations('host.emailAuto')
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Email automatiche</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Reminder pre-arrivo, follow-up post-soggiorno e promemoria SPA
+            {t('subtitle')}
           </p>
         </div>
         <EmailTriggerButton />
@@ -103,18 +106,18 @@ export default async function EmailAutomatichePage() {
               <CalendarCheck className="w-5 h-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Reminder pre-arrivo</p>
-              <p className="text-xs text-gray-400">Arrivi di domani</p>
+              <p className="text-sm font-semibold text-gray-900">{t('preArrival')}</p>
+              <p className="text-xs text-gray-400">{t('tomorrowArrivals')}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div>
               <p className="text-2xl font-bold text-blue-600">{reminderDaInviare}</p>
-              <p className="text-xs text-gray-400">da inviare</p>
+              <p className="text-xs text-gray-400">{t('toSend')}</p>
             </div>
             <div className="border-l border-gray-100 pl-4">
               <p className="text-lg font-semibold text-gray-600">{reminderInviati}</p>
-              <p className="text-xs text-gray-400">inviati (30gg)</p>
+              <p className="text-xs text-gray-400">{t('sent30d')}</p>
             </div>
           </div>
         </div>
@@ -125,18 +128,18 @@ export default async function EmailAutomatichePage() {
               <Star className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Follow-up post-soggiorno</p>
-              <p className="text-xs text-gray-400">Partenze di ieri</p>
+              <p className="text-sm font-semibold text-gray-900">{t('postStay')}</p>
+              <p className="text-xs text-gray-400">{t('yesterdayDepartures')}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div>
               <p className="text-2xl font-bold text-amber-600">{followUpDaInviare}</p>
-              <p className="text-xs text-gray-400">da inviare</p>
+              <p className="text-xs text-gray-400">{t('toSend')}</p>
             </div>
             <div className="border-l border-gray-100 pl-4">
               <p className="text-lg font-semibold text-gray-600">{followUpInviati}</p>
-              <p className="text-xs text-gray-400">inviati (30gg)</p>
+              <p className="text-xs text-gray-400">{t('sent30d')}</p>
             </div>
           </div>
         </div>
@@ -147,18 +150,18 @@ export default async function EmailAutomatichePage() {
               <Sparkles className="w-5 h-5 text-purple-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Promemoria SPA</p>
-              <p className="text-xs text-gray-400">Appuntamenti di domani</p>
+              <p className="text-sm font-semibold text-gray-900">{t('spaReminder')}</p>
+              <p className="text-xs text-gray-400">{t('tomorrowAppointments')}</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div>
               <p className="text-2xl font-bold text-purple-600">{spaReminderDaInviare}</p>
-              <p className="text-xs text-gray-400">da inviare</p>
+              <p className="text-xs text-gray-400">{t('toSend')}</p>
             </div>
             <div className="border-l border-gray-100 pl-4">
               <p className="text-lg font-semibold text-gray-600">{spaReminderInviati}</p>
-              <p className="text-xs text-gray-400">inviati (30gg)</p>
+              <p className="text-xs text-gray-400">{t('sent30d')}</p>
             </div>
           </div>
         </div>
@@ -169,14 +172,14 @@ export default async function EmailAutomatichePage() {
         <div className="flex items-start gap-3">
           <Clock className="w-5 h-5 text-indigo-500 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-indigo-900">Come funziona</p>
+            <p className="text-sm font-semibold text-indigo-900">{t('howItWorks')}</p>
             <ul className="text-sm text-indigo-700 mt-1 space-y-1">
-              <li><strong>Reminder pre-arrivo:</strong> inviato il giorno prima del check-in. Include indirizzo, contatti e link check-in online se disponibile.</li>
-              <li><strong>Follow-up post-soggiorno:</strong> inviato il giorno dopo il check-out. Ringraziamento con invito a prenotare di nuovo.</li>
-              <li><strong>Promemoria SPA:</strong> inviato il giorno prima dell&apos;appuntamento. Include servizio, orario e durata.</li>
+              <li>{t('preArrivalDesc')}</li>
+              <li>{t('postStayDesc')}</li>
+              <li>{t('spaReminderDesc')}</li>
             </ul>
             <p className="text-xs text-indigo-500 mt-2">
-              Le email vengono inviate automaticamente ogni giorno tramite il cron job, oppure manualmente con il pulsante &quot;Invia ora&quot;.
+              {t('cronNote')}
             </p>
           </div>
         </div>
@@ -184,9 +187,9 @@ export default async function EmailAutomatichePage() {
 
       {/* Storico ultimi invii */}
       <div className="card">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Ultimi invii</h2>
+        <h2 className="text-base font-semibold text-gray-900 mb-4">{t('recentSent')}</h2>
         {ultimiInvii.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">Nessuna email automatica inviata ancora</p>
+          <p className="text-sm text-gray-400 text-center py-6">{t('noEmailSent')}</p>
         ) : (
           <div className="divide-y divide-gray-50">
             {ultimiInvii.map(p => (
@@ -201,10 +204,10 @@ export default async function EmailAutomatichePage() {
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {p.reminderInviato && (
-                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">Reminder</span>
+                      <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{t('reminder')}</span>
                     )}
                     {p.followUpInviato && (
-                      <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Follow-up</span>
+                      <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">{t('followUp')}</span>
                     )}
                     <span className="text-xs text-gray-400">
                       {p.struttura?.nome} · {format(new Date(p.updatedAt), 'd MMM HH:mm', { locale: it })}

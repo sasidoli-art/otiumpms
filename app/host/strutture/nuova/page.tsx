@@ -4,16 +4,19 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-
-const TIPI = [
-  { value: 'EVENTO', label: 'Evento' },
-  { value: 'VENUE', label: 'Venue / Spazio' },
-  { value: 'ESPERIENZA', label: 'Esperienza' },
-  { value: 'ALLOGGIO', label: 'Alloggio' },
-  { value: 'SERVIZIO', label: 'Servizio' },
-]
+import { useTranslations } from 'next-intl'
 
 export default function NuovaStrutturaPage() {
+  const t = useTranslations('host.structures')
+  const tc = useTranslations('common')
+
+  const TIPI = [
+    { value: 'EVENTO', label: t('event') },
+    { value: 'VENUE', label: t('venue') },
+    { value: 'ESPERIENZA', label: t('experience') },
+    { value: 'ALLOGGIO', label: t('accommodation') },
+    { value: 'SERVIZIO', label: t('service') },
+  ]
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -50,7 +53,7 @@ export default function NuovaStrutturaPage() {
           <ArrowLeft className="w-5 h-5 text-gray-400" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Nuova struttura</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('newStructure')}</h1>
           <p className="text-sm text-gray-500">Aggiungi un evento, venue o servizio prenotabile</p>
         </div>
       </div>
@@ -110,9 +113,9 @@ export default function NuovaStrutturaPage() {
 
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Creazione...' : 'Crea struttura'}
+            {loading ? tc('loading') : t('createStructure')}
           </button>
-          <Link href="/host/strutture" className="btn-secondary">Annulla</Link>
+          <Link href="/host/strutture" className="btn-secondary">{tc('cancel')}</Link>
         </div>
       </form>
     </div>

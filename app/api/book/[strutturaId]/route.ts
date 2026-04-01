@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { sendEmailNuovaPrenotazione } from '@/lib/email'
+import { sendEmailNuovaPrenotazione, sendEmailConfermaRicezione } from '@/lib/email'
 import { parseBody, prenotazionePublicSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { calcolaPrezzo } from '@/lib/pricing'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
+import { randomUUID } from 'crypto'
 
 // GET  /api/book/[strutturaId]  — dati pubblici struttura per form di prenotazione
 export async function GET(
@@ -137,6 +138,9 @@ export async function POST(
     }
   }
 
+  // Genera check-in token per l'ospite
+  const checkInToken = randomUUID()
+
   const prenotazione = await prisma.prenotazione.create({
     data: {
       hostId: struttura.hostId,
@@ -153,6 +157,7 @@ export async function POST(
       fonte: 'Web',
       prezzoTotale: prezzoTotaleCalcolato,
       tassaSoggiorno: tassaSoggiornoCalcolata,
+      checkInToken,
     },
   })
 
@@ -193,6 +198,29 @@ export async function POST(
     })
   } catch (err) {
     logger.error('Invio email nuova prenotazione fallito', 'book/route', {
+      prenotazioneId: prenotazione.id,
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
+
+  // ── Email conferma ricezione all'ospite (non bloccante) ────────────────────
+  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  try {
+    await sendEmailConfermaRicezione({
+      guestEmail: prenotazione.guestEmail,
+      guestNome: prenotazione.guestNome,
+      hostNome: struttura.host.nomeAzienda,
+      strutturaNome: struttura.nome,
+      dataArrivo: prenotazione.dataArrivo,
+      dataPartenza: prenotazione.dataPartenza,
+      numOspiti: prenotazione.numOspiti,
+      prezzoTotale: prenotazione.prezzoTotale,
+      chatUrl: `${baseUrl}/book/chat/${chat.id}`,
+      checkInUrl: `${baseUrl}/checkin/${checkInToken}`,
+      hostId: struttura.hostId,
+    })
+  } catch (err) {
+    logger.error('Invio email conferma ricezione ospite fallito', 'book/route', {
       prenotazioneId: prenotazione.id,
       error: err instanceof Error ? err.message : String(err),
     })

@@ -1,3 +1,8 @@
+import { withSentryConfig } from '@sentry/nextjs'
+import createNextIntlPlugin from 'next-intl/plugin'
+
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['@react-pdf/renderer'],
@@ -58,4 +63,15 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+// Sentry wrapping only in production — in dev it kills performance (source maps + webpack overhead)
+const finalConfig = withNextIntl(nextConfig)
+
+export default process.env.NODE_ENV === 'production'
+  ? withSentryConfig(finalConfig, {
+      silent: !process.env.SENTRY_AUTH_TOKEN,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      disableLogger: true,
+      hideSourceMaps: true,
+    })
+  : finalConfig

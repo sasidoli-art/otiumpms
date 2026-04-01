@@ -411,3 +411,13 @@ export const eventoCreateSchema = z.object({
 })
 
 export type EventoCreateInput = z.infer<typeof eventoCreateSchema>
+
+// ─── Host: upgrade abbonamento ───────────────────────────────────────────────
+
+export const abbonamentoUpgradeSchema = z.object({
+  nuovoPiano: z.enum(PIANI_TIPO, {
+    errorMap: () => ({ message: 'Piano non valido' }),
+  }),
+})
+
+export type AbbonamentoUpgradeInput = z.infer<typeof abbonamentoUpgradeSchema>

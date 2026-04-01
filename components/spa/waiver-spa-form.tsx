@@ -1,48 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CheckCircle, AlertCircle, Loader, Heart, Shield, Sparkles,
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { SignaturePad } from './signature-pad'
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const CONDIZIONI_SALUTE = [
-  { id: 'pressione_alta', label: 'Pressione alta', icon: '🩺' },
-  { id: 'pressione_bassa', label: 'Pressione bassa', icon: '🩺' },
-  { id: 'problemi_cardiaci', label: 'Problemi cardiaci', icon: '❤️' },
-  { id: 'diabete', label: 'Diabete', icon: '💉' },
-  { id: 'epilessia', label: 'Epilessia', icon: '⚡' },
-  { id: 'problemi_circolatori', label: 'Problemi circolatori / vene varicose', icon: '🦵' },
-  { id: 'ernia_disco', label: 'Ernia del disco / mal di schiena', icon: '🔴' },
-  { id: 'artrite', label: 'Artrite / dolori articolari', icon: '🦴' },
-  { id: 'problemi_cutanei', label: 'Problemi cutanei (eczema, psoriasi)', icon: '🧴' },
-  { id: 'operazioni_recenti', label: 'Operazioni chirurgiche recenti (< 6 mesi)', icon: '🏥' },
-] as const
-
-const ALLERGIE_COMUNI = [
-  { id: 'lattice', label: 'Lattice' },
-  { id: 'oli_essenziali', label: 'Oli essenziali' },
-  { id: 'profumi', label: 'Profumi / fragranze' },
-  { id: 'nichel', label: 'Nichel' },
-] as const
-
-const ZONE_EVITARE = [
-  { id: 'testa', label: 'Testa' },
-  { id: 'viso', label: 'Viso' },
-  { id: 'collo', label: 'Collo' },
-  { id: 'spalle', label: 'Spalle' },
-  { id: 'schiena', label: 'Schiena' },
-  { id: 'petto', label: 'Petto' },
-  { id: 'addome', label: 'Addome' },
-  { id: 'braccia', label: 'Braccia' },
-  { id: 'mani', label: 'Mani' },
-  { id: 'gambe', label: 'Gambe' },
-  { id: 'piedi', label: 'Piedi' },
-] as const
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,37 +28,65 @@ export function WaiverSpaForm({
   onSuccess,
   onError,
 }: WaiverSpaFormProps) {
+  const t = useTranslations('spa.waiverForm')
+  const tb = useTranslations('spa.bodyMap')
+  const tc = useTranslations('common')
+
+  // ─── Config (translated) ───────────────────────────────────────────────
+  const CONDIZIONI_SALUTE = [
+    { id: 'pressione_alta', label: t('conditions.highBloodPressure'), icon: '🩺' },
+    { id: 'pressione_bassa', label: t('conditions.lowBloodPressure'), icon: '🩺' },
+    { id: 'problemi_cardiaci', label: t('conditions.heartProblems'), icon: '❤️' },
+    { id: 'diabete', label: t('conditions.diabetes'), icon: '💉' },
+    { id: 'epilessia', label: t('conditions.epilepsy'), icon: '⚡' },
+    { id: 'problemi_circolatori', label: t('conditions.circulatory'), icon: '🦵' },
+    { id: 'ernia_disco', label: t('conditions.discHernia'), icon: '🔴' },
+    { id: 'artrite', label: t('conditions.arthritis'), icon: '🦴' },
+    { id: 'problemi_cutanei', label: t('conditions.skinProblems'), icon: '🧴' },
+    { id: 'operazioni_recenti', label: t('conditions.recentSurgery'), icon: '🏥' },
+  ] as const
+
+  const ALLERGIE_COMUNI = [
+    { id: 'lattice', label: t('allergies.latex') },
+    { id: 'oli_essenziali', label: t('allergies.essentialOils') },
+    { id: 'profumi', label: t('allergies.fragrances') },
+    { id: 'nichel', label: t('allergies.nickel') },
+  ] as const
+
+  const ZONE_EVITARE = [
+    { id: 'testa', label: tb('head') },
+    { id: 'viso', label: tb('face') },
+    { id: 'collo', label: tb('neck') },
+    { id: 'spalle', label: tb('shoulders') },
+    { id: 'schiena', label: tb('back') },
+    { id: 'petto', label: tb('chest') },
+    { id: 'addome', label: tb('abdomen') },
+    { id: 'braccia', label: tb('arms') },
+    { id: 'mani', label: tb('hands') },
+    { id: 'gambe', label: tb('legs') },
+    { id: 'piedi', label: tb('feet') },
+  ] as const
+
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [firma, setFirma] = useState<string | null>(null)
   const [expandZone, setExpandZone] = useState(false)
 
   const [form, setForm] = useState({
-    // Condizioni
     dichiarazioneNessuna: false,
     condizioni: [] as string[],
     condizioneAltro: '',
     incinta: false,
     incintaMesi: undefined as number | undefined,
-
-    // Allergie
     allergieSelezionate: [] as string[],
     allergieAltro: '',
-
-    // Farmaci
     farmaci: '',
-
-    // Zone
     zoneEvitare: [] as string[],
-
-    // Preferenze
     pressioneMassaggio: '' as string,
     temperaturaPreferita: '' as string,
     musicaPreferita: '' as string,
     aromiPreferiti: '' as string,
     notePreferenze: '',
-
-    // Accettazione
     accettazioneTermini: false,
     accettazionePrivacy: false,
     consensoFoto: false,
@@ -146,11 +139,11 @@ export function WaiverSpaForm({
 
   async function handleSubmit() {
     if (!form.accettazioneTermini || !form.accettazionePrivacy) {
-      onError?.('Devi accettare i termini e la privacy policy')
+      onError?.(t('termsRequired'))
       return
     }
     if (richiedeFirma && !firma) {
-      onError?.('La firma è obbligatoria quando sono presenti condizioni mediche')
+      onError?.(t('signatureRequired'))
       return
     }
 
@@ -185,11 +178,11 @@ export function WaiverSpaForm({
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Errore nel salvataggio')
+        throw new Error(err.error || tc('unexpectedError'))
       }
       onSuccess?.()
     } catch (error) {
-      onError?.(error instanceof Error ? error.message : 'Errore sconosciuto')
+      onError?.(error instanceof Error ? error.message : tc('unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -203,13 +196,13 @@ export function WaiverSpaForm({
       <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-200">
         <div className="flex items-center gap-3 mb-2">
           <Heart className="w-5 h-5 text-purple-500" />
-          <h2 className="text-lg font-bold text-gray-900">Scheda benessere</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('title')}</h2>
         </div>
         <p className="text-sm text-gray-600">
           <span className="font-medium">{guestName}</span> · {trattamento}
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          Aiutaci a personalizzare la tua esperienza e garantire la tua sicurezza.
+          {t('subtitle')}
         </p>
       </div>
 
@@ -219,7 +212,7 @@ export function WaiverSpaForm({
           <div key={s} className="flex-1">
             <div className={`h-1.5 rounded-full transition-colors ${step >= s ? 'bg-purple-500' : 'bg-gray-200'}`} />
             <p className="text-[10px] font-medium text-gray-400 mt-1">
-              {s === 1 ? 'Parlaci di te' : 'Conferma'}
+              {s === 1 ? t('tellUs') : tc('confirm')}
             </p>
           </div>
         ))}
@@ -244,6 +237,7 @@ export function WaiverSpaForm({
                 className="w-5 h-5 rounded accent-green-500"
               />
               <div>
+                {/* TODO: i18n */}
                 <span className="font-medium text-gray-900">Non ho condizioni mediche rilevanti</span>
                 <p className="text-xs text-gray-400">Seleziona se non hai patologie, allergie o gravidanza in corso</p>
               </div>
@@ -258,8 +252,10 @@ export function WaiverSpaForm({
                 {/* Condizioni di salute */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    {/* TODO: i18n */}
                     <Shield className="w-4 h-4 text-purple-500" /> Condizioni di salute
                   </h3>
+                  {/* TODO: i18n */}
                   <p className="text-xs text-gray-400 mb-3">Seleziona tutto ciò che si applica</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {CONDIZIONI_SALUTE.map(c => (
@@ -287,7 +283,7 @@ export function WaiverSpaForm({
                       type="text"
                       value={form.condizioneAltro}
                       onChange={e => setForm(f => ({ ...f, condizioneAltro: e.target.value }))}
-                      placeholder="Specifica la condizione..."
+                      placeholder="Specifica la condizione..." // TODO: i18n
                       className={`${inp} mt-2`}
                     />
                   )}
@@ -302,10 +298,12 @@ export function WaiverSpaForm({
                       onChange={e => setForm(f => ({ ...f, incinta: e.target.checked, incintaMesi: e.target.checked ? f.incintaMesi : undefined }))}
                       className="w-5 h-5 rounded accent-amber-500"
                     />
+                    {/* TODO: i18n */}
                     <span className="font-medium text-gray-900">Sono in attesa di un bambino</span>
                   </label>
                   {form.incinta && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-3 flex items-center gap-3">
+                      {/* TODO: i18n */}
                       <label className="text-sm text-gray-700">Mese:</label>
                       <select
                         value={form.incintaMesi || ''}
@@ -317,6 +315,7 @@ export function WaiverSpaForm({
                           <option key={m} value={m}>{m}°</option>
                         ))}
                       </select>
+                      {/* TODO: i18n */}
                       <p className="text-xs text-amber-700">Alcuni trattamenti potrebbero essere adattati.</p>
                     </motion.div>
                   )}
@@ -324,6 +323,7 @@ export function WaiverSpaForm({
 
                 {/* Allergie */}
                 <div>
+                  {/* TODO: i18n */}
                   <h3 className="text-sm font-semibold text-gray-800 mb-3">Allergie note</h3>
                   <div className="flex flex-wrap gap-2">
                     {ALLERGIE_COMUNI.map(a => (
@@ -348,7 +348,7 @@ export function WaiverSpaForm({
                       type="text"
                       value={form.allergieAltro}
                       onChange={e => setForm(f => ({ ...f, allergieAltro: e.target.value }))}
-                      placeholder="Altre allergie..."
+                      placeholder="Altre allergie..." // TODO: i18n
                       className={`${inp} flex-1 min-w-[150px]`}
                     />
                   </div>
@@ -356,12 +356,13 @@ export function WaiverSpaForm({
 
                 {/* Farmaci */}
                 <div>
+                  {/* TODO: i18n */}
                   <h3 className="text-sm font-semibold text-gray-800 mb-2">Farmaci in corso</h3>
                   <input
                     type="text"
                     value={form.farmaci}
                     onChange={e => setForm(f => ({ ...f, farmaci: e.target.value }))}
-                    placeholder="Es. anticoagulanti, cortisone... (opzionale)"
+                    placeholder="Es. anticoagulanti, cortisone... (opzionale)" // TODO: i18n
                     className={inp}
                   />
                 </div>
@@ -375,6 +376,7 @@ export function WaiverSpaForm({
                 onClick={() => setExpandZone(!expandZone)}
                 className="flex items-center gap-2 text-sm font-semibold text-gray-800 w-full"
               >
+                {/* TODO: i18n */}
                 Zone del corpo da evitare
                 <span className="text-xs text-gray-400 font-normal">(opzionale)</span>
                 {expandZone ? <ChevronUp className="w-4 h-4 ml-auto text-gray-400" /> : <ChevronDown className="w-4 h-4 ml-auto text-gray-400" />}
@@ -406,11 +408,13 @@ export function WaiverSpaForm({
             {/* Preferenze trattamento */}
             <div className="space-y-4 p-4 rounded-xl bg-stone-50 border border-stone-200">
               <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                {/* TODO: i18n */}
                 <Sparkles className="w-4 h-4 text-amber-500" /> Le tue preferenze
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  {/* TODO: i18n */}
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">Pressione massaggio</label>
                   <div className="flex gap-1.5">
                     {[{ v: 'leggera', l: 'Leggera' }, { v: 'media', l: 'Media' }, { v: 'forte', l: 'Forte' }].map(o => (
@@ -426,6 +430,7 @@ export function WaiverSpaForm({
                 </div>
 
                 <div>
+                  {/* TODO: i18n */}
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">Temperatura</label>
                   <div className="flex gap-1.5">
                     {[{ v: 'freddo', l: '❄ Freddo' }, { v: 'tiepido', l: '☀ Tiepido' }, { v: 'caldo', l: '🔥 Caldo' }].map(o => (
@@ -441,6 +446,7 @@ export function WaiverSpaForm({
                 </div>
 
                 <div>
+                  {/* TODO: i18n */}
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">Musica di sottofondo</label>
                   <div className="flex gap-1.5">
                     {[{ v: 'si', l: 'Si' }, { v: 'no', l: 'No' }, { v: 'indifferente', l: 'Indiff.' }].map(o => (
@@ -456,6 +462,7 @@ export function WaiverSpaForm({
                 </div>
 
                 <div>
+                  {/* TODO: i18n */}
                   <label className="text-xs font-medium text-gray-600 block mb-1.5">Aromi / oli essenziali</label>
                   <div className="flex gap-1.5">
                     {[{ v: 'si', l: 'Si, grazie' }, { v: 'senza', l: 'Preferisco senza' }].map(o => (
@@ -472,12 +479,13 @@ export function WaiverSpaForm({
               </div>
 
               <div>
+                {/* TODO: i18n */}
                 <label className="text-xs font-medium text-gray-600 block mb-1.5">Altre richieste o preferenze</label>
                 <input
                   type="text"
                   value={form.notePreferenze}
                   onChange={e => setForm(f => ({ ...f, notePreferenze: e.target.value }))}
-                  placeholder="Es. mi rilasso meglio in silenzio, preferisco olio di cocco..."
+                  placeholder="Es. mi rilasso meglio in silenzio, preferisco olio di cocco..." // TODO: i18n
                   className={inp}
                 />
               </div>
@@ -489,6 +497,7 @@ export function WaiverSpaForm({
               onClick={() => setStep(2)}
               className="w-full py-3 rounded-xl bg-purple-600 text-white font-semibold text-sm hover:bg-purple-700 transition-colors"
             >
+              {/* TODO: i18n */}
               Continua
             </button>
           </motion.div>
@@ -505,6 +514,7 @@ export function WaiverSpaForm({
           >
             {/* Riepilogo dichiarazioni */}
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 space-y-2 text-sm">
+              {/* TODO: i18n */}
               <h4 className="font-semibold text-gray-800">Riepilogo</h4>
               {form.dichiarazioneNessuna && (
                 <p className="text-green-700 flex items-center gap-2">
@@ -537,8 +547,10 @@ export function WaiverSpaForm({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-500" />
+                  {/* TODO: i18n */}
                   <h3 className="text-sm font-semibold text-gray-800">Firma obbligatoria</h3>
                 </div>
+                {/* TODO: i18n */}
                 <p className="text-xs text-gray-500">Hai dichiarato condizioni mediche. La firma conferma la veridicità delle informazioni fornite.</p>
                 <SignaturePad
                   onSave={base64 => setFirma(base64)}
@@ -546,6 +558,7 @@ export function WaiverSpaForm({
                 />
                 {firma && (
                   <p className="text-xs text-green-600 flex items-center gap-1">
+                    {/* TODO: i18n */}
                     <CheckCircle className="w-3.5 h-3.5" /> Firma acquisita
                   </p>
                 )}
@@ -562,6 +575,7 @@ export function WaiverSpaForm({
                   className="w-4 h-4 mt-0.5 rounded accent-purple-500"
                 />
                 <span className="text-sm text-gray-700">
+                  {/* TODO: i18n */}
                   Dichiaro di aver letto e accettato i <strong>Termini e Condizioni</strong> del servizio SPA *
                 </span>
               </label>
@@ -574,6 +588,7 @@ export function WaiverSpaForm({
                   className="w-4 h-4 mt-0.5 rounded accent-purple-500"
                 />
                 <span className="text-sm text-gray-700">
+                  {/* TODO: i18n */}
                   Accetto il trattamento dei dati personali secondo la <strong>Privacy Policy</strong> *
                 </span>
               </label>
@@ -586,6 +601,7 @@ export function WaiverSpaForm({
                   className="w-4 h-4 mt-0.5 rounded accent-purple-500"
                 />
                 <span className="text-sm text-gray-600">
+                  {/* TODO: i18n */}
                   Autorizzo foto/video per documentazione interna (opzionale)
                 </span>
               </label>
@@ -598,7 +614,7 @@ export function WaiverSpaForm({
                 onClick={() => setStep(1)}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors"
               >
-                Indietro
+                {tc('back')}
               </button>
               <button
                 type="button"
@@ -607,7 +623,8 @@ export function WaiverSpaForm({
                 className="flex-[2] py-3 rounded-xl bg-green-600 text-white font-semibold text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {loading && <Loader className="w-4 h-4 animate-spin" />}
-                {loading ? 'Salvataggio...' : 'Conferma e accetta'}
+                {/* TODO: i18n */}
+                {loading ? tc('saving') : 'Conferma e accetta'}
               </button>
             </div>
           </motion.div>

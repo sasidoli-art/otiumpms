@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +10,7 @@ import {
   CreditCard,
   FileText,
   Settings,
+  Bug,
   BookOpen,
   Building2,
   CalendarRange,
@@ -23,35 +25,38 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
-
-const adminItems = [
-  { href: '/admin/dashboard',    label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/admin/clienti',      label: 'Clienti',        icon: Users },
-  { href: '/admin/eventi',       label: 'Eventi',         icon: CalendarDays },
-  { href: '/admin/prenotazioni', label: 'Prenotazioni',   icon: BookOpen },
-  { href: '/admin/pagamenti',    label: 'Pagamenti',      icon: CreditCard },
-  { href: '/admin/fatture',      label: 'Fatture',        icon: FileText },
-  { href: '/admin/impostazioni', label: 'Impostazioni',   icon: Settings },
-]
-
-const pmsItems = [
-  { href: '/host/dashboard',    label: 'Dashboard PMS',  icon: BedDouble },
-  { href: '/host/oggi',         label: 'Front desk',     icon: Sun },
-  { href: '/host/strutture',    label: 'Strutture',      icon: Building2 },
-  { href: '/host/prenotazioni', label: 'Prenotazioni',   icon: BookOpen },
-  { href: '/host/crm',          label: 'CRM Ospiti',     icon: Users },
-  { href: '/host/housekeeping', label: 'Housekeeping',   icon: Sparkles },
-  { href: '/host/manutenzione', label: 'Manutenzione',   icon: Wrench },
-  { href: '/host/staff',        label: 'Staff',          icon: MessageSquare },
-  { href: '/host/calendario',   label: 'Calendario',     icon: CalendarRange },
-  { href: '/host/alloggiati',   label: 'Alloggiati Web', icon: Shield },
-  { href: '/host/report',       label: 'Report',         icon: TrendingUp },
-]
+import { useState, useMemo } from 'react'
 
 export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
   const pathname = usePathname()
+  const t = useTranslations('nav.admin')
+  const tc = useTranslations('common')
   const [pmsOpen, setPmsOpen] = useState(pathname.startsWith('/host'))
+
+  const adminItems = useMemo(() => [
+    { href: '/admin/dashboard',    label: t('dashboard'),      icon: LayoutDashboard },
+    { href: '/admin/clienti',      label: t('clients'),        icon: Users },
+    { href: '/admin/eventi',       label: t('events'),         icon: CalendarDays },
+    { href: '/admin/prenotazioni', label: t('bookings'),       icon: BookOpen },
+    { href: '/admin/pagamenti',    label: t('payments'),       icon: CreditCard },
+    { href: '/admin/fatture',      label: t('invoices'),       icon: FileText },
+    { href: '/admin/ticket',      label: t('tickets'),        icon: Bug },
+    { href: '/admin/impostazioni', label: t('settings'),       icon: Settings },
+  ], [t])
+
+  const pmsItems = useMemo(() => [
+    { href: '/host/dashboard',    label: t('dashboardPms'),   icon: BedDouble },
+    { href: '/host/oggi',         label: t('frontDesk'),      icon: Sun },
+    { href: '/host/strutture',    label: t('structures'),     icon: Building2 },
+    { href: '/host/prenotazioni', label: t('bookings'),       icon: BookOpen },
+    { href: '/host/crm',          label: t('crmGuests'),      icon: Users },
+    { href: '/host/housekeeping', label: t('housekeeping'),   icon: Sparkles },
+    { href: '/host/manutenzione', label: t('maintenance'),    icon: Wrench },
+    { href: '/host/staff',        label: t('staff'),          icon: MessageSquare },
+    { href: '/host/calendario',   label: t('calendar'),       icon: CalendarRange },
+    { href: '/host/alloggiati',   label: t('alloggiatiWeb'),  icon: Shield },
+    { href: '/host/report',       label: t('report'),         icon: TrendingUp },
+  ], [t])
 
   const initials = nomeUtente
     .split(' ')
@@ -106,26 +111,24 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
         </div>
         <div className="leading-tight min-w-0">
           <p className="text-xs font-semibold text-white truncate">{nomeUtente}</p>
-          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Amministratore</p>
+          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>{tc('administrator')}</p>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
-        {/* Admin section */}
         <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          Amministrazione
+          {t('administration')}
         </p>
         {adminItems.map(({ href, label, icon: Icon }) => renderLink(href, label, Icon))}
 
-        {/* PMS Host collapsible section */}
         <div className="pt-2">
           <button
             onClick={() => setPmsOpen(v => !v)}
             className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-colors hover:text-white/60"
             style={{ color: 'rgba(255,255,255,0.3)' }}
           >
-            <span>PMS Host</span>
+            <span>{t('pmsHost')}</span>
             <ChevronDown
               size={12}
               className="transition-transform duration-200"

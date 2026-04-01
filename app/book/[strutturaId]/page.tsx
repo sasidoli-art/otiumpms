@@ -4,10 +4,7 @@ import { MapPin, Users, Tag, Star, ArrowRight, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import BookingForm from './booking-form'
-
-const TIPO_LABEL: Record<string, string> = {
-  EVENTO: 'Evento', VENUE: 'Venue', ESPERIENZA: 'Esperienza', ALLOGGIO: 'Alloggio', SERVIZIO: 'Servizio',
-}
+import { getTranslations } from 'next-intl/server'
 
 const TIPO_COLOR: Record<string, string> = {
   EVENTO: 'bg-purple-100 text-purple-700',
@@ -26,6 +23,10 @@ export async function generateMetadata({ params: paramsPromise }: { params: Prom
 
 export default async function ProfiloStrutturaPage({ params: paramsPromise }: { params: Promise<{ strutturaId: string }> }) {
   const params = await paramsPromise
+  const t = await getTranslations('booking')
+  const tc = await getTranslations('common')
+  const ts = await getTranslations('structureTypes')
+
   const struttura = await prisma.struttura.findFirst({
     where: { id: params.strutturaId, attiva: true },
     include: {
@@ -60,6 +61,10 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
     ? Math.min(...struttura.unita.map(u => u.prezzoBase))
     : struttura.prezzoBase
 
+  const TIPO_LABEL: Record<string, string> = {
+    EVENTO: ts('event'), VENUE: ts('venue'), ESPERIENZA: ts('experience'), ALLOGGIO: ts('accommodation'), SERVIZIO: ts('service'),
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top bar */}
@@ -73,7 +78,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
             href="#prenota"
             className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-full hover:bg-indigo-700 transition-colors"
           >
-            Prenota ora <ArrowRight className="w-3.5 h-3.5" />
+            {t('bookNow')} <ArrowRight className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
@@ -109,7 +114,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                   {struttura._count.prenotazioni > 0 && (
                     <span className="flex items-center gap-1 text-amber-600">
                       <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      {struttura._count.prenotazioni} prenotazioni
+                      {struttura._count.prenotazioni} {tc('bookings')}
                     </span>
                   )}
                 </div>
@@ -126,8 +131,8 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                   <Users className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Capacità</p>
-                  <p className="text-sm font-semibold text-gray-800">{struttura.capacitaTotale} {struttura.capacitaTotale === 1 ? 'persona' : 'persone'}</p>
+                  <p className="text-xs text-gray-400">{t('capacity')}</p>
+                  <p className="text-sm font-semibold text-gray-800">{struttura.capacitaTotale} {struttura.capacitaTotale === 1 ? tc('person') : tc('people')}</p>
                 </div>
               </div>
               <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-3">
@@ -135,9 +140,9 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                   <Tag className="w-4 h-4 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Da</p>
+                  <p className="text-xs text-gray-400">{tc('from')}</p>
                   <p className="text-sm font-semibold text-gray-800">
-                    {prezzoMin > 0 ? `€${prezzoMin}` : 'Gratuito'}
+                    {prezzoMin > 0 ? `€${prezzoMin}` : t('free')}
                   </p>
                 </div>
               </div>
@@ -147,7 +152,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                     <MapPin className="w-4 h-4 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Indirizzo</p>
+                    <p className="text-xs text-gray-400">{tc('address')}</p>
                     <p className="text-sm font-semibold text-gray-800 truncate">{struttura.indirizzo}</p>
                   </div>
                 </div>
@@ -158,7 +163,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
             {struttura.unita.length > 0 && (
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <h2 className="text-base font-bold text-gray-900 mb-4">
-                  {struttura.unita.length === 1 ? 'Opzione disponibile' : 'Opzioni disponibili'}
+                  {struttura.unita.length === 1 ? t('optionAvailable') : t('optionsAvailable')}
                 </h2>
                 <div className="space-y-4">
                   {struttura.unita.map((u) => (
@@ -171,26 +176,26 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                           )}
                           <div className="flex items-center gap-3 mt-2">
                             <span className="text-xs text-gray-500 flex items-center gap-1">
-                              <Users className="w-3 h-3" /> Max {u.capacita} {u.capacita === 1 ? 'persona' : 'persone'}
+                              <Users className="w-3 h-3" /> {t('max')} {u.capacita} {u.capacita === 1 ? tc('person') : tc('people')}
                             </span>
                             {u.tariffe.length > 0 && (
                               <span className="text-xs text-indigo-600 font-medium">
-                                Tariffe speciali disponibili
+                                {t('specialRates')}
                               </span>
                             )}
                           </div>
                           {/* Tariffe periodo */}
                           {u.tariffe.length > 0 && (
                             <div className="mt-3 flex flex-wrap gap-1.5">
-                              {u.tariffe.map((t) => (
+                              {u.tariffe.map((tf) => (
                                 <span
-                                  key={t.id}
+                                  key={tf.id}
                                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border"
-                                  style={{ borderColor: t.colore ?? '#6366f1', color: t.colore ?? '#6366f1', backgroundColor: `${t.colore ?? '#6366f1'}15` }}
+                                  style={{ borderColor: tf.colore ?? '#6366f1', color: tf.colore ?? '#6366f1', backgroundColor: `${tf.colore ?? '#6366f1'}15` }}
                                 >
-                                  {t.nome} — €{t.prezzo}
+                                  {tf.nome} — €{tf.prezzo}
                                   <span className="text-gray-400 font-normal">
-                                    ({format(new Date(t.dataInizio), 'd MMM', { locale: it })} – {format(new Date(t.dataFine), 'd MMM', { locale: it })})
+                                    ({format(new Date(tf.dataInizio), 'd MMM', { locale: it })} – {format(new Date(tf.dataFine), 'd MMM', { locale: it })})
                                   </span>
                                 </span>
                               ))}
@@ -199,9 +204,9 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-lg font-bold text-indigo-700">
-                            {u.prezzoBase > 0 ? `€${u.prezzoBase}` : 'Gratuito'}
+                            {u.prezzoBase > 0 ? `€${u.prezzoBase}` : t('free')}
                           </p>
-                          <p className="text-xs text-gray-400">prezzo base</p>
+                          <p className="text-xs text-gray-400">{t('form.basePrice')}</p>
                         </div>
                       </div>
                     </div>
@@ -213,7 +218,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
             {/* Contatti host */}
             {(struttura.host.sitoWeb || struttura.host.telefono) && (
               <div className="bg-white rounded-2xl shadow-sm p-6">
-                <h2 className="text-base font-bold text-gray-900 mb-3">Organizzatore</h2>
+                <h2 className="text-base font-bold text-gray-900 mb-3">{t('organizer')}</h2>
                 <p className="text-sm font-medium text-gray-700 mb-2">{struttura.host.nomeAzienda}</p>
                 <div className="flex gap-4 flex-wrap">
                   {struttura.host.sitoWeb && (
@@ -238,9 +243,9 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
                 href={`/book/${struttura.id}/pacchetti`}
                 className="block bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 text-white hover:brightness-110 transition-all shadow-sm"
               >
-                <p className="font-bold text-sm">Pacchetti evento + soggiorno</p>
+                <p className="font-bold text-sm">{t('eventPackages')}</p>
                 <p className="text-indigo-200 text-xs mt-0.5">
-                  {numPacchetti} {numPacchetti === 1 ? 'offerta disponibile' : 'offerte disponibili'} — scopri i pacchetti
+                  {numPacchetti} {numPacchetti === 1 ? t('offerAvailable') : t('offersAvailable')} — {t('discoverPackages')}
                 </p>
               </a>
             )}
@@ -251,16 +256,16 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="w-4 h-4" />
-                  <p className="font-bold text-sm">SPA & Benessere</p>
+                  <p className="font-bold text-sm">{t('spaWellness')}</p>
                 </div>
                 <p className="text-purple-200 text-xs">
-                  {numTrattamentiSpa} {numTrattamentiSpa === 1 ? 'trattamento disponibile' : 'trattamenti disponibili'} — prenota online
+                  {numTrattamentiSpa} {numTrattamentiSpa === 1 ? t('treatmentAvailable') : t('treatmentsAvailable')} — {t('bookOnline')}
                 </p>
               </a>
             )}
             <div id="prenota" className="bg-white rounded-2xl shadow-sm p-6 sticky top-20">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">Richiedi prenotazione</h2>
-              <p className="text-xs text-gray-400 mb-5">Compila il form — sarai contattato entro 24h</p>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">{t('requestBooking')}</h2>
+              <p className="text-xs text-gray-400 mb-5">{t('fillForm')}</p>
               <BookingForm struttura={{
                 id: struttura.id,
                 nome: struttura.nome,
@@ -280,7 +285,7 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
           <a href="https://otiumweek.it" className="text-indigo-600 hover:underline" target="_blank" rel="noopener noreferrer">
             Otium Week
           </a>
-          {' '}— La piattaforma degli eventi italiani
+          {' '}— {t('platform')}
         </p>
       </div>
     </div>

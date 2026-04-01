@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Receipt, Plus, Loader2, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Addebito = { id: string; descrizione: string; quantita: number; prezzoUnitario: number; aliquotaIva: number; totale: number; data: string; addebitatoDa: string | null; servizio: { nome: string; categoria: string } | null }
 type RiepilogoIva = { aliquota: number; imponibile: number; imposta: number; totale: number }

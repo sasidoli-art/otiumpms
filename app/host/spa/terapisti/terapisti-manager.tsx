@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Plus, Edit2, Trash2, Users, CalendarClock, Globe, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 interface DisponibilitaSlot {
@@ -33,6 +34,8 @@ const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#eab308'
 const GIORNI = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
 
 export default function TerapistiManager() {
+  const t = useTranslations('spa.therapists')
+  const tc = useTranslations('common')
   const [terapisti, setTerapisti] = useState<Terapista[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<'create' | Terapista | null>(null)
@@ -94,7 +97,7 @@ export default function TerapistiManager() {
           <div className="w-9 h-9 rounded-xl bg-sky-100 flex items-center justify-center">
             <Users className="w-5 h-5 text-sky-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Terapisti</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Aggiungi

@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, Clock } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function PagamentoActions({ pagamentoId, statoAttuale }: { pagamentoId: string; statoAttuale: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const t = useTranslations('admin.payments')
 
   async function segnaComePagato() {
     setLoading(true)
@@ -37,7 +39,7 @@ export function PagamentoActions({ pagamentoId, statoAttuale }: { pagamentoId: s
       <button
         onClick={segnaComePagato}
         disabled={loading}
-        title="Segna come pagato"
+        title={`${t('paid')}`}
         className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
       >
         <CheckCircle size={15} />
@@ -46,7 +48,7 @@ export function PagamentoActions({ pagamentoId, statoAttuale }: { pagamentoId: s
         <button
           onClick={segnaInRitardo}
           disabled={loading}
-          title="Segna in ritardo"
+          title={`${t('late')}`}
           className="p-1.5 rounded hover:bg-orange-50 text-gray-400 hover:text-orange-600 disabled:opacity-50"
         >
           <Clock size={15} />

@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { format, addDays, subDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
 import {
   UtensilsCrossed, Coffee, Sun, Moon, ChevronLeft, ChevronRight,
-  Loader2, Users, RefreshCw,
+  Loader2, Users, RefreshCw, BookOpen,
 } from 'lucide-react'
 
 type DettaglioPasto = {
@@ -57,6 +58,8 @@ export default function RistorazioneBoard() {
   const giornoSuccessivo = () => setData(format(addDays(new Date(data + 'T12:00'), 1), 'yyyy-MM-dd'))
   const oggi = () => setData(format(new Date(), 'yyyy-MM-dd'))
 
+  const [tab, setTab] = useState<'coperti' | 'menu'>('coperti')
+
   return (
     <div className="space-y-6">
       <div className="page-title-box">
@@ -66,9 +69,35 @@ export default function RistorazioneBoard() {
           </h1>
           <p className="text-sm text-gray-500">Coperti previsti e piani pasto</p>
         </div>
-        <button onClick={carica} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50">
-          <RefreshCw className="w-4 h-4" /> Aggiorna
+        <div className="flex items-center gap-2">
+          <Link
+            href="/host/ristorazione/menu"
+            className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 px-3 py-1.5 rounded border border-brand-200 hover:bg-brand-50 font-medium"
+          >
+            <BookOpen className="w-4 h-4" /> Gestione Menu
+          </Link>
+          <button onClick={carica} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded border border-gray-200 hover:bg-gray-50">
+            <RefreshCw className="w-4 h-4" /> Aggiorna
+          </button>
+        </div>
+      </div>
+
+      {/* Tab di navigazione */}
+      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setTab('coperti')}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            tab === 'coperti' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Coperti giornalieri
         </button>
+        <Link
+          href="/host/ristorazione/menu"
+          className="px-4 py-1.5 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          Gestione Menu
+        </Link>
       </div>
 
       {/* Selettore data */}

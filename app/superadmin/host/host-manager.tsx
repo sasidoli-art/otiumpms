@@ -7,6 +7,7 @@ import Link from 'next/link'
 import {
   Building2, ExternalLink, Bot, UserCheck, Power, Loader2,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Host = {
   id: string
@@ -30,14 +31,21 @@ const STATO_COLORI: Record<string, string> = {
 }
 
 const UPSELL_MODES = [
-  { value: 'off', label: 'Disattivo', icon: Power, color: 'text-gray-400' },
-  { value: 'manual', label: 'Manuale', icon: UserCheck, color: 'text-blue-600' },
-  { value: 'ai', label: 'AI', icon: Bot, color: 'text-purple-600' },
+  { value: 'off', labelKey: 'inactive' as const, icon: Power, color: 'text-gray-400' },
+  { value: 'manual', labelKey: 'manual' as const, icon: UserCheck, color: 'text-blue-600' },
+  { value: 'ai', labelKey: 'ai' as const, icon: Bot, color: 'text-purple-600' },
 ]
 
 export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }) {
   const [hosts, setHosts] = useState(hostsIniziali)
   const [saving, setSaving] = useState<string | null>(null)
+  const tc = useTranslations('common')
+
+  const upsellLabels: Record<string, string> = {
+    off: tc('inactive'),
+    manual: 'Manuale', // TODO: i18n
+    ai: 'AI',
+  }
 
   function getUpsellMode(h: Host): string {
     const moduli = h.moduliAttivi || {}
@@ -60,8 +68,6 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
       updates.concierge = true
     }
 
-    // Usa l'API admin per aggiornare l'host
-    // Per ora aggiorniamo via PATCH diretto
     const res = await fetch(`/api/superadmin/host/${hostId}/config`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -82,8 +88,8 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Host & Clienti</h1>
-          <p className="text-sm text-gray-500">{hosts.length} host registrati</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Host & Clienti</h1>{/* TODO: i18n */}
+          <p className="text-sm text-gray-500">{hosts.length} host registrati</p>{/* TODO: i18n */}
         </div>
       </div>
 
@@ -92,14 +98,14 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-slate-700">
-                <th className="table-th">Azienda</th>
-                <th className="table-th">Referente</th>
-                <th className="table-th">Piano</th>
-                <th className="table-th">Stato</th>
-                <th className="table-th text-right">Strutture</th>
-                <th className="table-th text-right">Pren.</th>
+                <th className="table-th">Azienda</th>{/* TODO: i18n */}
+                <th className="table-th">Referente</th>{/* TODO: i18n */}
+                <th className="table-th">Piano</th>{/* TODO: i18n */}
+                <th className="table-th">{tc('status')}</th>
+                <th className="table-th text-right">{tc('structures')}</th>
+                <th className="table-th text-right">{tc('bookings')}</th>
                 <th className="table-th text-center">Upselling</th>
-                <th className="table-th">Registrato</th>
+                <th className="table-th">Registrato</th>{/* TODO: i18n */}
                 <th className="table-th"></th>
               </tr>
             </thead>
@@ -129,7 +135,7 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
                               <button
                                 key={m.value}
                                 onClick={() => setUpsellMode(h.id, m.value)}
-                                title={`Upselling: ${m.label}`}
+                                title={`Upselling: ${upsellLabels[m.value]}`}
                                 className={`p-1.5 rounded transition-all ${
                                   isActive
                                     ? `${m.color} bg-gray-100 dark:bg-slate-700 ring-1 ring-current`
@@ -143,13 +149,13 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
                         )}
                       </div>
                       <p className="text-[9px] text-center text-gray-400 mt-0.5">
-                        {UPSELL_MODES.find(m => m.value === mode)?.label}
+                        {upsellLabels[mode]}
                       </p>
                     </td>
                     <td className="table-td text-xs text-gray-400">{format(new Date(h.createdAt), 'd MMM yy', { locale: it })}</td>
                     <td className="table-td">
                       <Link href={`/admin/clienti/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1">
-                        Gestisci <ExternalLink className="w-3 h-3" />
+                        {tc('manage')} <ExternalLink className="w-3 h-3" />
                       </Link>
                     </td>
                   </tr>

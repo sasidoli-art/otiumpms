@@ -1,8 +1,19 @@
-﻿import { getServerSession } from 'next-auth'
+﻿import { z } from 'zod'
+import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+
+const createComunicazioneSchema = z.object({
+  tipo: z.enum(['AVVISO', 'TASK', 'NOTA', 'URGENTE']).optional(),
+  titolo: z.string().min(1),
+  testo: z.string().optional().nullable(),
+  autore: z.string().min(1),
+  destinatari: z.array(z.string()).optional(),
+  fissato: z.boolean().optional(),
+  dataScadenza: z.string().optional().nullable(),
+})
 
 // GET /api/host/staff?archiviato=false
 export async function GET(req: Request) {
@@ -27,12 +38,12 @@ export async function POST(req: Request) {
   if (isUnauthorized(auth)) return auth
   const session = auth
 
-  const body = await req.json()
-  const { tipo, titolo, testo, autore, destinatari, fissato, dataScadenza } = body
-
-  if (!titolo || !autore) {
-    return NextResponse.json({ error: 'titolo e autore sono obbligatori' }, { status: 400 })
+  const raw = await req.json()
+  const parsed = createComunicazioneSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Dati non validi', details: parsed.error.flatten() }, { status: 422 })
   }
+  const { tipo, titolo, testo, autore, destinatari, fissato, dataScadenza } = parsed.data
 
   const com = await prisma.comunicazioneStaff.create({
     data: {

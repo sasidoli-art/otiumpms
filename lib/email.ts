@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/db'
+import { emailQueue } from '@/lib/email-queue'
 
 /**
  * Restituisce un transporter Nodemailer e l'indirizzo "from" da usare.
@@ -50,6 +51,19 @@ async function dispatchMail(
   await transporter.sendMail({ from, ...opts })
 }
 
+/**
+ * Queued version of dispatchMail — enqueues email for delivery with automatic retry.
+ * Use this for non-blocking email sends (notifications, reminders).
+ * Falls back to direct send if queue is not available.
+ */
+function queueMail(
+  label: string,
+  opts: { to: string; subject: string; html: string },
+  hostId?: string | null,
+) {
+  emailQueue.enqueue(label, () => dispatchMail(opts, hostId))
+}
+
 /** Invia una email generica (testo libero) usando il transporter dell'host. */
 export async function sendEmailGeneric(params: {
   to: string
@@ -94,6 +108,62 @@ function base(contenuto: string): string {
     </body>
     </html>
   `
+}
+
+// ─── Conferma Ricezione Prenotazione (per ospite) ───────────────────────────
+
+export async function sendEmailConfermaRicezione(params: {
+  guestEmail: string
+  guestNome: string
+  hostNome: string
+  strutturaNome: string
+  dataArrivo: Date
+  dataPartenza?: Date | null
+  numOspiti: number
+  prezzoTotale?: number | null
+  chatUrl: string
+  checkInUrl: string
+  hostId?: string | null
+}) {
+  const {
+    guestEmail, guestNome, hostNome, strutturaNome,
+    dataArrivo, dataPartenza, numOspiti, prezzoTotale,
+    chatUrl, checkInUrl, hostId,
+  } = params
+
+  const fmt = (d: Date) =>
+    d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const htmlBody = `
+    <p>Ciao <strong>${guestNome}</strong>,</p>
+    <p>Abbiamo ricevuto la tua richiesta di prenotazione per <strong>${strutturaNome}</strong>.
+       <span class="badge badge-yellow">In attesa di conferma</span></p>
+    <p>L'organizzatore <strong>${hostNome}</strong> la esaminerà e ti contatterà al più presto.</p>
+    <table class="table">
+      <tr><th>Struttura</th><td>${strutturaNome}</td></tr>
+      <tr><th>Organizzatore</th><td>${hostNome}</td></tr>
+      <tr><th>Arrivo</th><td>${fmt(dataArrivo)}</td></tr>
+      ${dataPartenza ? `<tr><th>Partenza</th><td>${fmt(dataPartenza)}</td></tr>` : ''}
+      <tr><th>Ospiti</th><td>${numOspiti}</td></tr>
+      ${prezzoTotale != null ? `<tr><th>Totale stimato</th><td>€${prezzoTotale.toFixed(2)}</td></tr>` : ''}
+    </table>
+    <p>
+      <a class="btn" href="${chatUrl}">💬 Chatta con l'organizzatore</a>
+    </p>
+    <p>Quando la prenotazione sarà confermata potrai completare il <strong>check-in online</strong> per velocizzare l'ingresso:</p>
+    <p>
+      <a class="btn" style="background:#059669;" href="${checkInUrl}">✅ Check-in online</a>
+    </p>
+    <p style="color:#6b7280;font-size:13px;">
+      Questa è una richiesta di prenotazione, non una conferma. Riceverai un'altra email quando l'organizzatore confermerà.
+    </p>
+  `
+
+  queueMail(`conferma-ricezione:${guestEmail}`, {
+    to: guestEmail,
+    subject: `Richiesta ricevuta – ${strutturaNome}`,
+    html: base(htmlBody),
+  }, hostId)
 }
 
 // ─── Nuova Prenotazione (per host) ───────────────────────────────────────────
@@ -146,7 +216,7 @@ export async function sendEmailNuovaPrenotazione(params: {
     </p>
   `
 
-  await dispatchMail({
+  queueMail(`nuova-prenotazione:${guestEmail}`, {
     to: hostEmail,
     subject: `Nuova prenotazione da ${guestNome} ${guestCognome} – ${strutturaNome}`,
     html: base(htmlBody),
@@ -185,7 +255,7 @@ export async function sendEmailConfermaPrenotazione(params: {
     <p>Per ulteriori informazioni o domande, rispondi a questa email.</p>
   `
 
-  await dispatchMail({
+  queueMail(`conferma-prenotazione:${guestEmail}`, {
     to: guestEmail,
     subject: `Prenotazione confermata – ${strutturaNome}`,
     html: base(htmlBody),
@@ -230,7 +300,7 @@ export async function sendEmailCancellazionePrenotazione(params: {
 
   const t = testi[lingua ?? 'it'] ?? testi.it
 
-  await dispatchMail({
+  queueMail(`cancellazione:${guestEmail}`, {
     to: guestEmail,
     subject: t.subject,
     html: base(t.body),
@@ -262,7 +332,7 @@ export async function sendEmailNuovoMessaggio(params: {
     </p>
   `
 
-  await dispatchMail({
+  queueMail(`chat:${destinatarioEmail}`, {
     to: destinatarioEmail,
     subject: `Nuovo messaggio da ${mittenteNome} – ${strutturaNome}`,
     html: base(htmlBody),
@@ -303,7 +373,7 @@ export async function sendEmailConfermaAppuntamentoSpa(params: {
     <p style="color:#6b7280;font-size:13px;">Il pagamento avverrà direttamente in struttura.</p>
   `
 
-  await dispatchMail({
+  queueMail(`spa-conferma:${guestEmail}`, {
     to: guestEmail,
     subject: `Appuntamento SPA confermato – ${servizioNome}`,
     html: base(htmlBody),
@@ -358,7 +428,7 @@ export async function sendEmailNotificaNuovoAppuntamentoSpa(params: {
     </p>
   `
 
-  await dispatchMail({
+  queueMail(`spa-nuova:${guestEmail}`, {
     to: hostEmail,
     subject: `Nuova prenotazione SPA: ${guestNome} ${guestCognome} – ${servizioNome}`,
     html: base(htmlBody),
@@ -423,7 +493,7 @@ export async function sendEmailReminderPreArrivo(params: {
     </p>
   `
 
-  await dispatchMail({
+  queueMail(`reminder-arrivo:${guestEmail}`, {
     to: guestEmail,
     subject: isEN
       ? `Reminder: your stay at ${strutturaNome} is tomorrow!`
@@ -482,11 +552,67 @@ export async function sendEmailFollowUpPostSoggiorno(params: {
     </p>
   `
 
-  await dispatchMail({
+  queueMail(`followup:${guestEmail}`, {
     to: guestEmail,
     subject: isEN
       ? `Thank you for your stay at ${strutturaNome}!`
       : `Grazie per il tuo soggiorno a ${strutturaNome}!`,
+    html: base(htmlBody),
+  }, hostId)
+}
+
+// ─── Ristorazione: Conferma Scelte Pasto (per ospite) ────────────────────────
+
+export function sendEmailConfermaPasti(params: {
+  guestEmail: string
+  guestNome: string
+  hostNome: string
+  strutturaNome: string
+  scelte: { data: string; tipoPasto: string; piattoNome: string }[]
+  hostId?: string | null
+}) {
+  const { guestEmail, guestNome, hostNome, strutturaNome, scelte, hostId } = params
+
+  const fmtData = (d: string) => {
+    const date = new Date(d + 'T12:00:00Z')
+    return date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })
+  }
+
+  // Group by date for cleaner display
+  const righe = scelte
+    .sort((a, b) => a.data.localeCompare(b.data) || a.tipoPasto.localeCompare(b.tipoPasto))
+    .map((s) => `
+      <tr>
+        <td>${fmtData(s.data)}</td>
+        <td>${s.tipoPasto}</td>
+        <td>${s.piattoNome}</td>
+      </tr>
+    `).join('')
+
+  const htmlBody = `
+    <p>Ciao <strong>${guestNome}</strong>,</p>
+    <p>Abbiamo registrato le tue scelte pasto per il soggiorno presso <strong>${strutturaNome}</strong>.
+       <span class="badge badge-green">Confermato</span></p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Pasto</th>
+          <th>Piatto scelto</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${righe}
+      </tbody>
+    </table>
+    <p>Se desideri modificare le tue scelte, puoi ripetere la selezione dal link ricevuto.</p>
+    <p>Per domande o esigenze alimentari particolari, contatta <strong>${hostNome}</strong>.</p>
+    <p style="color:#6b7280;font-size:13px;">Buon appetito!</p>
+  `
+
+  queueMail(`conferma-pasti:${guestEmail}`, {
+    to: guestEmail,
+    subject: `Conferma scelte pasto — ${strutturaNome}`,
     html: base(htmlBody),
   }, hostId)
 }
@@ -521,7 +647,7 @@ export async function sendEmailCancellazioneAppuntamentoSpa(params: {
     <p style="color:#6b7280;font-size:13px;">Se ritieni che si tratti di un errore, rispondi a questa email.</p>
   `
 
-  await dispatchMail({
+  queueMail(`spa-cancellazione:${guestEmail}`, {
     to: guestEmail,
     subject: `Appuntamento SPA cancellato – ${servizioNome}`,
     html: base(htmlBody),
@@ -558,7 +684,7 @@ export async function sendEmailReminderAppuntamentoSpa(params: {
     <p>Per disdire o modificare l'appuntamento contatta <strong>${hostNome}</strong>.</p>
   `
 
-  await dispatchMail({
+  queueMail(`spa-reminder:${guestEmail}`, {
     to: guestEmail,
     subject: `Promemoria appuntamento SPA domani – ${servizioNome}`,
     html: base(htmlBody),

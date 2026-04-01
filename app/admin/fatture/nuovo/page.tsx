@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2, Plus, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatValuta } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 interface RigaFattura {
   descrizione: string
@@ -18,6 +19,8 @@ export default function NuovaFatturaPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const hostIdParam = searchParams.get('hostId') ?? ''
+  const t = useTranslations('admin.invoices')
+  const tc = useTranslations('common')
 
   const [loading, setLoading] = useState(false)
   const [errore, setErrore] = useState('')
@@ -92,10 +95,10 @@ export default function NuovaFatturaPage() {
         body: JSON.stringify(data),
       })
       const json = await res.json()
-      if (!res.ok) setErrore(json.error || 'Errore')
+      if (!res.ok) setErrore(json.error || tc('unexpectedError'))
       else router.push(`/admin/fatture/${json.id}`)
     } catch {
-      setErrore('Errore di connessione')
+      setErrore(tc('networkError'))
     } finally {
       setLoading(false)
     }
@@ -108,17 +111,17 @@ export default function NuovaFatturaPage() {
           <ArrowLeft size={18} className="text-gray-600" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Nuova fattura</h1>
-          <p className="text-gray-500 text-sm">Crea una fattura per un cliente</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('newInvoice')}</h1>
+          <p className="text-gray-500 text-sm">Crea una fattura per un cliente</p>{/* TODO: i18n */}
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Selezione cliente */}
         <div className="card p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Cliente</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">Cliente</h2>{/* TODO: i18n */}
           <div className="mb-4">
-            <label className="label">Seleziona cliente *</label>
+            <label className="label">Seleziona cliente *</label>{/* TODO: i18n */}
             <select
               name="hostId"
               className="input"
@@ -136,31 +139,31 @@ export default function NuovaFatturaPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="label">Ragione sociale / Nome *</label>
+              <label className="label">Ragione sociale / Nome *</label>{/* TODO: i18n */}
               <input name="clienteNome" className="input" required defaultValue={hostSelezionato?.nomeAzienda ?? ''} key={hostSelezionato?.id + '_nome'} />
             </div>
             <div>
-              <label className="label">Partita IVA</label>
+              <label className="label">Partita IVA</label>{/* TODO: i18n */}
               <input name="clientePIva" className="input" defaultValue={hostSelezionato?.fattPartitaIva ?? ''} key={hostSelezionato?.id + '_piva'} />
             </div>
             <div>
-              <label className="label">Email fatturazione</label>
+              <label className="label">Email fatturazione</label>{/* TODO: i18n */}
               <input name="clienteEmail" type="email" className="input" defaultValue={hostSelezionato?.fattEmail ?? ''} key={hostSelezionato?.id + '_email'} />
             </div>
             <div className="md:col-span-2">
-              <label className="label">Indirizzo</label>
+              <label className="label">{tc('address')}</label>
               <input name="clienteIndirizzo" className="input" defaultValue={hostSelezionato?.fattIndirizzo ?? ''} key={hostSelezionato?.id + '_ind'} />
             </div>
             <div>
-              <label className="label">Città</label>
+              <label className="label">{tc('city')}</label>
               <input name="clienteCitta" className="input" defaultValue={hostSelezionato?.fattCitta ?? ''} key={hostSelezionato?.id + '_citta'} />
             </div>
             <div>
-              <label className="label">CAP</label>
+              <label className="label">{tc('cap')}</label>
               <input name="clienteCap" className="input" defaultValue={hostSelezionato?.fattCap ?? ''} key={hostSelezionato?.id + '_cap'} />
             </div>
             <div>
-              <label className="label">Provincia</label>
+              <label className="label">{tc('province')}</label>
               <input name="clienteProvincia" className="input" defaultValue={hostSelezionato?.fattProvincia ?? ''} key={hostSelezionato?.id + '_prov'} maxLength={2} />
             </div>
             <div>
@@ -176,14 +179,14 @@ export default function NuovaFatturaPage() {
 
         {/* Date */}
         <div className="card p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Date fattura</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">Date fattura</h2>{/* TODO: i18n */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="label">Data emissione *</label>
+              <label className="label">Data emissione *</label>{/* TODO: i18n */}
               <input name="dataEmissione" type="date" className="input" required defaultValue={new Date().toISOString().split('T')[0]} />
             </div>
             <div>
-              <label className="label">Data scadenza</label>
+              <label className="label">Data scadenza</label>{/* TODO: i18n */}
               <input name="dataScadenza" type="date" className="input" />
             </div>
           </div>
@@ -192,10 +195,10 @@ export default function NuovaFatturaPage() {
         {/* Righe */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">Righe fattura</h2>
+            <h2 className="font-semibold text-gray-900">Righe fattura</h2>{/* TODO: i18n */}
             <button type="button" onClick={aggiungiRiga} className="btn-secondary flex items-center gap-1 text-sm py-1.5">
               <Plus size={14} />
-              Aggiungi riga
+              {tc('add')}
             </button>
           </div>
 
@@ -203,7 +206,7 @@ export default function NuovaFatturaPage() {
             {righe.map((riga, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-5">
-                  {i === 0 && <label className="label">Descrizione</label>}
+                  {i === 0 && <label className="label">{tc('description')}</label>}
                   <input
                     value={riga.descrizione}
                     onChange={e => aggiornaRiga(i, 'descrizione', e.target.value)}
@@ -213,7 +216,7 @@ export default function NuovaFatturaPage() {
                   />
                 </div>
                 <div className="col-span-1">
-                  {i === 0 && <label className="label">Qtà</label>}
+                  {i === 0 && <label className="label">Qtà</label>}{/* TODO: i18n */}
                   <input
                     type="number"
                     value={riga.quantita}
@@ -223,7 +226,7 @@ export default function NuovaFatturaPage() {
                   />
                 </div>
                 <div className="col-span-2">
-                  {i === 0 && <label className="label">Prezzo €</label>}
+                  {i === 0 && <label className="label">{tc('price')} €</label>}
                   <input
                     type="number"
                     step="0.01"
@@ -247,7 +250,7 @@ export default function NuovaFatturaPage() {
                   </select>
                 </div>
                 <div className="col-span-1">
-                  {i === 0 && <label className="label">Totale</label>}
+                  {i === 0 && <label className="label">{tc('total')}</label>}
                   <p className="text-sm font-medium text-gray-700 py-2">{formatValuta(riga.totale)}</p>
                 </div>
                 <div className="col-span-1 flex justify-end">
@@ -269,7 +272,7 @@ export default function NuovaFatturaPage() {
           <div className="mt-6 border-t border-gray-100 pt-4 flex justify-end">
             <div className="w-64 space-y-2 text-sm">
               <div className="flex justify-between text-gray-600">
-                <span>Imponibile</span>
+                <span>Imponibile</span>{/* TODO: i18n */}
                 <span>{formatValuta(imponibile)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
@@ -277,7 +280,7 @@ export default function NuovaFatturaPage() {
                 <span>{formatValuta(iva)}</span>
               </div>
               <div className="flex justify-between font-bold text-gray-900 text-base border-t border-gray-200 pt-2">
-                <span>Totale</span>
+                <span>{tc('total')}</span>
                 <span>{formatValuta(totale)}</span>
               </div>
             </div>
@@ -286,8 +289,8 @@ export default function NuovaFatturaPage() {
 
         {/* Note */}
         <div className="card p-6">
-          <label className="label">Note (opzionale)</label>
-          <textarea name="note" className="input" rows={3} placeholder="Note aggiuntive sulla fattura..." />
+          <label className="label">{tc('notes')} (opzionale)</label>{/* TODO: i18n */}
+          <textarea name="note" className="input" rows={3} placeholder="Note aggiuntive sulla fattura..." />{/* TODO: i18n */}
         </div>
 
         {errore && (
@@ -297,9 +300,9 @@ export default function NuovaFatturaPage() {
         <div className="flex gap-3">
           <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Creazione...' : 'Crea fattura'}
+            {loading ? tc('saving') : `${tc('create')} fattura`}
           </button>
-          <Link href="/admin/fatture" className="btn-secondary">Annulla</Link>
+          <Link href="/admin/fatture" className="btn-secondary">{tc('cancel')}</Link>
         </div>
       </form>
     </div>

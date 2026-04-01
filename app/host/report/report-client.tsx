@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useTranslations } from 'next-intl'
 import {
   TrendingUp, TrendingDown, Euro, BedDouble, CalendarCheck, Building2,
   ChevronLeft, ChevronRight, Loader2, Download, FileText, Minus,
@@ -66,6 +67,8 @@ export default function ReportClient({
 }: {
   annoIniziale: number; meseIniziale: number
 }) {
+  const t = useTranslations('host.report')
+  const tc = useTranslations('common')
   const [anno, setAnno] = useState(annoIniziale)
   const [mese, setMese] = useState(meseIniziale)
   const [dati, setDati] = useState<DatiReport | null>(null)
@@ -120,7 +123,7 @@ export default function ReportClient({
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Report PMS</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-sm text-gray-500">Statistiche mensili con confronto e forecast</p>
         </div>
         {dati && !caricamento && (

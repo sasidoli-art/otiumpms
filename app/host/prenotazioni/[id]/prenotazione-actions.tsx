@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, X, ChevronDown, Link2, Copy, CheckCircle2, Mail, Printer, Loader2, HelpCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   getEmailTemplate, LINGUE_DISPONIBILI, TIPI_TEMPLATE,
   type LinguaTemplate, type TipoTemplate, type TemplateData,

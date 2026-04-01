@@ -8,6 +8,7 @@ import { ArrowLeft, Mail, Phone, Calendar, Users, Euro } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
+import { KioskButton } from './kiosk-button'
 import PrenotazioneActions from './prenotazione-actions'
 import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
@@ -15,9 +16,6 @@ import AccompagnatoriSection from './accompagnatori-section'
 import TracesSection from './traces-section'
 import AlertSection from './alert-section'
 import PastoSection from './pasto-section'
-import AssegnazioneSection from './assegnazione-section'
-import PagamentoCheckoutSection from './pagamento-checkout-section'
-import AddebitiSection from './addebiti-section'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -87,6 +85,9 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
         </div>
       </div>
 
+      {/* Kiosk: firma su tablet */}
+      <KioskButton prenotazioneId={prenotazione.id} />
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Colonna principale */}
         <div className="lg:col-span-2 space-y-4">
@@ -155,9 +156,6 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
             )}
           </div>
 
-          {/* Addebiti / Conto ospite */}
-          <AddebitiSection prenotazioneId={prenotazione.id} />
-
           {/* Promemoria operativi */}
           <TracesSection prenotazioneId={prenotazione.id} />
 
@@ -208,14 +206,8 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
           {/* Alert ospite */}
           <AlertSection prenotazioneId={prenotazione.id} />
 
-          {/* Assegnazione camera */}
-          <AssegnazioneSection prenotazioneId={prenotazione.id} cameraAttuale={prenotazione.unita?.nome ?? null} />
-
           {/* Piano pasto */}
           <PastoSection prenotazioneId={prenotazione.id} />
-
-          {/* Pagamento checkout */}
-          <PagamentoCheckoutSection prenotazioneId={prenotazione.id} saldoDovuto={prenotazione.prezzoTotale ?? 0} />
 
           {/* Check-in / Check-out */}
           <div className="card">

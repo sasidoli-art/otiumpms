@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { calcolaRiepilogoIva } from '@/lib/iva'
+import { z } from 'zod'
+
+const addebitoSchema = z.object({
+  servizioId: z.string().optional(),
+  pacchettoId: z.string().optional(),
+  quantita: z.number().int().min(1).default(1),
+  note: z.string().max(500).optional(),
+  addebitatoDa: z.string().max(100).optional(),
+  // Per addebito manuale
+  descrizione: z.string().max(200).optional(),
+  prezzoUnitario: z.number().min(0).optional(),
+  aliquotaIva: z.number().min(0).max(100).optional(),
+})
 
 /**
  * GET /api/host/prenotazioni/[id]/addebiti
@@ -55,7 +68,10 @@ export async function POST(req: NextRequest, { params: pp }: { params: Promise<{
   })
   if (!pren) return NextResponse.json({ error: 'Non trovata' }, { status: 404 })
 
-  const body = await req.json()
+  const raw = await req.json()
+  const parsed = addebitoSchema.safeParse(raw)
+  if (!parsed.success) return NextResponse.json({ error: 'Dati non validi', details: parsed.error.flatten() }, { status: 422 })
+  const body = parsed.data
   const { servizioId, pacchettoId, quantita = 1, note, addebitatoDa } = body
 
   let descrizione: string

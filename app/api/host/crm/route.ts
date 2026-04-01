@@ -1,8 +1,22 @@
-﻿import { getServerSession } from 'next-auth'
+﻿import { z } from 'zod'
+import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+
+const createOspiteSchema = z.object({
+  nome: z.string().min(1),
+  cognome: z.string().min(1),
+  email: z.string().email(),
+  telefono: z.string().optional().nullable(),
+  nazionalita: z.string().optional().nullable(),
+  lingua: z.string().optional().nullable(),
+  note: z.string().optional().nullable(),
+  preferenze: z.string().optional().nullable(),
+  vip: z.boolean().optional(),
+  tags: z.array(z.string()).optional(),
+})
 
 // GET /api/host/crm?q=&vip=&blacklist=&tag=&nazionalita=&page=&sort=&dir=&perPage=
 export async function GET(req: Request) {
@@ -83,12 +97,12 @@ export async function POST(req: Request) {
   if (isUnauthorized(auth)) return auth
   const session = auth
 
-  const body = await req.json()
-  const { nome, cognome, email, telefono, nazionalita, lingua, note, preferenze, vip, tags } = body
-
-  if (!nome || !cognome || !email) {
-    return NextResponse.json({ error: 'nome, cognome ed email sono obbligatori' }, { status: 400 })
+  const raw = await req.json()
+  const parsed = createOspiteSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Dati non validi', details: parsed.error.flatten() }, { status: 422 })
   }
+  const { nome, cognome, email, telefono, nazionalita, lingua, note, preferenze, vip, tags } = parsed.data
 
   const ospite = await prisma.ospiteCRM.upsert({
     where: { hostId_email: { hostId: auth.user.hostId, email } },

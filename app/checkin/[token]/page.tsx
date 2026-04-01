@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Sparkles, MapPin, Calendar, Users } from 'lucide-react'
 import CheckInPortaleForm from './checkin-portale-form'
+import { getTranslations } from 'next-intl/server'
 
 export async function generateMetadata({ params: p }: { params: Promise<{ token: string }> }) {
   const { token } = await p
@@ -17,6 +18,8 @@ export async function generateMetadata({ params: p }: { params: Promise<{ token:
 
 export default async function CheckInPortalePage({ params: paramsPromise }: { params: Promise<{ token: string }> }) {
   const { token } = await paramsPromise
+  const t = await getTranslations('checkin')
+  const tc = await getTranslations('common')
 
   const prenotazione = await prisma.prenotazione.findUnique({
     where: { checkInToken: token },
@@ -32,6 +35,7 @@ export default async function CheckInPortalePage({ params: paramsPromise }: { pa
       prezzoTotale: true,
       stato: true,
       checkInCompletato: true,
+      regCardFirmata: true,
       guestSesso: true,
       guestDataNascita: true,
       guestLuogoNascita: true,
@@ -104,19 +108,19 @@ export default async function CheckInPortalePage({ params: paramsPromise }: { pa
                 </p>
                 {prenotazione.dataPartenza && (() => {
                   const n = Math.round((new Date(prenotazione.dataPartenza).getTime() - new Date(prenotazione.dataArrivo).getTime()) / 86400000)
-                  return <p className="text-xs text-gray-400">{n} nott{n === 1 ? 'e' : 'i'}</p>
+                  return <p className="text-xs text-gray-400">{n} {n === 1 ? tc('night') : tc('nights')}</p>
                 })()}
               </div>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Users className="w-4 h-4 text-indigo-400 shrink-0" />
-              <p className="font-medium">{prenotazione.numOspiti} ospite{prenotazione.numOspiti > 1 ? 'i' : ''}</p>
+              <p className="font-medium">{prenotazione.numOspiti} {prenotazione.numOspiti > 1 ? tc('guests') : tc('guest')}</p>
             </div>
           </div>
 
           {prenotazione.prezzoTotale && (
             <div className="border-t pt-3 flex items-center justify-between">
-              <span className="text-sm text-gray-500">Totale</span>
+              <span className="text-sm text-gray-500">{tc('total')}</span>
               <span className="font-bold text-gray-900">
                 {new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(prenotazione.prezzoTotale)}
               </span>

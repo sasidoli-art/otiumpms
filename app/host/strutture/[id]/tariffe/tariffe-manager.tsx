@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   Plus, Trash2, Tag, ChevronLeft, ChevronRight,
   LayoutList, CalendarDays, X, Euro, Pencil

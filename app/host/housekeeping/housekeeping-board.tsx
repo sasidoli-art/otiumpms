@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
@@ -117,6 +118,8 @@ export default function HousekeepingBoard({
   strutture: Struttura[]
   unitaIniziali: Unita[]
 }) {
+  const t = useTranslations('host.housekeeping')
+  const tc = useTranslations('common')
   const [unita, setUnita] = useState<Unita[]>(unitaIniziali)
   const [filtroStruttura, setFiltroStruttura] = useState('all')
   const [filtroStato, setFiltroStato] = useState('all')
@@ -198,7 +201,7 @@ export default function HousekeepingBoard({
       {/* Header */}
       <div className="page-title-box">
         <div>
-          <h1 className="page-title">Housekeeping</h1>
+          <h1 className="page-title">{t('title')}</h1>
           <p className="text-sm text-gray-500">
             Gestione stanze e pulizie — {format(new Date(), "EEEE d MMMM", { locale: it })}
           </p>

@@ -4,6 +4,7 @@ import { sendEmailNuovoMessaggio } from '@/lib/email'
 import { parseBody, messaggioChatSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
+import { chatEventBus } from '@/lib/chat-events'
 
 // GET  /api/book/chat/[id]  — messaggi della chat (per l'ospite, senza auth)
 export async function GET(
@@ -28,10 +29,14 @@ export async function GET(
   if (!chat) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
   // Segna messaggi HOST come letti dall'ospite
-  await prisma.messaggio.updateMany({
+  const updated = await prisma.messaggio.updateMany({
     where: { chatId: params.id, mittente: 'HOST', letto: false },
     data: { letto: true },
   })
+
+  if (updated.count > 0) {
+    chatEventBus.publish({ type: 'read', chatId: params.id, data: { by: 'GUEST' } })
+  }
 
   return NextResponse.json(chat)
 }
@@ -106,6 +111,13 @@ export async function POST(
       error: err instanceof Error ? err.message : String(err),
     })
   }
+
+  // Publish real-time event
+  chatEventBus.publish({
+    type: 'message',
+    chatId: params.id,
+    data: messaggio,
+  })
 
   return NextResponse.json(messaggio, { status: 201 })
 }

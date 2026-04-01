@@ -4,6 +4,7 @@ import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import CalendarioTimeline from './calendario-timeline'
+import { getTranslations } from 'next-intl/server'
 
 export default async function CalendarioPage() {
   const session = await getServerSession(authOptions)
@@ -58,12 +59,14 @@ export default async function CalendarioPage() {
     orderBy: { nome: 'asc' },
   })
 
+  const t = await getTranslations('host.calendar')
+
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Calendario prenotazioni</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
         <p className="text-sm text-gray-500">
-          Vista timeline di tutte le strutture e unità — trascina per navigare
+          {t('subtitle')}
         </p>
       </div>
       <CalendarioTimeline strutture={strutture} />

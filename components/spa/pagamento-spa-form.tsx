@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { motion } from 'framer-motion'
 import { AlertCircle, CheckCircle, Loader, CreditCard, Banknote, Home } from 'lucide-react'
 
@@ -12,37 +13,6 @@ interface PagamentoSpaFormProps {
   onError?: (error: string) => void
 }
 
-const METODI = [
-  {
-    id: 'CAMERA_CREDIT',
-    label: 'Addebito su Camera',
-    description: 'Addebita sulla fattura della tua camera',
-    icon: Home,
-    requiresUnita: true,
-  },
-  {
-    id: 'CONTANTI',
-    label: 'Contanti',
-    description: 'Pagamento diretto in contanti al check-in SPA',
-    icon: Banknote,
-    requiresUnita: false,
-  },
-  {
-    id: 'CARTA',
-    label: 'Carta di Credito',
-    description: 'Pagamento con carta al momento della prenotazione',
-    icon: CreditCard,
-    requiresUnita: false,
-  },
-  {
-    id: 'TRANSFERWISE',
-    label: 'Bonifico Bancario',
-    description: 'Trasferimento bancario (WorldWide)',
-    icon: Home, // Cambierà in futuro
-    requiresUnita: false,
-  },
-]
-
 /**
  * Form per selezione metodo di pagamento.
  */
@@ -53,6 +23,40 @@ export function PagamentoSpaForm({
   onSuccess,
   onError,
 }: PagamentoSpaFormProps) {
+  const t = useTranslations('spa.payment')
+  const tc = useTranslations('common')
+
+  const METODI = [
+    {
+      id: 'CAMERA_CREDIT',
+      label: t('cameraCredit'),
+      description: t('cameraCreditDesc'),
+      icon: Home,
+      requiresUnita: true,
+    },
+    {
+      id: 'CONTANTI',
+      label: t('cash'),
+      description: t('cashDesc'),
+      icon: Banknote,
+      requiresUnita: false,
+    },
+    {
+      id: 'CARTA',
+      label: t('card'),
+      description: t('cardDesc'),
+      icon: CreditCard,
+      requiresUnita: false,
+    },
+    {
+      id: 'TRANSFERWISE',
+      label: t('transfer'),
+      description: t('transferDesc'),
+      icon: Home,
+      requiresUnita: false,
+    },
+  ]
+
   const [metodoPagamento, setMetodoPagamento] = useState<string>('')
   const [unitaId, setUnitaId] = useState<string>('')
   const [unitaeDisponibili, setUnitaeDisponibili] = useState<any[]>([])
@@ -70,7 +74,6 @@ export function PagamentoSpaForm({
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
-          // Raccoglie tutte le unità da tutte le strutture
           const unita: { id: string; nome: string }[] = []
           for (const s of data) {
             if (s.unita) {
@@ -87,6 +90,7 @@ export function PagamentoSpaForm({
 
   const handleSubmit = async () => {
     if (!metodoPagamento) {
+      // TODO: i18n
       onError?.('Seleziona un metodo di pagamento')
       return
     }
@@ -98,9 +102,9 @@ export function PagamentoSpaForm({
       metodo: metodoPagamento,
     }
 
-    // Validazioni specifiche
     if (metodoPagamento === 'CAMERA_CREDIT') {
       if (!unitaId) {
+        // TODO: i18n
         onError?.('Seleziona la camera')
         return
       }
@@ -123,14 +127,14 @@ export function PagamentoSpaForm({
 
       if (!response.ok) {
         const err = await response.json()
-        throw new Error(err.error || 'Errore nel salvataggio')
+        throw new Error(err.error || tc('unexpectedError'))
       }
 
       const data = await response.json()
       setSavedPayment(data)
       onSuccess?.(data)
     } catch (error) {
-      onError?.(error instanceof Error ? error.message : 'Errore sconosciuto')
+      onError?.(error instanceof Error ? error.message : tc('unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -142,6 +146,7 @@ export function PagamentoSpaForm({
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 max-w-md mx-auto">
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircle size={40} className="text-green-600 mx-auto mb-3" />
+          {/* TODO: i18n */}
           <h3 className="text-lg font-bold text-green-900 mb-2">Pagamento Registrato</h3>
           <p className="text-green-700 mb-4">€ {importo.toFixed(2)}</p>
           <p className="text-sm text-green-600">
@@ -149,7 +154,8 @@ export function PagamentoSpaForm({
           </p>
           {savedPayment.metodo === 'CONTANTI' && (
             <p className="text-xs text-green-600 mt-2">
-              ℹ️ Pagherai il saldo al momento del servizio SPA
+              {/* TODO: i18n */}
+              Pagherai il saldo al momento del servizio SPA
             </p>
           )}
         </div>
@@ -161,8 +167,9 @@ export function PagamentoSpaForm({
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 max-w-2xl">
       {/* Header */}
       <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border border-amber-200">
+        {/* TODO: i18n */}
         <h3 className="font-bold text-gray-900 mb-1">Metodo di Pagamento</h3>
-        <p className="text-sm text-gray-600">Totale: <span className="font-bold text-lg">€ {importo.toFixed(2)}</span></p>
+        <p className="text-sm text-gray-600">{tc('total')}: <span className="font-bold text-lg">€ {importo.toFixed(2)}</span></p>
       </div>
 
       {/* Metodi */}
@@ -208,9 +215,10 @@ export function PagamentoSpaForm({
       {/* Opzioni specifiche metodo */}
       {metodoPagamento === 'CAMERA_CREDIT' && prenotazioneId && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* TODO: i18n */}
           <label className="block text-sm font-medium text-gray-900">Seleziona Camera</label>
           {unitaeDisponibili.length === 0 ? (
-            <p className="text-sm text-gray-600">ℹ️ Addebito su camera della prenotazione attuale</p>
+            <p className="text-sm text-gray-600">Addebito su camera della prenotazione attuale</p>
           ) : (
             <select
               value={unitaId}
@@ -230,6 +238,7 @@ export function PagamentoSpaForm({
 
       {metodoPagamento === 'CARTA' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* TODO: i18n */}
           <label className="block text-sm font-medium text-gray-900">Numero Carta</label>
           <input
             type="text"
@@ -242,6 +251,7 @@ export function PagamentoSpaForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
+              {/* TODO: i18n */}
               <label className="block text-xs font-medium text-gray-700 mb-1">Scadenza</label>
               <input
                 type="text"
@@ -276,6 +286,7 @@ export function PagamentoSpaForm({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-start gap-2 text-sm text-blue-700">
             <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            {/* TODO: i18n */}
             <span>Il pagamento avverrà al check-in presso la reception della SPA</span>
           </div>
         </motion.div>
@@ -283,6 +294,7 @@ export function PagamentoSpaForm({
 
       {metodoPagamento === 'TRANSFERWISE' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* TODO: i18n */}
           <p className="text-sm text-blue-700">
             Ti invieremo i dati per il bonifico via email
           </p>
@@ -298,7 +310,8 @@ export function PagamentoSpaForm({
         className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
       >
         {loading && <Loader size={18} className="animate-spin" />}
-        {loading ? 'Salvataggio...' : `Conferma Pagamento €${importo.toFixed(2)}`}
+        {/* TODO: i18n */}
+        {loading ? tc('saving') : `${tc('confirm')} €${importo.toFixed(2)}`}
       </motion.button>
     </motion.div>
   )

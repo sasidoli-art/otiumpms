@@ -9,6 +9,7 @@ import {
   Crown, ChevronLeft, ChevronsLeft, ChevronsRight, ArrowUpDown, ArrowUp, ArrowDown,
   Tag, Globe,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,8 @@ export default function CrmBoard({
   ospiteIniziali: Ospite[]
   kpi: { totale: number; vip: number; blacklist: number }
 }) {
+  const t = useTranslations('host.crm')
+  const tc = useTranslations('common')
   const [ospiti, setOspiti] = useState<Ospite[]>(ospiteIniziali)
   const [totale, setTotale] = useState(kpi.totale)
   const [q, setQ] = useState('')
@@ -182,11 +185,11 @@ export default function CrmBoard({
       {/* Header */}
       <div className="page-title-box">
         <div>
-          <h1 className="page-title">CRM Ospiti</h1>
-          <p className="text-sm text-gray-500">Anagrafica, storico soggiorni e preferenze</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <button onClick={() => setModalAperto(true)} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Nuovo ospite
+          <Plus className="w-4 h-4" /> {t('newGuest')}
         </button>
       </div>
 
@@ -198,7 +201,7 @@ export default function CrmBoard({
           </div>
           <div>
             <p className="text-2xl font-extrabold text-gray-900">{kpi.totale}</p>
-            <p className="text-xs text-gray-500">Ospiti totali</p>
+            <p className="text-xs text-gray-500">{t('totalGuests')}</p>
           </div>
         </div>
         <div className="card flex items-center gap-3">
@@ -207,7 +210,7 @@ export default function CrmBoard({
           </div>
           <div>
             <p className="text-2xl font-extrabold text-yellow-600">{kpi.vip}</p>
-            <p className="text-xs text-gray-500">Ospiti VIP</p>
+            <p className="text-xs text-gray-500">{t('vipGuests')}</p>
           </div>
         </div>
         <div className="card flex items-center gap-3">
@@ -230,7 +233,7 @@ export default function CrmBoard({
               type="text"
               value={q}
               onChange={e => handleSearch(e.target.value)}
-              placeholder="Cerca per nome, cognome, email, telefono..."
+              placeholder={t('searchPlaceholder')}
               className="input pl-9"
             />
             {q && (
@@ -269,7 +272,7 @@ export default function CrmBoard({
                 onChange={e => handleTagFilter(e.target.value)}
                 className="appearance-none pl-8 pr-6 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 cursor-pointer"
               >
-                <option value="">Tutti i tag</option>
+                <option value="">{t('allTags')}</option>
                 {allTags.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
               <Tag className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
@@ -284,7 +287,7 @@ export default function CrmBoard({
                 onChange={e => handleNazionalitaFilter(e.target.value)}
                 className="appearance-none pl-8 pr-6 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 cursor-pointer"
               >
-                <option value="">Tutte le nazionalita</option>
+                <option value="">{t('allNationalities')}</option>
                 {allNazionalita.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
               <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
@@ -294,11 +297,11 @@ export default function CrmBoard({
           {/* Clear filters */}
           {hasFilters && (
             <button onClick={clearFilters} className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
-              <X className="w-3 h-3" /> Azzera filtri
+              <X className="w-3 h-3" /> {t('clearFilters')}
             </button>
           )}
 
-          <span className="ml-auto text-xs text-gray-400">{totale} ospiti</span>
+          <span className="ml-auto text-xs text-gray-400">{totale} {t('guestsCount')}</span>
         </div>
       </div>
 
@@ -310,27 +313,27 @@ export default function CrmBoard({
               <tr className="border-b border-gray-100">
                 <th className="table-th">
                   <button onClick={() => handleSort('cognome')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
-                    Ospite <SortIcon field="cognome" />
+                    {t('guestsCount')} <SortIcon field="cognome" />
                   </button>
                 </th>
                 <th className="table-th hidden md:table-cell">
                   <button onClick={() => handleSort('email')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
-                    Email / Tel <SortIcon field="email" />
+                    {t('emailTel')} <SortIcon field="email" />
                   </button>
                 </th>
                 <th className="table-th hidden lg:table-cell">
                   <button onClick={() => handleSort('numSoggiorni')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
-                    Soggiorni <SortIcon field="numSoggiorni" />
+                    {t('stays')} <SortIcon field="numSoggiorni" />
                   </button>
                 </th>
                 <th className="table-th hidden lg:table-cell">
                   <button onClick={() => handleSort('totaleSpeso')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
-                    Spesa totale <SortIcon field="totaleSpeso" />
+                    {t('totalSpend')} <SortIcon field="totaleSpeso" />
                   </button>
                 </th>
                 <th className="table-th hidden xl:table-cell">
                   <button onClick={() => handleSort('dataUltimoSoggiorno')} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
-                    Ultimo soggiorno <SortIcon field="dataUltimoSoggiorno" />
+                    {t('lastStay')} <SortIcon field="dataUltimoSoggiorno" />
                   </button>
                 </th>
                 <th className="table-th hidden md:table-cell">Tag</th>
@@ -341,7 +344,7 @@ export default function CrmBoard({
               {ospiti.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-14 text-center text-gray-400 text-sm">
-                    {hasFilters ? 'Nessun risultato per i filtri selezionati' : 'Nessun ospite ancora'}
+                    {hasFilters ? t('noResults') : t('noGuests')}
                   </td>
                 </tr>
               ) : (
@@ -525,6 +528,8 @@ function NuovoOspiteModal({
   onClose: () => void
   onCreato: (o: Ospite) => void
 }) {
+  const t = useTranslations('host.crm')
+  const tc = useTranslations('common')
   const [form, setForm] = useState({
     nome: '', cognome: '', email: '', telefono: '',
     nazionalita: '', lingua: 'it', note: '', preferenze: '',
@@ -559,7 +564,7 @@ function NuovoOspiteModal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
-          <h3 className="text-base font-bold text-gray-900">Nuovo ospite CRM</h3>
+          <h3 className="text-base font-bold text-gray-900">{t('newGuestCrm')}</h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-400">
             <X className="w-5 h-5" />
           </button>
@@ -568,52 +573,52 @@ function NuovoOspiteModal({
           {errore && <p className="text-sm text-red-600">{errore}</p>}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Nome *</label>
+              <label className="label">{tc('name')} *</label>
               <input type="text" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} className="input" />
             </div>
             <div>
-              <label className="label">Cognome *</label>
+              <label className="label">{tc('surname')} *</label>
               <input type="text" value={form.cognome} onChange={e => setForm(f => ({ ...f, cognome: e.target.value }))} className="input" />
             </div>
           </div>
           <div>
-            <label className="label">Email *</label>
+            <label className="label">{tc('email')} *</label>
             <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Telefono</label>
+              <label className="label">{tc('phone')}</label>
               <input type="tel" value={form.telefono} onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))} className="input" />
             </div>
             <div>
-              <label className="label">Nazionalita</label>
-              <input type="text" value={form.nazionalita} onChange={e => setForm(f => ({ ...f, nazionalita: e.target.value }))} className="input" placeholder="es. Italiana" />
+              <label className="label">{t('nationality')}</label>
+              <input type="text" value={form.nazionalita} onChange={e => setForm(f => ({ ...f, nazionalita: e.target.value }))} className="input" placeholder={t('nationalityPlaceholder')} />
             </div>
           </div>
           <div>
-            <label className="label">Preferenze</label>
-            <textarea rows={2} value={form.preferenze} onChange={e => setForm(f => ({ ...f, preferenze: e.target.value }))} className="input" placeholder="Piano alto, letto matrimoniale, allergie..." />
+            <label className="label">{t('preferences')}</label>
+            <textarea rows={2} value={form.preferenze} onChange={e => setForm(f => ({ ...f, preferenze: e.target.value }))} className="input" placeholder={t('preferencesPlaceholder')} />
           </div>
           <div>
-            <label className="label">Note interne</label>
-            <textarea rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} className="input" placeholder="Visibile solo a te" />
+            <label className="label">{t('internalNotes')}</label>
+            <textarea rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} className="input" placeholder={t('internalNotesHelper')} />
           </div>
           <div>
-            <label className="label">Tag (separati da virgola)</label>
-            <input type="text" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} className="input" placeholder="fedele, business, famiglia" />
+            <label className="label">{t('tagsSeparated')}</label>
+            <input type="text" value={form.tags} onChange={e => setForm(f => ({ ...f, tags: e.target.value }))} className="input" placeholder={t('tagsPlaceholder')} />
           </div>
           <div className="flex items-center gap-2">
             <input type="checkbox" id="vip" checked={form.vip} onChange={e => setForm(f => ({ ...f, vip: e.target.checked }))} className="w-4 h-4 accent-yellow-500" />
             <label htmlFor="vip" className="text-sm font-medium text-gray-700 flex items-center gap-1">
-              <Crown className="w-4 h-4 text-yellow-500" /> Ospite VIP
+              <Crown className="w-4 h-4 text-yellow-500" /> {t('vipGuest')}
             </label>
           </div>
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={loading} className="flex-1 btn-primary flex items-center justify-center gap-2">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {loading ? 'Salvo...' : 'Crea ospite'}
+              {loading ? tc('saving') : t('createGuest')}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary">Annulla</button>
+            <button type="button" onClick={onClose} className="btn-secondary">{tc('cancel')}</button>
           </div>
         </form>
       </div>

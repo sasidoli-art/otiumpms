@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   ShoppingBag, Plus, X, Loader2, Search, Trash2, Pencil,
   Package, Tag, Check, Coffee, Wine, Sparkles, Car, UtensilsCrossed,
@@ -31,6 +32,8 @@ const CAT_ICONS: Record<string, React.ReactNode> = {
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
 
 export default function ServiziBoard() {
+  const t = useTranslations('host.services')
+  const tc = useTranslations('common')
   const [tab, setTab] = useState<'servizi' | 'pacchetti'>('servizi')
   const [servizi, setServizi] = useState<Servizio[]>([])
   const [pacchetti, setPacchetti] = useState<Pacchetto[]>([])
@@ -116,7 +119,7 @@ export default function ServiziBoard() {
     <div className="space-y-6">
       <div className="page-title-box">
         <div>
-          <h1 className="page-title flex items-center gap-2"><ShoppingBag className="w-6 h-6 text-brand-500" /> Catalogo Servizi</h1>
+          <h1 className="page-title flex items-center gap-2"><ShoppingBag className="w-6 h-6 text-brand-500" /> {t('title')}</h1>
           <p className="text-sm text-gray-500">Prodotti, servizi e pacchetti con IVA per fatturazione</p>
         </div>
         <div className="flex gap-2">

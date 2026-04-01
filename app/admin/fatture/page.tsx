@@ -3,12 +3,15 @@ import { formatData, formatValuta, statoFatturaLabel, statoFatturaColor } from '
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Plus, FileDown } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 
 interface Props {
   searchParams: Promise<{ hostId?: string; stato?: string; anno?: string }>
 }
 
 export default async function AdminFatturePage({ searchParams }: Props) {
+  const t = await getTranslations('admin.invoices')
+  const tc = await getTranslations('common')
   const { hostId, stato, anno } = await searchParams
   const annoInt = anno ? parseInt(anno) : undefined
 
@@ -39,14 +42,14 @@ export default async function AdminFatturePage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fatture</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {fatture.length} fatture · {formatValuta(totalePagato)} incassati
+            {fatture.length} {t('count')} · {formatValuta(totalePagato)} {t('collected')}
           </p>
         </div>
         <Link href="/admin/fatture/nuovo" className="btn-primary flex items-center gap-2">
           <Plus size={16} />
-          Nuova fattura
+          {t('newInvoice')}
         </Link>
       </div>
 
@@ -54,21 +57,21 @@ export default async function AdminFatturePage({ searchParams }: Props) {
       <div className="card p-4 mb-6">
         <form method="GET" className="flex flex-wrap gap-3">
           <select name="anno" defaultValue={anno ?? ''} className="input w-auto">
-            <option value="">Tutti gli anni</option>
+            <option value="">{t('allYears')}</option>
             {anniDisponibili.map(a => (
               <option key={a.anno} value={a.anno}>{a.anno}</option>
             ))}
           </select>
           <select name="stato" defaultValue={stato ?? ''} className="input w-auto">
-            <option value="">Tutti gli stati</option>
-            <option value="BOZZA">Bozza</option>
-            <option value="INVIATA">Inviate</option>
-            <option value="PAGATA">Pagate</option>
-            <option value="SCADUTA">Scadute</option>
-            <option value="ANNULLATA">Annullate</option>
+            <option value="">{t('allStatuses')}</option>
+            <option value="BOZZA">{t('draftStatus')}</option>
+            <option value="INVIATA">{t('sent')}</option>
+            <option value="PAGATA">{t('paid')}</option>
+            <option value="SCADUTA">{t('overdue')}</option>
+            <option value="ANNULLATA">{t('cancelledStatus')}</option>
           </select>
-          <button type="submit" className="btn-primary">Filtra</button>
-          {(stato || hostId || anno) && <Link href="/admin/fatture" className="btn-secondary">Reset</Link>}
+          <button type="submit" className="btn-primary">{tc('filter')}</button>
+          {(stato || hostId || anno) && <Link href="/admin/fatture" className="btn-secondary">{tc('reset')}</Link>}
         </form>
       </div>
 
@@ -77,20 +80,20 @@ export default async function AdminFatturePage({ searchParams }: Props) {
           <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="table-th">Numero</th>
-                <th className="table-th">Cliente</th>
-                <th className="table-th">Emissione</th>
-                <th className="table-th">Scadenza</th>
-                <th className="table-th">Imponibile</th>
+                <th className="table-th">{t('number')}</th>
+                <th className="table-th">Cliente</th>{/* TODO: i18n */}
+                <th className="table-th">Emissione</th>{/* TODO: i18n */}
+                <th className="table-th">Scadenza</th>{/* TODO: i18n */}
+                <th className="table-th">Imponibile</th>{/* TODO: i18n */}
                 <th className="table-th">IVA</th>
-                <th className="table-th">Totale</th>
-                <th className="table-th">Stato</th>
+                <th className="table-th">{tc('total')}</th>
+                <th className="table-th">{tc('status')}</th>
                 <th className="table-th"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {fatture.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">Nessuna fattura trovata</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">{tc('noResults')}</td></tr>
               ) : fatture.map(f => (
                 <tr key={f.id} className="hover:bg-gray-50 transition-colors">
                   <td className="table-td font-mono text-sm font-semibold">{f.numero}</td>
@@ -111,13 +114,13 @@ export default async function AdminFatturePage({ searchParams }: Props) {
                   <td className="table-td">
                     <div className="flex items-center gap-2">
                       <Link href={`/admin/fatture/${f.id}`} className="text-brand-600 text-sm hover:underline">
-                        Apri
+                        {tc('open')}
                       </Link>
                       <a
                         href={`/api/admin/fatture/${f.id}/pdf`}
                         target="_blank"
                         className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                        title="Scarica PDF"
+                        title={tc('downloadPdf')}
                       >
                         <FileDown size={14} />
                       </a>

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import AlloggiatiClient from './alloggiati-client'
+import { getTranslations } from 'next-intl/server'
 
 export default async function AlloggiatiPage() {
   const hostId = await getHostId()
@@ -21,12 +22,14 @@ export default async function AlloggiatiPage() {
     orderBy: { nome: 'asc' },
   })
 
+  const t = await getTranslations('host.alloggiati')
+
   return (
     <div className="space-y-6">
       <div className="page-title-box">
-        <h1 className="page-title">Alloggiati Web</h1>
+        <h1 className="page-title">{t('title')}</h1>
         <p className="text-sm text-gray-500">
-          Genera il file .txt per l&apos;invio delle schedine alla Questura (Polizia di Stato)
+          {t('subtitle')}
         </p>
       </div>
 

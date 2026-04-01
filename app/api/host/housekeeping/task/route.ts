@@ -1,8 +1,18 @@
-﻿import { getServerSession } from 'next-auth'
+﻿import { z } from 'zod'
+import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+
+const createTaskSchema = z.object({
+  unitaId: z.string().min(1),
+  tipo: z.string().optional(),
+  descrizione: z.string().optional().nullable(),
+  priorita: z.enum(['BASSA', 'NORMALE', 'ALTA', 'URGENTE']).optional(),
+  assegnatoA: z.string().optional().nullable(),
+  dataScadenza: z.string().optional().nullable(),
+})
 
 // POST /api/host/housekeeping/task  — crea task
 export async function POST(req: Request) {
@@ -10,8 +20,12 @@ export async function POST(req: Request) {
   if (isUnauthorized(auth)) return auth
   const session = auth
 
-  const body = await req.json()
-  const { unitaId, tipo, descrizione, priorita, assegnatoA, dataScadenza } = body
+  const raw = await req.json()
+  const parsed = createTaskSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Dati non validi', details: parsed.error.flatten() }, { status: 422 })
+  }
+  const { unitaId, tipo, descrizione, priorita, assegnatoA, dataScadenza } = parsed.data
 
   // Verifica ownership unità
   const unita = await prisma.unitaPrenotabile.findFirst({

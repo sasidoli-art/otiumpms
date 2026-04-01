@@ -4,6 +4,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { sendEmailNuovoMessaggio } from '@/lib/email'
+import { chatEventBus } from '@/lib/chat-events'
 
 // GET  /api/host/chat/[id]  — messaggi della chat
 // POST /api/host/chat/[id]  — invia messaggio come HOST
@@ -30,10 +31,15 @@ export async function GET(_: NextRequest, { params: paramsPromise }: { params: P
   if (!chat) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
   // Segna messaggi GUEST come letti
-  await prisma.messaggio.updateMany({
+  const updated = await prisma.messaggio.updateMany({
     where: { chatId: params.id, mittente: 'GUEST', letto: false },
     data: { letto: true },
   })
+
+  // Notify guest that messages were read
+  if (updated.count > 0) {
+    chatEventBus.publish({ type: 'read', chatId: params.id, data: { by: 'HOST' } })
+  }
 
   return NextResponse.json(chat)
 }
@@ -88,6 +94,13 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
       // silenzioso
     }
   }
+
+  // Publish real-time event
+  chatEventBus.publish({
+    type: 'message',
+    chatId: params.id,
+    data: messaggio,
+  })
 
   return NextResponse.json(messaggio, { status: 201 })
 }

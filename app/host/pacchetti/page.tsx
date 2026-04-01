@@ -6,12 +6,16 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Plus, Package, Calendar, MapPin, Users, Tag } from 'lucide-react'
 import { formatValuta, formatData } from '@/lib/utils'
+import { getTranslations } from 'next-intl/server'
 
 export default async function PacchettiPage() {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+
+  const t = await getTranslations('host.packages')
+  const tc = await getTranslations('common')
 
   const pacchetti = await prisma.pacchetto.findMany({
     where: { hostId: hostId },
@@ -27,9 +31,9 @@ export default async function PacchettiPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pacchetti evento + soggiorno</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-sm text-gray-500">
-            Crea offerte combinate: evento locale + pernottamento nella tua struttura
+            {t('packageDetails')}
           </p>
         </div>
         <Link
@@ -67,7 +71,7 @@ export default async function PacchettiPage() {
                     p.attivo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}
                 >
-                  {p.attivo ? 'Attivo' : 'Bozza'}
+                  {p.attivo ? tc('active') : tc('draft')}
                 </span>
               </div>
 

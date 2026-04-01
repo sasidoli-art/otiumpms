@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, LogIn, LogOut, Loader2, AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Props = {
   prenotazioneId: string

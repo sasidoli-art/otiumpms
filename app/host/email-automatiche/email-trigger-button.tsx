@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Send, Loader2 } from 'lucide-react'
 
 export default function EmailTriggerButton() {

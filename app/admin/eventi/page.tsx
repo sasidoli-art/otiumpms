@@ -3,12 +3,15 @@ import { formatData, categoriaEventoLabel, statoEventoLabel, statoEventoColor } 
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { EventoActions } from './evento-actions'
+import { getTranslations } from 'next-intl/server'
 
 interface Props {
   searchParams: Promise<{ q?: string; stato?: string; categoria?: string }>
 }
 
 export default async function AdminEventiPage({ searchParams }: Props) {
+  const t = await getTranslations('admin.events')
+  const tc = await getTranslations('common')
   const { q, stato, categoria } = await searchParams
   const eventi = await prisma.evento.findMany({
     where: {
@@ -33,9 +36,9 @@ export default async function AdminEventiPage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Eventi</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {eventi.length} eventi · {inAttesa > 0 && <span className="text-orange-600 font-medium">{inAttesa} in attesa di approvazione</span>}
+            {eventi.length} {t('title').toLowerCase()} · {inAttesa > 0 && <span className="text-orange-600 font-medium">{inAttesa} {t('pendingApproval')}</span>}
           </p>
         </div>
       </div>
@@ -43,29 +46,29 @@ export default async function AdminEventiPage({ searchParams }: Props) {
       {/* Filtri */}
       <div className="card p-4 mb-6">
         <form method="GET" className="flex flex-wrap gap-3">
-          <input name="q" defaultValue={q} placeholder="Cerca per titolo, città..." className="input flex-1 min-w-[200px]" />
+          <input name="q" defaultValue={q} placeholder={t('searchPlaceholder')} className="input flex-1 min-w-[200px]" />
           <select name="stato" defaultValue={stato ?? ''} className="input w-auto">
-            <option value="">Tutti gli stati</option>
-            <option value="IN_ATTESA">In attesa</option>
-            <option value="APPROVATO">Approvati</option>
-            <option value="BOZZA">Bozze</option>
-            <option value="RIFIUTATO">Rifiutati</option>
-            <option value="SCADUTO">Scaduti</option>
+            <option value="">{tc('allStatuses')}</option>
+            <option value="IN_ATTESA">In attesa</option>{/* TODO: i18n */}
+            <option value="APPROVATO">Approvati</option>{/* TODO: i18n */}
+            <option value="BOZZA">Bozze</option>{/* TODO: i18n */}
+            <option value="RIFIUTATO">Rifiutati</option>{/* TODO: i18n */}
+            <option value="SCADUTO">Scaduti</option>{/* TODO: i18n */}
           </select>
           <select name="categoria" defaultValue={categoria ?? ''} className="input w-auto">
-            <option value="">Tutte le categorie</option>
-            <option value="MUSICA">Musica</option>
-            <option value="ARTE">Arte</option>
-            <option value="TEATRO">Teatro</option>
-            <option value="FOOD">Food</option>
-            <option value="SPORT">Sport</option>
-            <option value="FESTIVAL">Festival</option>
-            <option value="FIERA">Fiera</option>
-            <option value="CONFERENZA">Conferenza</option>
-            <option value="CINEMA">Cinema</option>
+            <option value="">{tc('allCategories')}</option>
+            <option value="MUSICA">{t('music')}</option>
+            <option value="ARTE">{t('art')}</option>
+            <option value="TEATRO">{t('theater')}</option>
+            <option value="FOOD">{t('food')}</option>
+            <option value="SPORT">{t('sport')}</option>
+            <option value="FESTIVAL">{t('festival')}</option>
+            <option value="FIERA">{t('fair')}</option>
+            <option value="CONFERENZA">{t('conference')}</option>
+            <option value="CINEMA">{t('cinema')}</option>
           </select>
-          <button type="submit" className="btn-primary">Filtra</button>
-          {(q || stato || categoria) && <Link href="/admin/eventi" className="btn-secondary">Reset</Link>}
+          <button type="submit" className="btn-primary">{tc('filter')}</button>
+          {(q || stato || categoria) && <Link href="/admin/eventi" className="btn-secondary">{tc('reset')}</Link>}
         </form>
       </div>
 
@@ -75,18 +78,18 @@ export default async function AdminEventiPage({ searchParams }: Props) {
           <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="table-th">Evento</th>
-                <th className="table-th">Organizzatore</th>
-                <th className="table-th">Categoria</th>
-                <th className="table-th">Data evento</th>
+                <th className="table-th">{t('event')}</th>
+                <th className="table-th">{t('organizer')}</th>
+                <th className="table-th">{tc('category')}</th>
+                <th className="table-th">{tc('date')}</th>
                 <th className="table-th">Views</th>
-                <th className="table-th">Stato</th>
-                <th className="table-th">Azioni</th>
+                <th className="table-th">{tc('status')}</th>
+                <th className="table-th">{tc('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {eventi.length === 0 ? (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">Nessun evento trovato</td></tr>
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">{tc('noResults')}</td></tr>
               ) : eventi.map(ev => (
                 <tr key={ev.id} className="hover:bg-gray-50 transition-colors">
                   <td className="table-td">

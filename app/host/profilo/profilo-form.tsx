@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Save } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface Props {
   host: {
@@ -37,6 +38,8 @@ interface Props {
 }
 
 export function ProfiloForm({ host, user }: Props) {
+  const t = useTranslations('host.profile')
+  const tc = useTranslations('common')
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [successo, setSuccesso] = useState(false)

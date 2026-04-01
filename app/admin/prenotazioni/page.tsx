@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { isStatoPrenotazione } from '@/lib/validations'
+import { getTranslations } from 'next-intl/server'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -19,17 +20,6 @@ function statoColor(stato: string): BadgeVariant {
   }
 }
 
-function statoLabel(stato: string) {
-  switch (stato) {
-    case 'RICHIESTA': return 'In attesa'
-    case 'CONFERMATA': return 'Confermata'
-    case 'ANNULLATA': return 'Annullata'
-    case 'COMPLETATA': return 'Completata'
-    case 'NO_SHOW': return 'No show'
-    default: return stato
-  }
-}
-
 export default async function AdminPrenotazioniPage({
   searchParams,
 }: {
@@ -38,6 +28,8 @@ export default async function AdminPrenotazioniPage({
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'ADMIN') redirect('/login')
 
+  const t = await getTranslations('admin.bookings')
+  const tc = await getTranslations('common')
   const { stato = '', q = '', hostId = '' } = await searchParams
 
   const prenotazioni = await prisma.prenotazione.findMany({
@@ -71,18 +63,18 @@ export default async function AdminPrenotazioniPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Prenotazioni</h1>
-        <p className="text-sm text-gray-500 mt-1">Tutte le prenotazioni sulla piattaforma</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Counter per stato */}
       <div className="grid grid-cols-5 gap-3">
         {[
-          { stato: 'RICHIESTA', label: 'In attesa', color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
-          { stato: 'CONFERMATA', label: 'Confermate', color: 'bg-green-50 border-green-200 text-green-800' },
-          { stato: 'COMPLETATA', label: 'Completate', color: 'bg-blue-50 border-blue-200 text-blue-800' },
-          { stato: 'ANNULLATA', label: 'Annullate', color: 'bg-red-50 border-red-200 text-red-800' },
-          { stato: 'NO_SHOW', label: 'No show', color: 'bg-gray-50 border-gray-200 text-gray-800' },
+          { stato: 'RICHIESTA', label: t('pending'), color: 'bg-yellow-50 border-yellow-200 text-yellow-800' },
+          { stato: 'CONFERMATA', label: t('confirmed'), color: 'bg-green-50 border-green-200 text-green-800' },
+          { stato: 'COMPLETATA', label: t('completed'), color: 'bg-blue-50 border-blue-200 text-blue-800' },
+          { stato: 'ANNULLATA', label: t('cancelled'), color: 'bg-red-50 border-red-200 text-red-800' },
+          { stato: 'NO_SHOW', label: t('noShow'), color: 'bg-gray-50 border-gray-200 text-gray-800' },
         ].map((s) => (
           <Link
             key={s.stato}
@@ -103,31 +95,31 @@ export default async function AdminPrenotazioniPage({
             !stato ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          Tutte ({Object.values(mapTotali).reduce((a, b) => a + b, 0)})
+          {tc('all')} ({Object.values(mapTotali).reduce((a, b) => a + b, 0)})
         </Link>
         <form method="GET" action="/admin/prenotazioni" className="flex gap-2 ml-auto">
           {stato && <input type="hidden" name="stato" value={stato} />}
-          <input name="q" defaultValue={q} placeholder="Cerca ospite..." className="input text-sm" />
-          <button type="submit" className="btn-secondary text-sm">Cerca</button>
+          <input name="q" defaultValue={q} placeholder={tc('search') + '...'} className="input text-sm" />
+          <button type="submit" className="btn-secondary text-sm">{tc('search')}</button>
         </form>
       </div>
 
       {/* Tabella */}
       {prenotazioni.length === 0 ? (
-        <div className="card py-12 text-center text-gray-500">Nessuna prenotazione trovata</div>
+        <div className="card py-12 text-center text-gray-500">{tc('noResults')}</div>
       ) : (
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="table-th">Ospite</th>
+                  <th className="table-th">Ospite</th>{/* TODO: i18n */}
                   <th className="table-th">Host</th>
-                  <th className="table-th">Struttura</th>
-                  <th className="table-th">Arrivo</th>
-                  <th className="table-th">Stato</th>
+                  <th className="table-th">{tc('structure')}</th>
+                  <th className="table-th">Arrivo</th>{/* TODO: i18n */}
+                  <th className="table-th">{tc('status')}</th>
                   <th className="table-th">Chat</th>
-                  <th className="table-th">Ricevuta</th>
+                  <th className="table-th">Ricevuta</th>{/* TODO: i18n */}
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +137,13 @@ export default async function AdminPrenotazioniPage({
                       {format(new Date(p.dataArrivo), 'd MMM yyyy', { locale: it })}
                     </td>
                     <td className="table-td">
-                      <Badge variant={statoColor(p.stato)}>{statoLabel(p.stato)}</Badge>
+                      <Badge variant={statoColor(p.stato)}>
+                        {p.stato === 'RICHIESTA' ? t('pending') :
+                         p.stato === 'CONFERMATA' ? t('confirmed') :
+                         p.stato === 'ANNULLATA' ? t('cancelled') :
+                         p.stato === 'COMPLETATA' ? t('completed') :
+                         p.stato === 'NO_SHOW' ? t('noShow') : p.stato}
+                      </Badge>
                     </td>
                     <td className="table-td text-center">
                       {p.chat ? (

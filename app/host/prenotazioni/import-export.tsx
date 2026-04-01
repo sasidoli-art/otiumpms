@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import {
   Download, Upload, X, Loader2, CheckCircle2, AlertTriangle, FileSpreadsheet, Info,
 } from 'lucide-react'

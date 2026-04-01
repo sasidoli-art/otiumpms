@@ -7,12 +7,16 @@ import { formatData, formatValuta, statoFatturaLabel, statoFatturaColor } from '
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { FileDown } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 
 export default async function HostFatturePage() {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+
+  const t = await getTranslations('host.invoices')
+  const tc = await getTranslations('common')
 
   const fatture = await prisma.fattura.findMany({
     where: { hostId },
@@ -22,15 +26,15 @@ export default async function HostFatturePage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Le mie fatture</h1>
-        <p className="text-gray-500 text-sm mt-1">{fatture.length} fatture</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-500 text-sm mt-1">{fatture.length} {t('count')}</p>
       </div>
 
       {fatture.length === 0 ? (
         <div className="card p-12 text-center">
           <p className="text-4xl mb-4">📄</p>
-          <p className="text-lg font-semibold text-gray-700">Nessuna fattura ancora</p>
-          <p className="text-gray-400 text-sm mt-2">Le fatture emesse da Otium Week appariranno qui</p>
+          <p className="text-lg font-semibold text-gray-700">{t('noInvoices')}</p>
+          <p className="text-gray-400 text-sm mt-2">{t('invoicesWillAppear')}</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -38,13 +42,13 @@ export default async function HostFatturePage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="table-th">Numero</th>
-                  <th className="table-th">Data emissione</th>
-                  <th className="table-th">Scadenza</th>
-                  <th className="table-th">Imponibile</th>
-                  <th className="table-th">IVA</th>
-                  <th className="table-th">Totale</th>
-                  <th className="table-th">Stato</th>
+                  <th className="table-th">{t('number')}</th>
+                  <th className="table-th">{t('issueDate')}</th>
+                  <th className="table-th">{t('dueDate')}</th>
+                  <th className="table-th">{t('taxBase')}</th>
+                  <th className="table-th">{t('vat')}</th>
+                  <th className="table-th">{t('total')}</th>
+                  <th className="table-th">{t('status')}</th>
                   <th className="table-th"></th>
                 </tr>
               </thead>
@@ -63,13 +67,13 @@ export default async function HostFatturePage() {
                     <td className="table-td">
                       <div className="flex items-center gap-2">
                         <Link href={`/host/fatture/${f.id}`} className="text-brand-600 text-sm hover:underline">
-                          Apri
+                          {tc('open')}
                         </Link>
                         <a
                           href={`/api/host/fatture/${f.id}/pdf`}
                           target="_blank"
                           className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-                          title="Scarica PDF"
+                          title={tc('downloadPdf')}
                         >
                           <FileDown size={14} />
                         </a>

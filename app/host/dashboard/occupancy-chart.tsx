@@ -1,17 +1,19 @@
 'use client'
 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { useTranslations } from 'next-intl'
 
 type DataPoint = { data: string; label: string; occupazione: number }
 
 export default function OccupancyChart({ dati }: { dati: DataPoint[] }) {
+  const t = useTranslations('host.dashboard')
   if (dati.length === 0) return null
 
   return (
     <div className="card">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Occupazione ultimi 30 giorni</h2>
-        <p className="text-xs text-gray-400 mt-0.5">% unità occupate per giorno</p>
+        <h2 className="font-semibold text-gray-900">{t('occupancy30days')}</h2>
+        <p className="text-xs text-gray-400 mt-0.5">{t('occupancyDesc')}</p>
       </div>
       <div className="px-4 py-4" style={{ height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -39,7 +41,7 @@ export default function OccupancyChart({ dati }: { dati: DataPoint[] }) {
             />
             <Tooltip
               contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', fontSize: 13 }}
-              formatter={(value: number) => [`${value}%`, 'Occupazione']}
+              formatter={(value: number) => [`${value}%`, t('occupancy')]}
               labelFormatter={(label: string) => label}
             />
             <Area

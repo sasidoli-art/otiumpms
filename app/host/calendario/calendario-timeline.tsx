@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useRef, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   format, addDays, subDays, startOfDay, differenceInDays,
   isWeekend, isSameDay, isToday,
@@ -63,6 +64,8 @@ const DAYS_VISIBLE = [42, 31, 21] // days shown per zoom level
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function CalendarioTimeline({ strutture }: { strutture: Struttura[] }) {
+  const t = useTranslations('host.calendar')
+  const tc = useTranslations('common')
   const router = useRouter()
   const [startDate, setStartDate] = useState(() => subDays(startOfDay(new Date()), 2))
   const [zoom, setZoom] = useState(1) // 0=compact, 1=normal, 2=wide

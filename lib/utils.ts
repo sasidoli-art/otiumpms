@@ -31,6 +31,7 @@ export function formatValuta(importo: number) {
 
 export function pianoLabel(piano: PianoTipo): string {
   const labels: Record<PianoTipo, string> = {
+    LIGHT: 'Light',
     EVENTO_SINGOLO: 'Evento Singolo',
     VISIBILITA_MENSILE: 'Visibilità Mensile',
     PARTNER_PREMIUM: 'Partner Premium',
@@ -40,6 +41,7 @@ export function pianoLabel(piano: PianoTipo): string {
 
 export function pianoPrezzo(piano: PianoTipo): number {
   const prezzi: Record<PianoTipo, number> = {
+    LIGHT: 29,
     EVENTO_SINGOLO: 49,
     VISIBILITA_MENSILE: 149,
     PARTNER_PREMIUM: 349,

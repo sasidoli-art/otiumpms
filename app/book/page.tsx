@@ -2,15 +2,10 @@ import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { MapPin, Users, Tag, Search, Sparkles } from 'lucide-react'
 import { TipoStruttura } from '@prisma/client'
+import { getTranslations } from 'next-intl/server'
 
 function isTipoStruttura(s: string): s is TipoStruttura {
   return Object.values(TipoStruttura).includes(s as TipoStruttura)
-}
-
-export const metadata = { title: 'Scopri e Prenota — Otium Week' }
-
-const TIPO_LABEL: Record<string, string> = {
-  EVENTO: 'Evento', VENUE: 'Venue', ESPERIENZA: 'Esperienza', ALLOGGIO: 'Alloggio', SERVIZIO: 'Servizio',
 }
 
 const TIPO_EMOJI: Record<string, string> = {
@@ -31,6 +26,10 @@ export default async function EsploraPage({
   searchParams: Promise<{ tipo?: string; regione?: string; q?: string }>
 }) {
   const { tipo, regione, q } = await searchParams
+  const t = await getTranslations('booking')
+  const tc = await getTranslations('common')
+  const ts = await getTranslations('structureTypes')
+
   const strutture = await prisma.struttura.findMany({
     where: {
       attiva: true,
@@ -55,6 +54,10 @@ export default async function EsploraPage({
 
   const tuttiTipi = ['EVENTO', 'VENUE', 'ESPERIENZA', 'ALLOGGIO', 'SERVIZIO']
 
+  const TIPO_LABEL: Record<string, string> = {
+    EVENTO: ts('event'), VENUE: ts('venue'), ESPERIENZA: ts('experience'), ALLOGGIO: ts('accommodation'), SERVIZIO: ts('service'),
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -64,8 +67,8 @@ export default async function EsploraPage({
             <Sparkles className="w-5 h-5" />
             <a href="https://otiumweek.it" className="text-white/80 hover:text-white text-sm font-medium">Otium Week</a>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Scopri e Prenota</h1>
-          <p className="text-indigo-100 text-sm mb-8">Eventi, venue, esperienze e alloggi selezionati in tutta Italia</p>
+          <h1 className="text-3xl font-bold mb-2">{t('discover')}</h1>
+          <p className="text-indigo-100 text-sm mb-8">{t('discoverSubtitle')}</p>
 
           {/* Search */}
           <form className="flex gap-2 max-w-lg">
@@ -74,7 +77,7 @@ export default async function EsploraPage({
               <input
                 name="q"
                 defaultValue={q}
-                placeholder="Cerca per nome, città..."
+                placeholder={t('searchPlaceholder')}
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-white/50 bg-white"
               />
             </div>
@@ -82,7 +85,7 @@ export default async function EsploraPage({
               type="submit"
               className="px-4 py-2.5 bg-white text-indigo-700 font-medium text-sm rounded-xl hover:bg-indigo-50 transition-colors"
             >
-              Cerca
+              {tc('search')}
             </button>
           </form>
         </div>
@@ -95,15 +98,15 @@ export default async function EsploraPage({
             href="/book"
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${!tipo ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
           >
-            Tutti
+            {t('all')}
           </Link>
-          {tuttiTipi.map((t) => (
+          {tuttiTipi.map((tp) => (
             <Link
-              key={t}
-              href={`/book?tipo=${t}${regione ? `&regione=${regione}` : ''}${q ? `&q=${q}` : ''}`}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${tipo === t ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
+              key={tp}
+              href={`/book?tipo=${tp}${regione ? `&regione=${regione}` : ''}${q ? `&q=${q}` : ''}`}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${tipo === tp ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}
             >
-              {TIPO_EMOJI[t]} {TIPO_LABEL[t]}
+              {TIPO_EMOJI[tp]} {TIPO_LABEL[tp]}
             </Link>
           ))}
         </div>
@@ -112,13 +115,13 @@ export default async function EsploraPage({
         {strutture.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-4">🔍</p>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Nessun risultato</h2>
-            <p className="text-gray-400 text-sm">Prova a cambiare i filtri di ricerca</p>
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">{t('noResults')}</h2>
+            <p className="text-gray-400 text-sm">{t('changeFilters')}</p>
           </div>
         ) : (
           <>
             <p className="text-sm text-gray-500 mb-4">
-              {strutture.length} {strutture.length === 1 ? 'struttura trovata' : 'strutture trovate'}
+              {strutture.length} {strutture.length === 1 ? t('structureFound') : t('structuresFound')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {strutture.map((s) => (
@@ -162,7 +165,7 @@ export default async function EsploraPage({
                       {s.prezzoBase > 0 && (
                         <span className="flex items-center gap-1 text-indigo-600 font-semibold ml-auto">
                           <Tag className="w-3 h-3" />
-                          da €{s.prezzoBase}
+                          {t('fromPrice')}{s.prezzoBase}
                         </span>
                       )}
                     </div>
@@ -178,7 +181,7 @@ export default async function EsploraPage({
         <p className="text-center text-xs text-gray-400">
           Powered by{' '}
           <a href="https://otiumweek.it" className="text-indigo-600 hover:underline">Otium Week</a>
-          {' '}— La piattaforma degli eventi italiani
+          {' '}— {t('platform')}
         </p>
       </div>
     </div>

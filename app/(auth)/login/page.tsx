@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
+  const t = useTranslations('login')
+  const tc = useTranslations('common')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mostraPassword, setMostraPassword] = useState(false)
@@ -32,7 +35,7 @@ export default function LoginPage() {
         router.refresh()
       }
     } catch {
-      setErrore('Errore imprevisto. Riprova.')
+      setErrore(tc('unexpectedError'))
     } finally {
       setLoading(false)
     }
@@ -46,37 +49,37 @@ export default function LoginPage() {
           <span className="text-3xl">🎭</span>
         </div>
         <h2 className="text-2xl font-extrabold text-white">Otium Week</h2>
-        <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Pannello di gestione</p>
+        <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{t('managementPanel')}</p>
       </div>
 
       {/* Card */}
       <div className="bg-white rounded shadow-card p-8">
-        <h4 className="text-lg font-bold text-gray-800 mb-1">Accedi</h4>
-        <p className="text-sm text-gray-400 mb-6">Inserisci le tue credenziali per continuare.</p>
+        <h4 className="text-lg font-bold text-gray-800 mb-1">{t('signIn')}</h4>
+        <p className="text-sm text-gray-400 mb-6">{t('enterCredentials')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="label">Indirizzo Email</label>
+            <label className="label">{t('emailAddress')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input"
-              placeholder="nome@esempio.com"
+              placeholder={t('emailPlaceholder')}
               required
               autoComplete="email"
             />
           </div>
 
           <div>
-            <label className="label">Password</label>
+            <label className="label">{t('password')}</label>
             <div className="relative">
               <input
                 type={mostraPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input pr-10"
-                placeholder="Inserisci la tua password"
+                placeholder={t('passwordPlaceholder')}
                 required
                 autoComplete="current-password"
               />
@@ -102,14 +105,14 @@ export default function LoginPage() {
             className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 mt-2"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
-            {loading ? 'Accesso in corso...' : 'Accedi'}
+            {loading ? t('signingIn') : t('signIn')}
           </button>
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Problemi?{' '}
+          {t('trouble')}{' '}
           <a href="mailto:info@otiumweek.it" className="text-brand-500 hover:underline font-medium">
-            Contattaci
+            {t('contactUs')}
           </a>
         </p>
       </div>

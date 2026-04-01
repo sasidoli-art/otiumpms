@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import {
   TrendingUp, Plus, X, Loader2, CheckCircle2, XCircle, Euro,
@@ -32,6 +33,8 @@ const MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
 
 export default function UpsellingBoard() {
+  const t = useTranslations('host.upselling')
+  const tc = useTranslations('common')
   const [tab, setTab] = useState<'report' | 'regole'>('report')
   const [regole, setRegole] = useState<Regola[]>([])
   const [report, setReport] = useState<Report | null>(null)
@@ -81,7 +84,7 @@ export default function UpsellingBoard() {
     <div className="space-y-6">
       <div className="page-title-box">
         <div>
-          <h1 className="page-title flex items-center gap-2"><TrendingUp className="w-6 h-6 text-brand-500" /> Upselling</h1>
+          <h1 className="page-title flex items-center gap-2"><TrendingUp className="w-6 h-6 text-brand-500" /> {t('title')}</h1>
           <p className="text-sm text-gray-500">Upgrade camera con incentivi operatore e AI</p>
         </div>
         {tab === 'regole' && <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Nuova regola</button>}

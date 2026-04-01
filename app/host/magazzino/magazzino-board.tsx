@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Boxes, Plus, X, Loader2, AlertTriangle, Package, ArrowDown, ArrowUp,
   Search, Filter, Trash2, RotateCcw,

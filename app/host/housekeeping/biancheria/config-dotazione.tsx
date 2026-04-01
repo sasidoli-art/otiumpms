@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Loader2, Settings, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Dotazione = { id: string; articolo: string; quantitaPerOspite: number; quantitaFissa: number; categoria: string; unita: { nome: string } | null }
 

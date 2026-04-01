@@ -17,7 +17,14 @@ npm run db:studio    # Open Prisma Studio GUI (http://localhost:5555)
 npm run db:seed      # Seed database (ts-node seed.ts — creates admin@otiumweek.it)
 ```
 
-No test framework is configured. Test manually at `/test` (system sitemap page).
+**E2E Tests** (Playwright, Chromium):
+```bash
+npm run test:e2e         # Run all e2e tests headless
+npm run test:e2e:headed  # Run with visible browser
+npm run test:e2e:ui      # Interactive Playwright UI
+```
+Tests are in `/e2e/` directory. Requires dev server running or will auto-start one.
+Manual smoke testing at `/test` (system sitemap page).
 
 ## Architecture
 
@@ -99,6 +106,16 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 | `/host/spa/terapisti` | Therapists management |
 | `/host/spa/cabine` | Treatment rooms management |
 | `/host/spa/report` | SPA revenue + stats report |
+| `/host/spa/gift-card` | Gift Card management |
+| `/host/spa/loyalty` | Loyalty program |
+| `/host/spa/waiting-list` | Waiting list + turnaway |
+| `/host/pos` | Point of Sale terminal |
+| `/host/cassa` | Cash register + daily closing |
+| `/host/utenti` | Staff user management + invites |
+| `/host/help` | Help center |
+| `/host/onboarding` | First-time setup wizard |
+| `/host/ristorazione/menu` | F&B menu editor |
+| `/host/impostazioni-regcard` | Registration card T&C settings |
 
 ## SPA Module (Waiver & Payments)
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Edit2, Trash2, Sparkles, Clock, Euro, Globe } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { useTranslations } from 'next-intl'
 import { cn, formatValuta } from '@/lib/utils'
 
 interface Trattamento {
@@ -34,6 +35,8 @@ const CAT_COLOR: Record<string, string> = {
 const COLORS = ['#06b6d4', '#8b5cf6', '#ec4899', '#6366f1', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6']
 
 export default function TrattamentiManager() {
+  const t = useTranslations('spa.treatments')
+  const tc = useTranslations('common')
   const [trattamenti, setTrattamenti] = useState<Trattamento[]>([])
   const [loading, setLoading] = useState(true)
   const [tabCat, setTabCat] = useState<string>('TUTTI')
@@ -87,7 +90,7 @@ export default function TrattamentiManager() {
           <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-amber-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Catalogo Trattamenti</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
         </div>
         <button onClick={openCreate} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Aggiungi

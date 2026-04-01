@@ -7,12 +7,16 @@ import { formatData, categoriaEventoLabel, statoEventoLabel, statoEventoColor } 
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 
 export default async function HostEventiPage() {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+
+  const t = await getTranslations('host.events')
+  const tc = await getTranslations('common')
 
   const eventi = await prisma.evento.findMany({
     where: { hostId },
@@ -23,21 +27,21 @@ export default async function HostEventiPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">I miei eventi</h1>
-          <p className="text-gray-500 text-sm mt-1">{eventi.length} eventi</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{eventi.length} {t('count')}</p>
         </div>
         <Link href="/host/eventi/nuovo" className="btn-primary flex items-center gap-2">
           <Plus size={16} />
-          Nuovo evento
+          {t('newEvent')}
         </Link>
       </div>
 
       {eventi.length === 0 ? (
         <div className="card p-12 text-center">
           <p className="text-5xl mb-4">🎭</p>
-          <p className="text-lg font-semibold text-gray-700 mb-2">Nessun evento ancora</p>
-          <p className="text-gray-400 text-sm mb-6">Inizia inserendo il tuo primo evento per promuoverlo sulla piattaforma</p>
-          <Link href="/host/eventi/nuovo" className="btn-primary">Inserisci il tuo primo evento</Link>
+          <p className="text-lg font-semibold text-gray-700 mb-2">{t('noEvents')}</p>
+          <p className="text-gray-400 text-sm mb-6">{t('startFirst')}</p>
+          <Link href="/host/eventi/nuovo" className="btn-primary">{t('addFirstEvent')}</Link>
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -45,13 +49,13 @@ export default async function HostEventiPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="table-th">Evento</th>
-                  <th className="table-th">Categoria</th>
-                  <th className="table-th">Data</th>
-                  <th className="table-th">Views</th>
-                  <th className="table-th">Click</th>
-                  <th className="table-th">In evidenza</th>
-                  <th className="table-th">Stato</th>
+                  <th className="table-th">{t('event')}</th>
+                  <th className="table-th">{t('category')}</th>
+                  <th className="table-th">{t('date')}</th>
+                  <th className="table-th">{t('views')}</th>
+                  <th className="table-th">{t('clicks')}</th>
+                  <th className="table-th">{t('featured')}</th>
+                  <th className="table-th">{t('status')}</th>
                   <th className="table-th"></th>
                 </tr>
               </thead>
@@ -79,7 +83,7 @@ export default async function HostEventiPage() {
                       <Badge className={statoEventoColor(ev.stato)}>{statoEventoLabel(ev.stato)}</Badge>
                     </td>
                     <td className="table-td">
-                      <Link href={`/host/eventi/${ev.id}`} className="text-brand-600 text-sm hover:underline">Gestisci</Link>
+                      <Link href={`/host/eventi/${ev.id}`} className="text-brand-600 text-sm hover:underline">{tc('manage')}</Link>
                     </td>
                   </tr>
                 ))}

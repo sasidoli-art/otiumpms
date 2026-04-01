@@ -11,6 +11,7 @@ import {
   Calendar, AlertCircle, CheckCircle2, Clock
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { getTranslations } from 'next-intl/server'
 
 function notti(arrivo: Date, partenza: Date | null) {
   if (!partenza) return '—'
@@ -73,6 +74,16 @@ export default async function OggiPage() {
     }),
   ])
 
+  const t = await getTranslations('host.today')
+  const tc = await getTranslations('common')
+  const rigaLabels = {
+    missingDoc: t('missingDoc'),
+    checkinArrow: t('checkinArrow'),
+    checkoutArrow: t('checkoutArrow'),
+    details: tc('details'),
+    guests: tc('guests'),
+    nights: tc('nights'),
+  }
   const dataFormatted = format(oggi, "EEEE d MMMM yyyy", { locale: it })
 
   return (
@@ -80,7 +91,7 @@ export default async function OggiPage() {
       {/* Header */}
       <div className="page-title-box">
         <div>
-          <h1 className="page-title">Oggi</h1>
+          <h1 className="page-title">{t('title')}</h1>
           <p className="text-sm text-gray-500 capitalize">{dataFormatted}</p>
         </div>
       </div>
@@ -93,7 +104,7 @@ export default async function OggiPage() {
           </div>
           <div>
             <p className="text-2xl font-extrabold text-gray-800">{arrivi.length}</p>
-            <p className="text-sm text-[#6c757d]">Arrivi</p>
+            <p className="text-sm text-[#6c757d]">{t('arrivals')}</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
@@ -102,7 +113,7 @@ export default async function OggiPage() {
           </div>
           <div>
             <p className="text-2xl font-extrabold text-gray-800">{partenze.length}</p>
-            <p className="text-sm text-[#6c757d]">Partenze</p>
+            <p className="text-sm text-[#6c757d]">{t('departures')}</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
@@ -111,7 +122,7 @@ export default async function OggiPage() {
           </div>
           <div>
             <p className="text-2xl font-extrabold text-gray-800">{inCasa.length}</p>
-            <p className="text-sm text-[#6c757d]">In casa</p>
+            <p className="text-sm text-[#6c757d]">{t('inHouse')}</p>
           </div>
         </div>
       </div>
@@ -120,14 +131,14 @@ export default async function OggiPage() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <LogIn className="w-5 h-5 text-green-600" />
-          <h2 className="text-base font-semibold text-gray-800">Arrivi oggi</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('arrivalsToday')}</h2>
           <span className="ml-1 px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded">
             {arrivi.length}
           </span>
         </div>
 
         {arrivi.length === 0 ? (
-          <EmptyState messaggio="Nessun arrivo previsto per oggi" />
+          <EmptyState messaggio={t('noArrivals')} />
         ) : (
           <div className="divide-y divide-gray-100">
             {arrivi.map(p => (
@@ -135,6 +146,7 @@ export default async function OggiPage() {
                 key={p.id}
                 prenotazione={p}
                 tipo="arrivo"
+                labels={rigaLabels}
               />
             ))}
           </div>
@@ -145,14 +157,14 @@ export default async function OggiPage() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <LogOut className="w-5 h-5 text-[#ffbc00]" />
-          <h2 className="text-base font-semibold text-gray-800">Partenze oggi</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('departuresToday')}</h2>
           <span className="ml-1 px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-700 rounded">
             {partenze.length}
           </span>
         </div>
 
         {partenze.length === 0 ? (
-          <EmptyState messaggio="Nessuna partenza prevista per oggi" />
+          <EmptyState messaggio={t('noDepartures')} />
         ) : (
           <div className="divide-y divide-gray-100">
             {partenze.map(p => (
@@ -160,6 +172,7 @@ export default async function OggiPage() {
                 key={p.id}
                 prenotazione={p}
                 tipo="partenza"
+                labels={rigaLabels}
               />
             ))}
           </div>
@@ -170,14 +183,14 @@ export default async function OggiPage() {
       <div className="card">
         <div className="flex items-center gap-2 mb-4">
           <Home className="w-5 h-5 text-brand-500" />
-          <h2 className="text-base font-semibold text-gray-800">Ospiti in casa</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('guestsInHouse')}</h2>
           <span className="ml-1 px-2 py-0.5 text-xs font-semibold bg-brand-500/10 text-brand-500 rounded">
             {inCasa.length}
           </span>
         </div>
 
         {inCasa.length === 0 ? (
-          <EmptyState messaggio="Nessun ospite presente in questo momento" />
+          <EmptyState messaggio={t('noGuests')} />
         ) : (
           <div className="divide-y divide-gray-100">
             {inCasa.map(p => (
@@ -185,6 +198,7 @@ export default async function OggiPage() {
                 key={p.id}
                 prenotazione={p}
                 tipo="in-casa"
+                labels={rigaLabels}
               />
             ))}
           </div>
@@ -210,14 +224,17 @@ type PrenotazioneMini = {
   struttura: { nome: string } | null
   unita: { nome: string } | null
   guestNumeroDocumento: string | null
+  regCardFirmata: boolean
 }
 
 function RigaPrenotazione({
   prenotazione: p,
   tipo,
+  labels,
 }: {
   prenotazione: PrenotazioneMini
   tipo: 'arrivo' | 'partenza' | 'in-casa'
+  labels: { missingDoc: string; checkinArrow: string; checkoutArrow: string; details: string; guests: string; nights: string }
 }) {
   const nottiSoggiorno = p.dataPartenza
     ? Math.round((p.dataPartenza.getTime() - p.dataArrivo.getTime()) / 86400000)
@@ -252,7 +269,7 @@ function RigaPrenotazione({
           </Link>
           {!documentoOk && tipo === 'arrivo' && (
             <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-              <AlertCircle className="w-3 h-3" /> doc. mancante
+              <AlertCircle className="w-3 h-3" /> {labels.missingDoc}
             </span>
           )}
           {documentoOk && tipo === 'arrivo' && (
@@ -260,14 +277,26 @@ function RigaPrenotazione({
               <CheckCircle2 className="w-3 h-3" />
             </span>
           )}
+          {/* Reg Card signature status — TODO: i18n */}
+          {tipo === 'arrivo' && (
+            p.regCardFirmata ? (
+              <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                <CheckCircle2 className="w-3 h-3" />
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                ⚠️ reg card
+              </span>
+            )
+          )}
         </div>
         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <Users className="w-3 h-3" /> {p.numOspiti} ospiti
+            <Users className="w-3 h-3" /> {p.numOspiti} {labels.guests}
           </span>
           {nottiSoggiorno !== null && (
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" /> {nottiSoggiorno} notti
+              <Clock className="w-3 h-3" /> {nottiSoggiorno} {labels.nights}
             </span>
           )}
           {p.struttura && (
@@ -301,7 +330,7 @@ function RigaPrenotazione({
           href={`/host/prenotazioni/${p.id}`}
           className="px-3 py-1.5 text-xs font-semibold border border-gray-200 rounded text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          {tipo === 'arrivo' ? 'Check-in →' : tipo === 'partenza' ? 'Check-out →' : 'Dettagli'}
+          {tipo === 'arrivo' ? labels.checkinArrow : tipo === 'partenza' ? labels.checkoutArrow : labels.details}
         </Link>
       </div>
     </div>

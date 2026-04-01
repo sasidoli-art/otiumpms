@@ -12,6 +12,7 @@ import { startOfDay, endOfDay, startOfMonth, endOfMonth, subDays, eachDayOfInter
 import { format } from 'date-fns'
 import { it as itLocale } from 'date-fns/locale'
 import OccupancyChart from './occupancy-chart'
+import { getTranslations } from 'next-intl/server'
 
 export default async function HostDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -78,6 +79,8 @@ export default async function HostDashboardPage() {
 
   if (!host) redirect('/login')
 
+  const t = await getTranslations('host.dashboard')
+
   // ─── Occupancy last 30 days ──────────────────────────────────────────────
   const totalUnita = await prisma.unitaPrenotabile.count({
     where: { struttura: { hostId, attiva: true }, attiva: true },
@@ -121,7 +124,7 @@ export default async function HostDashboardPage() {
     <div>
       {/* Page Title */}
       <div className="page-title-box">
-        <h4 className="page-title">Benvenuto, {session.user.name.split(' ')[0]}!</h4>
+        <h4 className="page-title">{t('welcome', { name: session.user.name.split(' ')[0] })}</h4>
         <p className="text-sm text-[#6c757d] mt-0.5">{host.nomeAzienda}</p>
       </div>
 
@@ -136,37 +139,37 @@ export default async function HostDashboardPage() {
           </div>
           {host.dataFineAbb && (
             <p className="text-white/70 text-sm">
-              Abbonamento attivo fino al {formatData(host.dataFineAbb)}
+              {t('subscriptionActive', { date: formatData(host.dataFineAbb) })}
             </p>
           )}
         </div>
         <Link href="/host/abbonamento" className="bg-white text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors whitespace-nowrap">
-          Gestisci →
+          {t('manageArrow')}
         </Link>
       </div>
 
       {/* PMS KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
         <StatCard
-          titolo="Arrivi oggi"
+          titolo={t('arrivalsToday')}
           valore={arriviOggi}
           icona={<ArrowDownToLine size={24} />}
           colorIcona="text-[#0acf97]"
         />
         <StatCard
-          titolo="Partenze oggi"
+          titolo={t('departuresToday')}
           valore={partenzeOggi}
           icona={<ArrowUpFromLine size={24} />}
           colorIcona="text-[#fa5c7c]"
         />
         <StatCard
-          titolo="Ospiti in casa"
+          titolo={t('guestsInHouse')}
           valore={inCasaOggi}
           icona={<BedDouble size={24} />}
           colorIcona="text-brand-500"
         />
         <StatCard
-          titolo="Revenue mese"
+          titolo={t('monthRevenue')}
           valore={formatValuta(revenueMeseVal)}
           icona={<Euro size={24} />}
           colorIcona="text-[#39afd1]"
@@ -180,19 +183,19 @@ export default async function HostDashboardPage() {
             <Waves size={20} className="text-white" />
           </div>
           <div>
-            <p className="font-semibold text-violet-900 text-sm">Modulo SPA &amp; Benessere</p>
+            <p className="font-semibold text-violet-900 text-sm">{t('spaModule')}</p>
             <p className="text-xs text-violet-600 mt-0.5">
-              {spaOggi} appuntament{spaOggi === 1 ? 'o' : 'i'} oggi
-              {spaRevenueMeseVal > 0 && ` · €${spaRevenueMeseVal.toFixed(0)} revenue mese`}
+              {spaOggi} {t('appointmentsToday')}
+              {spaRevenueMeseVal > 0 && ` · €${spaRevenueMeseVal.toFixed(0)} ${t('spaRevenue')}`}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Link href="/host/spa/appuntamenti" className="text-xs font-medium text-violet-700 border border-violet-300 bg-white hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
-            Appuntamenti
+            {t('appointments')}
           </Link>
           <Link href="/host/spa" className="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg transition-colors">
-            Dashboard SPA →
+            {t('spaDashboardArrow')}
           </Link>
         </div>
       </div>
@@ -200,21 +203,21 @@ export default async function HostDashboardPage() {
       {/* Stats eventi */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
         <StatCard
-          titolo="I miei eventi"
+          titolo={t('myEvents')}
           valore={totaliEventi._count}
           icona={<CalendarDays size={24} />}
           colorIcona="text-brand-500"
         />
         <StatCard
-          titolo="Visualizzazioni totali"
+          titolo={t('totalViews')}
           valore={totalViews.toLocaleString('it-IT')}
           icona={<Eye size={24} />}
           colorIcona="text-[#39afd1]"
         />
         <StatCard
-          titolo="Click totali"
+          titolo={t('totalClicks')}
           valore={totalClick.toLocaleString('it-IT')}
-          sotto={totalViews > 0 ? `CTR ${Math.round((totalClick / totalViews) * 100)}%` : undefined}
+          sotto={totalViews > 0 ? `${t('ctr')} ${Math.round((totalClick / totalViews) * 100)}%` : undefined}
           icona={<MousePointerClick size={24} />}
           colorIcona="text-[#0acf97]"
         />
@@ -232,14 +235,14 @@ export default async function HostDashboardPage() {
         {/* Prenotazioni recenti */}
         <div className="card xl:col-span-1">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Prenotazioni recenti</h2>
-            <Link href="/host/prenotazioni" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">Vedi tutte →</Link>
+            <h2 className="font-semibold text-gray-900">{t('recentBookings')}</h2>
+            <Link href="/host/prenotazioni" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">{t('viewAllArrow')}</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {prenotazioniRecenti.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-sm text-gray-400 mb-3">Nessuna prenotazione ancora</p>
-                <Link href="/host/prenotazioni/nuova" className="btn-primary text-sm">Aggiungi prenotazione</Link>
+                <p className="text-sm text-gray-400 mb-3">{t('noBookingsYet')}</p>
+                <Link href="/host/prenotazioni/nuova" className="btn-primary text-sm">{t('addBooking')}</Link>
               </div>
             ) : prenotazioniRecenti.map(p => (
               <Link key={p.id} href={`/host/prenotazioni/${p.id}`} className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors">
@@ -270,14 +273,14 @@ export default async function HostDashboardPage() {
         {/* Ultimi eventi */}
         <div className="card">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">I miei eventi</h2>
-            <Link href="/host/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">Vedi tutti →</Link>
+            <h2 className="font-semibold text-gray-900">{t('myEvents')}</h2>
+            <Link href="/host/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">{t('viewAllEventsArrow')}</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {eventiRecenti.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-sm text-gray-400 mb-3">Non hai ancora inserito eventi</p>
-                <Link href="/host/eventi/nuovo" className="btn-primary text-sm">Inserisci il primo evento</Link>
+                <p className="text-sm text-gray-400 mb-3">{t('noEventsYet')}</p>
+                <Link href="/host/eventi/nuovo" className="btn-primary text-sm">{t('addFirstEvent')}</Link>
               </div>
             ) : eventiRecenti.map(ev => (
               <Link key={ev.id} href={`/host/eventi/${ev.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
@@ -300,12 +303,12 @@ export default async function HostDashboardPage() {
         {/* Ultime fatture */}
         <div className="card">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Le mie fatture</h2>
-            <Link href="/host/fatture" className="text-sm text-brand-600 hover:text-brand-700 font-medium">Vedi tutte →</Link>
+            <h2 className="font-semibold text-gray-900">{t('myInvoices')}</h2>
+            <Link href="/host/fatture" className="text-sm text-brand-600 hover:text-brand-700 font-medium">{t('viewAllArrow')}</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {fattureRecenti.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">Nessuna fattura ancora</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400">{t('noInvoicesYet')}</p>
             ) : fattureRecenti.map(f => (
               <Link key={f.id} href={`/host/fatture/${f.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
                 <CreditCard size={16} className="text-gray-400 shrink-0" />

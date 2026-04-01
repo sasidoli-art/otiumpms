@@ -5,17 +5,19 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { formatValuta } from '@/lib/utils'
+import { useTranslations } from 'next-intl'
 
 /* ── Revenue per month (area chart) ───────────────────────── */
 
 type RevenueMese = { mese: string; fatturato: number; prenotazioni: number }
 
 export function RevenueChart({ data }: { data: RevenueMese[] }) {
+  const t = useTranslations('admin.dashboard')
   return (
     <div className="card">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Fatturato mensile</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Ultimi 6 mesi — fatture pagate</p>
+        <h2 className="font-semibold text-gray-900">Fatturato mensile</h2>{/* TODO: i18n */}
+        <p className="text-xs text-gray-400 mt-0.5">Ultimi 6 mesi — fatture pagate</p>{/* TODO: i18n */}
       </div>
       <div className="px-4 py-4" style={{ height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -50,11 +52,12 @@ export function RevenueChart({ data }: { data: RevenueMese[] }) {
 /* ── Prenotazioni per month (bar chart) ───────────────────── */
 
 export function PrenotazioniChart({ data }: { data: RevenueMese[] }) {
+  const t = useTranslations('admin.bookings')
   return (
     <div className="card">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Prenotazioni mensili</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Ultimi 6 mesi — tutte le prenotazioni</p>
+        <h2 className="font-semibold text-gray-900">Prenotazioni mensili</h2>{/* TODO: i18n */}
+        <p className="text-xs text-gray-400 mt-0.5">Ultimi 6 mesi — tutte le prenotazioni</p>{/* TODO: i18n */}
       </div>
       <div className="px-4 py-4" style={{ height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -63,7 +66,7 @@ export function PrenotazioniChart({ data }: { data: RevenueMese[] }) {
             <XAxis dataKey="mese" tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
             <Tooltip
-              formatter={(value: number) => [value, 'Prenotazioni']}
+              formatter={(value: number) => [value, t('title')]}
               contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e5e7eb' }}
             />
             <Bar dataKey="prenotazioni" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -87,22 +90,23 @@ const STATO_COLORS: Record<string, string> = {
 }
 
 export function StatoPrenotazioniChart({ data }: { data: StatoSlice[] }) {
+  const t = useTranslations('admin.bookings')
   const totale = data.reduce((s, d) => s + d.valore, 0)
   if (totale === 0) {
     return (
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Stato prenotazioni</h2>
+          <h2 className="font-semibold text-gray-900">Stato prenotazioni</h2>{/* TODO: i18n */}
         </div>
-        <p className="px-6 py-12 text-center text-sm text-gray-400">Nessuna prenotazione</p>
+        <p className="px-6 py-12 text-center text-sm text-gray-400">Nessuna prenotazione</p>{/* TODO: i18n */}
       </div>
     )
   }
   return (
     <div className="card">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Stato prenotazioni</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Distribuzione corrente</p>
+        <h2 className="font-semibold text-gray-900">Stato prenotazioni</h2>{/* TODO: i18n */}
+        <p className="text-xs text-gray-400 mt-0.5">Distribuzione corrente</p>{/* TODO: i18n */}
       </div>
       <div className="px-4 py-4" style={{ height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -124,7 +128,7 @@ export function StatoPrenotazioniChart({ data }: { data: StatoSlice[] }) {
               ))}
             </Pie>
             <Tooltip
-              formatter={(value: number) => [value, 'Prenotazioni']}
+              formatter={(value: number) => [value, t('title')]}
               contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e5e7eb' }}
             />
             <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
@@ -140,21 +144,22 @@ export function StatoPrenotazioniChart({ data }: { data: StatoSlice[] }) {
 type TopHost = { nome: string; prenotazioni: number; fatturato: number }
 
 export function TopHostChart({ data }: { data: TopHost[] }) {
+  const t = useTranslations('admin.bookings')
   if (data.length === 0) {
     return (
       <div className="card">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Host più attivi</h2>
+          <h2 className="font-semibold text-gray-900">Host più attivi</h2>{/* TODO: i18n */}
         </div>
-        <p className="px-6 py-12 text-center text-sm text-gray-400">Nessun host</p>
+        <p className="px-6 py-12 text-center text-sm text-gray-400">Nessun host</p>{/* TODO: i18n */}
       </div>
     )
   }
   return (
     <div className="card">
       <div className="px-6 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">Host più attivi</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Per numero di prenotazioni</p>
+        <h2 className="font-semibold text-gray-900">Host più attivi</h2>{/* TODO: i18n */}
+        <p className="text-xs text-gray-400 mt-0.5">Per numero di prenotazioni</p>{/* TODO: i18n */}
       </div>
       <div className="px-4 py-4" style={{ height: 300 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -165,7 +170,7 @@ export function TopHostChart({ data }: { data: TopHost[] }) {
             <Tooltip
               formatter={(value: number, name: string) => [
                 name === 'fatturato' ? formatValuta(value) : value,
-                name === 'fatturato' ? 'Fatturato' : 'Prenotazioni',
+                name === 'fatturato' ? 'Fatturato' : t('title'),
               ]}
               contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e5e7eb' }}
             />

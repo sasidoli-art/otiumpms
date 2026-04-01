@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import {
   Code, Copy, CheckCircle2, Globe, ExternalLink, Loader2, Smartphone,
   Monitor, Link2, Sparkles,

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Lock, Plus, Save, X, Users } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import {
   format, addMonths, subMonths, startOfMonth, endOfMonth,
   eachDayOfInterval, isWeekend, isBefore, startOfDay,

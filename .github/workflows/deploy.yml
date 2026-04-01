@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to Vercel
+    needs: ci
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      - name: Build with Vercel
+        run: vercel build --prod --token=$VERCEL_TOKEN
+
+      - name: Deploy to Vercel
+        run: vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN

@@ -1,23 +1,22 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { Download, X } from 'lucide-react'
 
 export function PwaProvider() {
+  const t = useTranslations('pwa')
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null)
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
-    // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
 
-    // Capture install prompt
     const handler = (e: Event) => {
       e.preventDefault()
       setInstallPrompt(e)
-      // Show banner only if not dismissed recently
       const dismissed = localStorage.getItem('pwa-dismissed')
       if (!dismissed || Date.now() - parseInt(dismissed) > 7 * 86400000) {
         setShowBanner(true)
@@ -50,14 +49,14 @@ export function PwaProvider() {
         <Download className="w-5 h-5 text-indigo-600" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900">Installa Otium Week</p>
-        <p className="text-xs text-gray-500">Accesso rapido dalla home screen</p>
+        <p className="text-sm font-semibold text-gray-900">{t('install')}</p>
+        <p className="text-xs text-gray-500">{t('quickAccess')}</p>
       </div>
       <button
         onClick={install}
         className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors shrink-0"
       >
-        Installa
+        {t('installButton')}
       </button>
       <button onClick={dismiss} className="text-gray-400 hover:text-gray-600 shrink-0">
         <X className="w-4 h-4" />

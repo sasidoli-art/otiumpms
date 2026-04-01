@@ -5,11 +5,18 @@ import { Users, CalendarDays, CreditCard, FileText, TrendingUp, Clock, Building2
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { RevenueChart, PrenotazioniChart, StatoPrenotazioniChart, TopHostChart } from './dashboard-charts'
-
-const MESI = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic']
+import { getTranslations } from 'next-intl/server'
 
 export default async function AdminDashboardPage() {
+  const t = await getTranslations('admin.dashboard')
+  const tc = await getTranslations('common')
   const now = new Date()
+
+  const MESI = [
+    t('months.jan'), t('months.feb'), t('months.mar'), t('months.apr'),
+    t('months.may'), t('months.jun'), t('months.jul'), t('months.aug'),
+    t('months.sep'), t('months.oct'), t('months.nov'), t('months.dec'),
+  ]
 
   const [
     totaleClienti,
@@ -129,37 +136,37 @@ export default async function AdminDashboardPage() {
       {/* Page Title */}
       <div className="page-title-box">
         <h4 className="page-title">Dashboard</h4>
-        <p className="text-sm text-[#6c757d] mt-0.5">Panoramica generale della piattaforma</p>
+        <p className="text-sm text-[#6c757d] mt-0.5">Panoramica generale della piattaforma</p>{/* TODO: i18n */}
       </div>
 
       {/* Stat Cards — row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
         <StatCard
-          titolo="Clienti totali"
+          titolo="Clienti totali" // TODO: i18n
           valore={totaleClienti}
-          sotto={`${clientiAttivi} abbonamenti attivi`}
+          sotto={`${clientiAttivi} abbonamenti attivi`} // TODO: i18n
           icona={<Users size={24} />}
           colorIcona="text-brand-500"
         />
         <StatCard
-          titolo="Fatturato totale"
+          titolo="Fatturato totale" // TODO: i18n
           valore={formatValuta(fatturato)}
-          sotto="Fatture pagate"
+          sotto="Fatture pagate" // TODO: i18n
           icona={<TrendingUp size={24} />}
           colorIcona="text-[#0acf97]"
           trend={trendFatturato !== 0 ? { valore: trendFatturato, etichetta: 'vs mese prec.' } : undefined}
         />
         <StatCard
-          titolo="Fatture in sospeso"
+          titolo="Fatture in sospeso" // TODO: i18n
           valore={fattureInAttesa}
-          sotto="Da inviare o in attesa"
+          sotto="Da inviare o in attesa" // TODO: i18n
           icona={<FileText size={24} />}
           colorIcona="text-[#ffbc00]"
         />
         <StatCard
-          titolo="Eventi da approvare"
+          titolo="Eventi da approvare" // TODO: i18n
           valore={eventiInAttesa}
-          sotto="In attesa di revisione"
+          sotto="In attesa di revisione" // TODO: i18n
           icona={<Clock size={24} />}
           colorIcona="text-[#fa5c7c]"
         />
@@ -168,31 +175,31 @@ export default async function AdminDashboardPage() {
       {/* Stat Cards — row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
         <StatCard
-          titolo="Prenotazioni totali"
+          titolo="Prenotazioni totali" // TODO: i18n
           valore={totalePrenotazioni}
-          sotto={`${prenotazioniMeseCorrente} questo mese`}
+          sotto={`${prenotazioniMeseCorrente} questo mese`} // TODO: i18n
           icona={<CalendarDays size={24} />}
           colorIcona="text-brand-500"
           trend={trendPrenotazioni !== 0 ? { valore: trendPrenotazioni, etichetta: 'vs mese prec.' } : undefined}
         />
         <StatCard
-          titolo="Strutture attive"
+          titolo="Strutture attive" // TODO: i18n
           valore={totaleStrutture}
-          sotto={`${totaleUnita} unità prenotabili`}
+          sotto={`${totaleUnita} unità prenotabili`} // TODO: i18n
           icona={<Building2 size={24} />}
           colorIcona="text-[#6366f1]"
         />
         <StatCard
-          titolo="Tasso occupazione"
+          titolo="Tasso occupazione" // TODO: i18n
           valore={totalePrenotazioni > 0 && totaleUnita > 0
             ? `${Math.round((prenotazioniMeseCorrente / (totaleUnita * 30)) * 100)}%`
             : '—'}
-          sotto="Stima mese corrente"
+          sotto="Stima mese corrente" // TODO: i18n
           icona={<BedDouble size={24} />}
           colorIcona="text-[#0acf97]"
         />
         <StatCard
-          titolo="Fatturato mese"
+          titolo="Fatturato mese" // TODO: i18n
           valore={formatValuta(meseCorrente)}
           sotto={MESI[now.getMonth()] + ' ' + now.getFullYear()}
           icona={<CreditCard size={24} />}
@@ -219,10 +226,10 @@ export default async function AdminDashboardPage() {
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarDays size={18} className="text-gray-500" />
-              <h2 className="font-semibold text-gray-900">Ultimi eventi inseriti</h2>
+              <h2 className="font-semibold text-gray-900">Ultimi eventi inseriti</h2>{/* TODO: i18n */}
             </div>
             <Link href="/admin/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">
-              Vedi tutti →
+              Vedi tutti →{/* TODO: i18n */}
             </Link>
           </div>
           <div className="divide-y divide-gray-50">
@@ -254,10 +261,10 @@ export default async function AdminDashboardPage() {
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={18} className="text-gray-500" />
-              <h2 className="font-semibold text-gray-900">Ultimi clienti registrati</h2>
+              <h2 className="font-semibold text-gray-900">Ultimi clienti registrati</h2>{/* TODO: i18n */}
             </div>
             <Link href="/admin/clienti" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">
-              Vedi tutti →
+              Vedi tutti →{/* TODO: i18n */}
             </Link>
           </div>
           <div className="divide-y divide-gray-50">

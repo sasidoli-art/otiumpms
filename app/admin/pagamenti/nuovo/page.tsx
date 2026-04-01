@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function NuovoPagamentoPage() {
   const router = useRouter()
@@ -12,6 +13,8 @@ export default function NuovoPagamentoPage() {
   const [loading, setLoading] = useState(false)
   const [errore, setErrore] = useState('')
   const [clienti, setClienti] = useState<{ id: string; nomeAzienda: string }[]>([])
+  const t = useTranslations('admin.payments')
+  const tc = useTranslations('common')
 
   useEffect(() => {
     fetch('/api/admin/clienti?lista=true')
@@ -31,10 +34,10 @@ export default function NuovoPagamentoPage() {
         body: JSON.stringify(data),
       })
       const json = await res.json()
-      if (!res.ok) setErrore(json.error || 'Errore')
+      if (!res.ok) setErrore(json.error || tc('unexpectedError'))
       else router.push('/admin/pagamenti')
     } catch {
-      setErrore('Errore di connessione')
+      setErrore(tc('networkError'))
     } finally {
       setLoading(false)
     }
@@ -47,32 +50,32 @@ export default function NuovoPagamentoPage() {
           <ArrowLeft size={18} className="text-gray-600" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Nuovo pagamento</h1>
-          <p className="text-gray-500 text-sm">Registra un pagamento manuale</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('newPayment')}</h1>
+          <p className="text-gray-500 text-sm">Registra un pagamento manuale</p>{/* TODO: i18n */}
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">
         <div>
-          <label className="label">Cliente *</label>
+          <label className="label">{t('client')} *</label>
           <select name="hostId" className="input" required defaultValue={hostIdParam}>
-            <option value="">Seleziona cliente</option>
+            <option value="">Seleziona cliente</option>{/* TODO: i18n */}
             {clienti.map(c => (
               <option key={c.id} value={c.id}>{c.nomeAzienda}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Descrizione</label>
+          <label className="label">{t('description')}</label>
           <input name="descrizione" className="input" placeholder="es. Abbonamento Mensile Aprile 2026" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">Importo € *</label>
+            <label className="label">{tc('amount')} € *</label>
             <input name="importo" type="number" step="0.01" min="0" className="input" required />
           </div>
           <div>
-            <label className="label">Metodo</label>
+            <label className="label">{t('method')}</label>
             <select name="metodo" className="input">
               <option value="">—</option>
               <option value="Bonifico">Bonifico</option>
@@ -84,23 +87,23 @@ export default function NuovoPagamentoPage() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="label">Data scadenza</label>
+            <label className="label">{t('dueDate')}</label>
             <input name="dataScadenza" type="date" className="input" />
           </div>
           <div>
-            <label className="label">Stato</label>
+            <label className="label">{tc('status')}</label>
             <select name="stato" className="input">
-              <option value="IN_ATTESA">In attesa</option>
-              <option value="PAGATO">Pagato</option>
+              <option value="IN_ATTESA">{t('pending')}</option>
+              <option value="PAGATO">{t('paid')}</option>
             </select>
           </div>
         </div>
         <div>
-          <label className="label">Riferimento (CRO / transazione)</label>
+          <label className="label">Riferimento (CRO / transazione)</label>{/* TODO: i18n */}
           <input name="riferimento" className="input" />
         </div>
         <div>
-          <label className="label">Note</label>
+          <label className="label">{tc('notes')}</label>
           <textarea name="note" className="input" rows={2} />
         </div>
 
@@ -111,9 +114,9 @@ export default function NuovoPagamentoPage() {
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
             {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Salvataggio...' : 'Salva pagamento'}
+            {loading ? tc('saving') : tc('save')}
           </button>
-          <Link href="/admin/pagamenti" className="btn-secondary">Annulla</Link>
+          <Link href="/admin/pagamenti" className="btn-secondary">{tc('cancel')}</Link>
         </div>
       </form>
     </div>

@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Eye } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; statoAttuale: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const tc = useTranslations('common')
 
   async function aggiornaStato(stato: string) {
     setLoading(true)
@@ -22,7 +24,7 @@ export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; st
 
   return (
     <div className="flex items-center gap-1">
-      <Link href={`/admin/eventi/${eventoId}`} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600" title="Visualizza">
+      <Link href={`/admin/eventi/${eventoId}`} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600" title={tc('open')}>
         <Eye size={15} />
       </Link>
       {statoAttuale !== 'APPROVATO' && (
@@ -30,7 +32,7 @@ export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; st
           onClick={() => aggiornaStato('APPROVATO')}
           disabled={loading}
           className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
-          title="Approva"
+          title="Approva" // TODO: i18n
         >
           <CheckCircle size={15} />
         </button>
@@ -40,7 +42,7 @@ export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; st
           onClick={() => aggiornaStato('RIFIUTATO')}
           disabled={loading}
           className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 disabled:opacity-50"
-          title="Rifiuta"
+          title="Rifiuta" // TODO: i18n
         >
           <XCircle size={15} />
         </button>

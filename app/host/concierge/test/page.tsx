@@ -3,10 +3,12 @@
 import { useState } from 'react'
 import { Bot, Send, Loader2, User, Sparkles, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 type Msg = { role: 'user' | 'ai'; text: string; tools?: string[]; tokens?: number | null }
 
 export default function ConciergeTestPage() {
+  const t = useTranslations('host.concierge')
   const [telefono, setTelefono] = useState('+393331234567')
   const [nome, setNome] = useState('Test Ospite')
   const [input, setInput] = useState('')
@@ -55,20 +57,20 @@ export default function ConciergeTestPage() {
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold flex items-center gap-2"><Sparkles className="w-5 h-5 text-purple-500" /> Simulatore AI Concierge</h1>
-          <p className="text-xs text-gray-500">Testa il concierge senza WhatsApp. Simula una conversazione ospite.</p>
+          <h1 className="text-lg font-bold flex items-center gap-2"><Sparkles className="w-5 h-5 text-purple-500" /> {t('simulatorTitle')}</h1>
+          <p className="text-xs text-gray-500">{t('simulatorSubtitle')}</p>
         </div>
-        <Link href="/host/concierge" className="btn-secondary text-xs">Dashboard</Link>
+        <Link href="/host/concierge" className="btn-secondary text-xs">{t('simulatorDashboard')}</Link>
       </div>
 
       {/* Config simulazione */}
       <div className="card flex gap-3">
         <div className="flex-1">
-          <label className="text-[10px] text-gray-500">Telefono simulato</label>
+          <label className="text-[10px] text-gray-500">{t('simulatedPhone')}</label>
           <input type="text" value={telefono} onChange={e => setTelefono(e.target.value)} className={inp + ' w-full'} />
         </div>
         <div className="flex-1">
-          <label className="text-[10px] text-gray-500">Nome ospite</label>
+          <label className="text-[10px] text-gray-500">{t('guestName')}</label>
           <input type="text" value={nome} onChange={e => setNome(e.target.value)} className={inp + ' w-full'} />
         </div>
       </div>
@@ -84,8 +86,8 @@ export default function ConciergeTestPage() {
         {messaggi.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-gray-300">
             <Bot className="w-16 h-16 opacity-30 mb-3" />
-            <p className="text-sm">Scrivi un messaggio per iniziare</p>
-            <p className="text-xs text-gray-400 mt-1">Prova: "A che ora è la colazione?", "Vorrei prenotare un massaggio", "Ho bisogno di asciugamani extra"</p>
+            <p className="text-sm">{t('startMessage')}</p>
+            <p className="text-xs text-gray-400 mt-1">{t('suggestions')}</p>
           </div>
         )}
         {messaggi.map((m, i) => (
@@ -117,7 +119,7 @@ export default function ConciergeTestPage() {
       {/* Input */}
       <form onSubmit={invia} className="flex gap-2">
         <input type="text" value={input} onChange={e => setInput(e.target.value)} disabled={loading}
-          placeholder="Scrivi un messaggio..."
+          placeholder={t('messagePlaceholder')}
           className={`flex-1 ${inp} py-3`}
           autoFocus />
         <button type="submit" disabled={loading || !input.trim()}

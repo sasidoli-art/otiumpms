@@ -18,6 +18,16 @@ import { authOptions } from '@/lib/auth'
 
 // ─── Tipi sessione ristretti ──────────────────────────────────────────────────
 
+export interface SuperAdminSession {
+  user: {
+    id: string
+    email: string
+    name: string
+    role: 'SUPERADMIN'
+    hostId: null
+  }
+}
+
 export interface AdminSession {
   user: {
     id: string
@@ -42,12 +52,24 @@ export interface HostSession {
 // ─── Guard helpers ────────────────────────────────────────────────────────────
 
 /**
- * Verifica che la sessione sia di un ADMIN.
+ * Verifica che la sessione sia di un SUPERADMIN.
+ * Restituisce la sessione tipata o una NextResponse 401 da ritornare direttamente.
+ */
+export async function requireSuperAdmin(): Promise<SuperAdminSession | NextResponse> {
+  const session = await getServerSession(authOptions)
+  if (!session || session.user.role !== 'SUPERADMIN') {
+    return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
+  }
+  return session as SuperAdminSession
+}
+
+/**
+ * Verifica che la sessione sia di un ADMIN (o SUPERADMIN).
  * Restituisce la sessione tipata o una NextResponse 401 da ritornare direttamente.
  */
 export async function requireAdmin(): Promise<AdminSession | NextResponse> {
   const session = await getServerSession(authOptions)
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
   return session as AdminSession
@@ -90,8 +112,8 @@ export async function requireHost(): Promise<HostSession | NextResponse> {
     return NextResponse.json({ error: 'Host non trovato' }, { status: 401 })
   }
 
-  // ADMIN — impersona il primo host
-  if (session.user.role === 'ADMIN') {
+  // ADMIN / SUPERADMIN — impersona il primo host
+  if (session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') {
     const { prisma } = await import('@/lib/db')
     const host = await prisma.host.findFirst({ select: { id: true } })
     if (host) {
@@ -132,7 +154,7 @@ export async function getHostId(): Promise<string | null> {
     return host?.id ?? null
   }
 
-  if (session.user.role === 'ADMIN') {
+  if (session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') {
     const { prisma } = await import('@/lib/db')
     const host = await prisma.host.findFirst({ select: { id: true } })
     return host?.id ?? null
@@ -157,8 +179,8 @@ export async function requireHostOrAdmin(searchParams?: URLSearchParams): Promis
     return session as HostSession
   }
 
-  // ADMIN — impersona un host
-  if (session.user.role === 'ADMIN') {
+  // ADMIN / SUPERADMIN — impersona un host
+  if (session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') {
     const { prisma } = await import('@/lib/db')
     const targetHostId = searchParams?.get('hostId') ?? undefined
     const host = targetHostId

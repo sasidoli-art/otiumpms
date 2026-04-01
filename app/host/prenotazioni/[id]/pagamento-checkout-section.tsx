@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { CreditCard, Loader2, CheckCircle2, Banknote, Building, Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Pagamento = { id: string; importo: number; metodo: string; provider: string; ultime4Cifre: string | null; circuito: string | null; stato: string; createdAt: string }
 

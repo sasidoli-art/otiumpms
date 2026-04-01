@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 import { Bell, Check, CheckCheck, X, Loader2, Calendar, Wrench, LogIn, Info, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
-import { it } from 'date-fns/locale'
+import { it, enUS } from 'date-fns/locale'
 
 type Notifica = {
   id: string
@@ -25,7 +26,11 @@ const TIPO_ICON: Record<string, React.ReactNode> = {
   sistema:      <Info className="w-4 h-4 text-blue-500" />,
 }
 
+const DATE_LOCALES: Record<string, typeof it> = { it, en: enUS }
+
 export function NotificheBell() {
+  const t = useTranslations('notifications')
+  const locale = useLocale()
   const [open, setOpen] = useState(false)
   const [notifiche, setNotifiche] = useState<Notifica[]>([])
   const [nonLette, setNonLette] = useState(0)
@@ -46,7 +51,7 @@ export function NotificheBell() {
 
   useEffect(() => {
     fetchNotifiche()
-    const interval = setInterval(fetchNotifiche, 30000) // refresh ogni 30s
+    const interval = setInterval(fetchNotifiche, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -79,7 +84,7 @@ export function NotificheBell() {
       <button
         onClick={() => { setOpen(v => !v); if (!open) fetchNotifiche() }}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
-        title="Notifiche"
+        title={t('title')}
       >
         <Bell className="w-5 h-5" />
         {nonLette > 0 && (
@@ -91,18 +96,17 @@ export function NotificheBell() {
 
       {open && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-gray-900">Notifiche</p>
+              <p className="text-sm font-semibold text-gray-900">{t('title')}</p>
               {nonLette > 0 && (
-                <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">{nonLette} nuove</span>
+                <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">{nonLette} {t('new')}</span>
               )}
             </div>
             <div className="flex items-center gap-1">
               {nonLette > 0 && (
-                <button onClick={leggiTutte} className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center gap-1" title="Segna tutte come lette">
-                  <CheckCheck className="w-3.5 h-3.5" /> Leggi tutte
+                <button onClick={leggiTutte} className="text-xs text-brand-500 hover:text-brand-700 font-medium flex items-center gap-1" title={t('readAll')}>
+                  <CheckCheck className="w-3.5 h-3.5" /> {t('readAll')}
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400 ml-1">
@@ -111,7 +115,6 @@ export function NotificheBell() {
             </div>
           </div>
 
-          {/* Lista */}
           <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50">
             {loading && notifiche.length === 0 ? (
               <div className="flex items-center justify-center py-8">
@@ -120,7 +123,7 @@ export function NotificheBell() {
             ) : notifiche.length === 0 ? (
               <div className="py-10 flex flex-col items-center gap-2 text-gray-300">
                 <Bell className="w-8 h-8 opacity-30" />
-                <p className="text-xs">Nessuna notifica</p>
+                <p className="text-xs">{t('none')}</p>
               </div>
             ) : notifiche.map(n => (
               <button
@@ -140,21 +143,20 @@ export function NotificheBell() {
                   </div>
                   {n.messaggio && <p className="text-xs text-gray-400 truncate mt-0.5">{n.messaggio}</p>}
                   <p className="text-[10px] text-gray-300 mt-0.5">
-                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: it })}
+                    {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: DATE_LOCALES[locale] ?? it })}
                   </p>
                 </div>
               </button>
             ))}
           </div>
 
-          {/* Footer — vedi tutte */}
           <div className="border-t border-gray-100 px-4 py-2.5">
             <Link
               href="/host/notifiche"
               onClick={() => setOpen(false)}
               className="text-xs font-medium text-brand-600 hover:text-brand-700 flex items-center justify-center gap-1"
             >
-              Vedi tutte le notifiche
+              {t('viewAll')}
             </Link>
           </div>
         </div>

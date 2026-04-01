@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { trovaCamereDisponibili, assegnaAutomaticamente, assegnaCamera } from '@/lib/assegnazione-camera'
+
+const assegnaCameraSchema = z.object({
+  unitaId: z.string().min(1).optional(),
+  modalita: z.enum(['MANUALE', 'AUTOMATICA', 'AI']).default('MANUALE'),
+})
 
 /**
  * GET /api/host/prenotazioni/[id]/assegna-camera
@@ -73,8 +79,12 @@ export async function POST(
     return NextResponse.json({ error: 'Prenotazione non trovata' }, { status: 404 })
   }
 
-  const body = await req.json()
-  const { unitaId, modalita = 'MANUALE' } = body
+  const raw = await req.json()
+  const parsed = assegnaCameraSchema.safeParse(raw)
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Dati non validi', details: parsed.error.flatten() }, { status: 422 })
+  }
+  const { unitaId, modalita } = parsed.data
 
   let cameraScelta: string | null = unitaId || null
 

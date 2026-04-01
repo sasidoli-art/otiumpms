@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { format, addDays, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useTranslations } from 'next-intl'
 import { ChevronLeft, ChevronRight, CalendarClock, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -39,6 +40,8 @@ const ALTEZZA_ORA_PX = 60 // pixel per ora
 const TOTALE_ORE = ORA_FINE - ORA_INIZIO
 
 export default function SpaCalendario() {
+  const t = useTranslations('spa.calendar')
+  const tc = useTranslations('common')
   const [data, setData] = useState(() => new Date())
   const [view, setView] = useState<'day' | 'week'>('day')
   const [raggruppamento, setRaggruppamento] = useState<'cabine' | 'terapisti'>('cabine')
@@ -120,7 +123,7 @@ export default function SpaCalendario() {
           <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
             <CalendarClock className="w-4 h-4 text-violet-600" />
           </div>
-          <span className="font-bold text-gray-800 text-sm hidden sm:block">Calendario SPA</span>
+          <span className="font-bold text-gray-800 text-sm hidden sm:block">{t('title')}</span>
         </div>
 
         {/* Nav data */}

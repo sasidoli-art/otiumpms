@@ -50,3 +50,28 @@ export async function audit(entry: AuditEntry): Promise<void> {
     // Silenzioso — l'audit non deve bloccare le operazioni
   }
 }
+
+/**
+ * Convenience wrapper per azioni SuperAdmin.
+ * Imposta automaticamente entita='superadmin' se non specificato.
+ */
+export async function logAuditAction(params: {
+  userId: string
+  userEmail?: string
+  azione: string
+  dettaglio?: string
+  datiJson?: Record<string, unknown>
+  ip?: string
+  userAgent?: string
+}): Promise<void> {
+  await audit({
+    userId: params.userId,
+    userEmail: params.userEmail,
+    azione: params.azione,
+    entita: 'superadmin',
+    dettagli: params.dettaglio,
+    datiJson: params.datiJson,
+    ip: params.ip,
+    userAgent: params.userAgent,
+  })
+}

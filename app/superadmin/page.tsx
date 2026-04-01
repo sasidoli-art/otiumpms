@@ -2,10 +2,12 @@ import { prisma } from '@/lib/db'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import Link from 'next/link'
 import { Building2, Users, CreditCard, CalendarCheck, Euro, TrendingUp, AlertTriangle, Globe } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 
 export const metadata = { title: 'SuperAdmin — Otium Week' }
 
 export default async function SuperAdminDashboard() {
+  const t = await getTranslations('superadmin.dashboard')
   const now = new Date()
   const inizioMese = startOfMonth(now)
   const fineMese = endOfMonth(now)
@@ -44,14 +46,14 @@ export default async function SuperAdminDashboard() {
   })
 
   const kpis = [
-    { label: 'Host totali', value: totaleHost, icon: Building2, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Strutture', value: totaleStrutture, icon: Globe, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Utenti', value: totaleUtenti, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Prenotazioni mese', value: totalePrenotazioniMese, icon: CalendarCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Revenue mese', value: `€${Math.round(revenueMese._sum.prezzoTotale || 0).toLocaleString('it-IT')}`, icon: Euro, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Abbonamenti attivi', value: hostAttivi, icon: CreditCard, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'In prova', value: hostInProva, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Scaduti', value: hostScaduti, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
+    { label: t('totalHosts'), value: totaleHost, icon: Building2, color: 'text-brand-600', bg: 'bg-brand-50' },
+    { label: t('structures'), value: totaleStrutture, icon: Globe, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: t('users'), value: totaleUtenti, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: t('monthBookings'), value: totalePrenotazioniMese, icon: CalendarCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: t('monthRevenue'), value: `€${Math.round(revenueMese._sum.prezzoTotale || 0).toLocaleString('it-IT')}`, icon: Euro, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: t('activeSubscriptions'), value: hostAttivi, icon: CreditCard, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: t('trial'), value: hostInProva, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: t('expired'), value: hostScaduti, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
   ]
 
   const STATO_COLORI: Record<string, string> = {
@@ -64,8 +66,8 @@ export default async function SuperAdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Dashboard Piattaforma</h1>
-        <p className="text-sm text-gray-500">Panoramica globale di tutti gli host e strutture</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('title')}</h1>
+        <p className="text-sm text-gray-500">{t('subtitle')}</p>
       </div>
 
       {/* KPI */}
@@ -89,19 +91,19 @@ export default async function SuperAdminDashboard() {
       {/* Ultimi host */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Ultimi host registrati</h2>
-          <Link href="/superadmin/host" className="text-xs text-brand-600 hover:underline">Vedi tutti</Link>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Ultimi host registrati</h2>{/* TODO: i18n */}
+          <Link href="/superadmin/host" className="text-xs text-brand-600 hover:underline">Vedi tutti</Link>{/* TODO: i18n */}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-slate-700">
-                <th className="table-th">Azienda</th>
-                <th className="table-th">Città</th>
-                <th className="table-th">Piano</th>
-                <th className="table-th">Stato</th>
-                <th className="table-th text-right">Strutture</th>
-                <th className="table-th text-right">Prenotazioni</th>
+                <th className="table-th">Azienda</th>{/* TODO: i18n */}
+                <th className="table-th">Città</th>{/* TODO: i18n */}
+                <th className="table-th">Piano</th>{/* TODO: i18n */}
+                <th className="table-th">Stato</th>{/* TODO: i18n */}
+                <th className="table-th text-right">{t('structures')}</th>
+                <th className="table-th text-right">{t('monthBookings')}</th>
               </tr>
             </thead>
             <tbody>

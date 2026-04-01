@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Coffee, Sun, Moon, Loader2, Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type ConfigPasto = { id: string; tipoPasto: string; disponibile: boolean; orarioInizio: string | null; orarioFine: string | null; prezzo: number; prezzoRidotto: number | null; luogo: string | null; note: string | null }
 

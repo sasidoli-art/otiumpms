@@ -3,12 +3,15 @@ import { formatData, pianoLabel, statoAbbonamentoLabel, statoAbbonamentoColor } 
 import { Badge } from '@/components/ui/badge'
 import { UserPlus, Search } from 'lucide-react'
 import Link from 'next/link'
+import { getTranslations } from 'next-intl/server'
 
 interface Props {
   searchParams: Promise<{ q?: string; piano?: string; stato?: string }>
 }
 
 export default async function AdminClientiPage({ searchParams }: Props) {
+  const t = await getTranslations('admin.clients')
+  const tc = await getTranslations('common')
   const { q, piano, stato } = await searchParams
   const clienti = await prisma.host.findMany({
     where: {
@@ -39,12 +42,12 @@ export default async function AdminClientiPage({ searchParams }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clienti</h1>
-          <p className="text-gray-500 text-sm mt-1">{clienti.length} clienti trovati</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{clienti.length} {t('found')}</p>
         </div>
         <Link href="/admin/clienti/nuovo" className="btn-primary flex items-center gap-2">
           <UserPlus size={16} />
-          Nuovo cliente
+          {t('newClient')}
         </Link>
       </div>
 
@@ -56,26 +59,26 @@ export default async function AdminClientiPage({ searchParams }: Props) {
             <input
               name="q"
               defaultValue={q}
-              placeholder="Cerca per nome, azienda, email..."
+              placeholder={t('searchPlaceholder')}
               className="input pl-9"
             />
           </div>
           <select name="piano" defaultValue={piano ?? ''} className="input w-auto">
-            <option value="">Tutti i piani</option>
-            <option value="EVENTO_SINGOLO">Evento Singolo</option>
-            <option value="VISIBILITA_MENSILE">Visibilità Mensile</option>
-            <option value="PARTNER_PREMIUM">Partner Premium</option>
+            <option value="">{t('allPlans')}</option>
+            <option value="EVENTO_SINGOLO">{t('singleEvent')}</option>
+            <option value="VISIBILITA_MENSILE">{t('monthlyVisibility')}</option>
+            <option value="PARTNER_PREMIUM">{t('premiumPartner')}</option>
           </select>
           <select name="stato" defaultValue={stato ?? ''} className="input w-auto">
-            <option value="">Tutti gli stati</option>
-            <option value="ATTIVO">Attivo</option>
-            <option value="IN_PROVA">In prova</option>
-            <option value="SOSPESO">Sospeso</option>
-            <option value="SCADUTO">Scaduto</option>
+            <option value="">{t('allStatuses')}</option>
+            <option value="ATTIVO">{t('active')}</option>
+            <option value="IN_PROVA">{t('trial')}</option>
+            <option value="SOSPESO">{t('suspended')}</option>
+            <option value="SCADUTO">{t('expired')}</option>
           </select>
-          <button type="submit" className="btn-primary">Filtra</button>
+          <button type="submit" className="btn-primary">{tc('filter')}</button>
           {(q || piano || stato) && (
-            <Link href="/admin/clienti" className="btn-secondary">Reset</Link>
+            <Link href="/admin/clienti" className="btn-secondary">{tc('reset')}</Link>
           )}
         </form>
       </div>
@@ -86,13 +89,13 @@ export default async function AdminClientiPage({ searchParams }: Props) {
           <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="table-th">Azienda / Referente</th>
-                <th className="table-th">Piano</th>
-                <th className="table-th">Stato</th>
-                <th className="table-th">Fine abbonamento</th>
-                <th className="table-th">Eventi</th>
-                <th className="table-th">Fatture</th>
-                <th className="table-th">Registrato</th>
+                <th className="table-th">Azienda / Referente</th>{/* TODO: i18n */}
+                <th className="table-th">Piano</th>{/* TODO: i18n */}
+                <th className="table-th">{tc('status')}</th>
+                <th className="table-th">Fine abbonamento</th>{/* TODO: i18n */}
+                <th className="table-th">Eventi</th>{/* TODO: i18n */}
+                <th className="table-th">Fatture</th>{/* TODO: i18n */}
+                <th className="table-th">Registrato</th>{/* TODO: i18n */}
                 <th className="table-th"></th>
               </tr>
             </thead>
@@ -100,7 +103,7 @@ export default async function AdminClientiPage({ searchParams }: Props) {
               {clienti.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-400">
-                    Nessun cliente trovato
+                    {tc('noResults')}
                   </td>
                 </tr>
               ) : (
@@ -142,7 +145,7 @@ export default async function AdminClientiPage({ searchParams }: Props) {
                         href={`/admin/clienti/${host.id}`}
                         className="text-brand-600 hover:text-brand-700 text-sm font-medium"
                       >
-                        Dettaglio →
+                        {tc('details')} →
                       </Link>
                     </td>
                   </tr>

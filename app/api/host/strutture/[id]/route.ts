@@ -51,6 +51,7 @@ export async function PATCH(req: NextRequest, { params: paramsPromise }: { param
       capacitaTotale: body.capacitaTotale != null ? Number(body.capacitaTotale) : existing.capacitaTotale,
       prezzoBase: body.prezzoBase != null ? Number(body.prezzoBase) : existing.prezzoBase,
       attiva: body.attiva ?? existing.attiva,
+      immagini: body.immagini ?? existing.immagini,
     },
   })
 

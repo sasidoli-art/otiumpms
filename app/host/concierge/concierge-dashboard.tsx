@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { Bot, MessageSquare, AlertTriangle, CheckCircle2, Loader2, Settings, FlaskConical, Users } from 'lucide-react'
 
@@ -19,6 +20,8 @@ const STATO_BADGE: Record<string, { label: string; color: string }> = {
 }
 
 export default function ConciergeDashboard() {
+  const t = useTranslations('host.concierge')
+  const tc = useTranslations('common')
   const [conversazioni, setConversazioni] = useState<Conv[]>([])
   const [kpi, setKpi] = useState({ attive: 0, escalate: 0, totali: 0 })
   const [loading, setLoading] = useState(true)
@@ -36,7 +39,7 @@ export default function ConciergeDashboard() {
     <div className="space-y-6">
       <div className="page-title-box">
         <div>
-          <h1 className="page-title flex items-center gap-2"><Bot className="w-6 h-6 text-purple-500" /> AI Concierge</h1>
+          <h1 className="page-title flex items-center gap-2"><Bot className="w-6 h-6 text-purple-500" /> {t('title')}</h1>
           <p className="text-sm text-gray-500">Conversazioni WhatsApp gestite dall'intelligenza artificiale</p>
         </div>
         <div className="flex gap-2">

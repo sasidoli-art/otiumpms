@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
+import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -20,6 +21,7 @@ import {
   Wrench,
   MessageSquare,
   CalendarPlus,
+  Banknote,
   PanelLeftClose,
   PanelLeftOpen,
   CalendarRange,
@@ -44,6 +46,7 @@ import {
   ShoppingBag,
   Award,
   Bot,
+  HelpCircle,
   X,
   ExternalLink,
 } from 'lucide-react'
@@ -77,80 +80,12 @@ const HREF_MODULO: Record<string, string> = {
   '/host/servizi': 'catalogo',
   '/host/concierge': 'concierge',
   '/host/upselling': 'upselling',
+  '/host/spa/gift-card': 'giftCard',
+  '/host/spa/loyalty': 'loyalty',
+  '/host/spa/waiting-list': 'waitingList',
+  '/host/pos': 'pos',
+  '/host/cassa': 'cassa',
 }
-
-const allNavGroups = [
-  {
-    label: 'RICEVIMENTO',
-    items: [
-      { href: '/host/dashboard',   label: 'Dashboard',       icon: LayoutDashboard },
-      { href: '/host/oggi',        label: 'Front desk',      icon: Sun },
-      { href: '/host/strutture',   label: 'Strutture',       icon: Building2 },
-    ],
-  },
-  {
-    label: 'PRENOTAZIONI',
-    items: [
-      { href: '/host/calendario',         label: 'Calendario',    icon: CalendarRange },
-      { href: '/host/prenotazioni',       label: 'Prenotazioni', icon: BookOpen },
-      { href: '/host/prenotazioni/nuova', label: 'Nuova',         icon: CalendarPlus },
-    ],
-  },
-  {
-    label: 'OPERATIVITÀ',
-    items: [
-      { href: '/host/crm',          label: 'CRM Ospiti',    icon: Users },
-      { href: '/host/housekeeping', label: 'Housekeeping',  icon: Sparkles },
-      { href: '/host/housekeeping/biancheria', label: 'Biancheria', icon: Shirt },
-      { href: '/host/oggetti-smarriti',  label: 'Lost & Found',  icon: Search },
-      { href: '/host/magazzino',    label: 'Magazzino',     icon: Boxes },
-      { href: '/host/manutenzione', label: 'Manutenzione',  icon: Wrench },
-      { href: '/host/staff',        label: 'Staff',         icon: MessageSquare },
-      { href: '/host/alloggiati',   label: 'Alloggiati Web', icon: Shield },
-      { href: '/host/promemoria',   label: 'Promemoria',    icon: ClipboardCheck },
-      { href: '/host/ristorazione', label: 'Ristorazione',  icon: UtensilsCrossed },
-    ],
-  },
-  {
-    label: 'BUSINESS',
-    items: [
-      { href: '/host/pacchetti', label: 'Pacchetti',     icon: Package },
-      { href: '/host/eventi',    label: 'I miei eventi', icon: CalendarDays },
-      { href: '/host/report',    label: 'Report',        icon: TrendingUp },
-      { href: '/host/analytics', label: 'Analytics',     icon: BarChart3 },
-      { href: '/host/fatture',   label: 'Fatture',       icon: FileText },
-      { href: '/host/email-automatiche', label: 'Email auto', icon: Mail },
-      { href: '/host/canali',           label: 'Channel Manager', icon: Globe },
-      { href: '/host/servizi',           label: 'Catalogo servizi', icon: ShoppingBag },
-      { href: '/host/upselling',        label: 'Upselling',        icon: Award },
-      { href: '/host/concierge',        label: 'AI Concierge',     icon: Bot },
-      { href: '/host/integrazione',     label: 'Integrazione sito', icon: Code },
-    ],
-  },
-  {
-    label: 'SPA & BENESSERE',
-    items: [
-      { href: '/host/spa',               label: 'Dashboard SPA',  icon: Waves },
-      { href: '/host/spa/calendario',    label: 'Calendario',     icon: CalendarClock },
-      { href: '/host/spa/appuntamenti',  label: 'Appuntamenti',   icon: CalendarDays },
-      { href: '/host/spa/trattamenti',   label: 'Trattamenti',    icon: Sparkles },
-      { href: '/host/spa/percorsi',      label: 'Percorsi',       icon: Star },
-      { href: '/host/spa/terapisti',     label: 'Terapisti',      icon: Users },
-      { href: '/host/spa/cabine',        label: 'Cabine',         icon: DoorOpen },
-    ],
-  },
-  {
-    label: 'ACCOUNT',
-    items: [
-      { href: '/host/notifiche',   label: 'Notifiche',   icon: Bell },
-      { href: '/host/gdpr',        label: 'GDPR & Privacy', icon: Shield },
-      { href: '/host/audit',       label: 'Registro',     icon: Clock },
-      { href: '/host/moduli',      label: 'Moduli',       icon: Puzzle },
-      { href: '/host/abbonamento', label: 'Abbonamento', icon: CreditCard },
-      { href: '/host/profilo',     label: 'Profilo',     icon: UserCircle },
-    ],
-  },
-]
 
 export function HostSidebar({
   nomeUtente,
@@ -162,9 +97,92 @@ export function HostSidebar({
   moduliAttivi: unknown
 }) {
   const pathname = usePathname()
+  const t = useTranslations('nav.host')
+  const tp = useTranslations('nav.preview')
+  const tc = useTranslations('common')
   const [collapsed, setCollapsed] = useState(false)
   const [showLinks, setShowLinks] = useState(false)
   const [strutture, setStrutture] = useState<{ id: string; nome: string }[]>([])
+
+  const allNavGroups = useMemo(() => [
+    {
+      label: t('reception'),
+      items: [
+        { href: '/host/dashboard',   label: t('dashboard'),       icon: LayoutDashboard },
+        { href: '/host/oggi',        label: t('frontDesk'),       icon: Sun },
+        { href: '/host/strutture',   label: t('structures'),      icon: Building2 },
+      ],
+    },
+    {
+      label: t('reservations'),
+      items: [
+        { href: '/host/calendario',         label: t('calendar'),    icon: CalendarRange },
+        { href: '/host/prenotazioni',       label: t('bookings'),    icon: BookOpen },
+        { href: '/host/prenotazioni/nuova', label: t('newBooking'),  icon: CalendarPlus },
+      ],
+    },
+    {
+      label: t('operations'),
+      items: [
+        { href: '/host/crm',          label: t('crmGuests'),    icon: Users },
+        { href: '/host/housekeeping', label: t('housekeeping'),  icon: Sparkles },
+        { href: '/host/housekeeping/biancheria', label: t('linens'), icon: Shirt },
+        { href: '/host/oggetti-smarriti',  label: t('lostFound'),  icon: Search },
+        { href: '/host/magazzino',    label: t('warehouse'),     icon: Boxes },
+        { href: '/host/manutenzione', label: t('maintenance'),   icon: Wrench },
+        { href: '/host/staff',        label: t('staff'),         icon: MessageSquare },
+        { href: '/host/alloggiati',   label: t('alloggiatiWeb'), icon: Shield },
+        { href: '/host/promemoria',   label: t('reminders'),     icon: ClipboardCheck },
+        { href: '/host/ristorazione', label: t('catering'),      icon: UtensilsCrossed },
+      ],
+    },
+    {
+      label: t('business'),
+      items: [
+        { href: '/host/pacchetti', label: t('packages'),     icon: Package },
+        { href: '/host/eventi',    label: t('myEvents'),     icon: CalendarDays },
+        { href: '/host/cassa',     label: t('cashRegister'),  icon: Banknote },
+        { href: '/host/report',    label: t('report'),       icon: TrendingUp },
+        { href: '/host/analytics', label: t('analytics'),    icon: BarChart3 },
+        { href: '/host/fatture',   label: t('invoices'),     icon: FileText },
+        { href: '/host/email-automatiche', label: t('autoEmail'), icon: Mail },
+        { href: '/host/canali',           label: t('channelManager'), icon: Globe },
+        { href: '/host/servizi',           label: t('serviceCatalog'), icon: ShoppingBag },
+        { href: '/host/upselling',        label: t('upselling'),        icon: Award },
+        { href: '/host/concierge',        label: t('aiConcierge'),     icon: Bot },
+        { href: '/host/integrazione',     label: t('siteIntegration'), icon: Code },
+      ],
+    },
+    {
+      label: t('spaWellness'),
+      items: [
+        { href: '/host/spa',               label: t('spaDashboard'),  icon: Waves },
+        { href: '/host/spa/calendario',    label: t('spaCalendar'),   icon: CalendarClock },
+        { href: '/host/spa/appuntamenti',  label: t('spaAppointments'), icon: CalendarDays },
+        { href: '/host/spa/trattamenti',   label: t('spaTreatments'), icon: Sparkles },
+        { href: '/host/spa/percorsi',      label: t('spaPaths'),      icon: Star },
+        { href: '/host/spa/terapisti',     label: t('spaTherapists'), icon: Users },
+        { href: '/host/spa/cabine',        label: t('spaRooms'),      icon: DoorOpen },
+        { href: '/host/spa/gift-card',     label: 'Gift Card',        icon: CreditCard },
+        { href: '/host/spa/loyalty',       label: 'Fedeltà',         icon: Award },
+        { href: '/host/spa/waiting-list',  label: 'Waiting List',     icon: Clock },
+        { href: '/host/pos',              label: 'POS',              icon: ShoppingBag },
+      ],
+    },
+    {
+      label: t('account'),
+      items: [
+        { href: '/host/notifiche',   label: t('notifications'),   icon: Bell },
+        { href: '/host/gdpr',        label: t('gdprPrivacy'), icon: Shield },
+        { href: '/host/audit',       label: t('activityLog'),     icon: Clock },
+        { href: '/host/moduli',      label: t('modules'),       icon: Puzzle },
+        { href: '/host/abbonamento', label: t('subscription'), icon: CreditCard },
+        { href: '/host/utenti',      label: t('users') ?? 'Utenti', icon: Users },
+        { href: '/host/profilo',     label: t('profile'),     icon: UserCircle },
+        { href: '/host/help',        label: t('help'),        icon: HelpCircle },
+      ],
+    },
+  ], [t])
 
   // Filtra i gruppi sidebar in base ai moduli attivi
   const moduli = useMemo(() => parseModuli(moduliAttivi), [moduliAttivi])
@@ -174,12 +192,12 @@ export function HostSidebar({
         ...group,
         items: group.items.filter(item => {
           const moduloId = HREF_MODULO[item.href]
-          if (!moduloId) return true // nessun modulo associato → sempre visibile
+          if (!moduloId) return true
           return moduli[moduloId] === true
         }),
       }))
       .filter(group => group.items.length > 0)
-  }, [moduli])
+  }, [moduli, allNavGroups])
 
   useEffect(() => {
     if (!showLinks || strutture.length > 0) return
@@ -220,7 +238,7 @@ export function HostSidebar({
           <button
             onClick={() => setCollapsed(true)}
             className="text-slate-500 hover:text-white p-1 rounded transition-colors shrink-0 ml-1"
-            title="Comprimi menu"
+            title={t('collapseMenu')}
           >
             <PanelLeftClose size={15} />
           </button>
@@ -231,7 +249,6 @@ export function HostSidebar({
       <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
         {navGroups.map((group) => (
           <div key={group.label} className="mb-1">
-            {/* Section header */}
             {!collapsed ? (
               <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-2 mb-1 mt-2 first:mt-0">
                 {group.label}
@@ -241,7 +258,6 @@ export function HostSidebar({
             )}
 
             {group.items.map(({ href, label, icon: Icon }) => {
-              // Exact match for "nuova" to avoid activating "prenotazioni" too
               const isActive =
                 pathname === href ||
                 (href !== '/host/prenotazioni/nuova' &&
@@ -263,16 +279,11 @@ export function HostSidebar({
                       : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
                   )}
                 >
-                  {/* Active left bar */}
                   {isActive && !collapsed && (
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-400 rounded-full -ml-2" />
                   )}
-
                   <Icon size={16} className="shrink-0" />
-
                   {!collapsed && <span className="flex-1 truncate">{label}</span>}
-
-                  {/* Tooltip for collapsed */}
                   {collapsed && (
                     <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-white/10">
                       {label}
@@ -289,7 +300,7 @@ export function HostSidebar({
       <div className="border-t border-white/10 shrink-0 py-3 px-2">
         {!collapsed && (
           <div className="px-2 py-1 mb-1">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">Accesso come</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{tc('loggedInAs')}</p>
             <p className="text-xs font-medium text-slate-300 truncate mt-0.5">{nomeUtente}</p>
           </div>
         )}
@@ -298,7 +309,7 @@ export function HostSidebar({
           {collapsed && (
             <button
               onClick={() => setCollapsed(false)}
-              title="Espandi menu"
+              title={t('expandMenu')}
               className="flex items-center justify-center w-10 h-9 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-all"
             >
               <PanelLeftOpen size={16} />
@@ -306,25 +317,25 @@ export function HostSidebar({
           )}
           <button
             onClick={() => setShowLinks((v) => !v)}
-            title="Anteprima front end"
+            title={t('frontendPreview')}
             className={cn(
               'flex items-center gap-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100 transition-all',
               collapsed ? 'justify-center w-10 h-9' : 'w-full px-3 py-2'
             )}
           >
             <Eye size={16} className="shrink-0" />
-            {!collapsed && <span>Anteprima front end</span>}
+            {!collapsed && <span>{t('frontendPreview')}</span>}
           </button>
           <button
             onClick={() => signOut({ callbackUrl: '/login' })}
-            title="Esci"
+            title={t('logout')}
             className={cn(
               'flex items-center gap-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100 transition-all',
               collapsed ? 'justify-center w-10 h-9' : 'w-full px-3 py-2'
             )}
           >
             <LogOut size={16} className="shrink-0" />
-            {!collapsed && <span>Esci</span>}
+            {!collapsed && <span>{t('logout')}</span>}
           </button>
         </div>
       </div>
@@ -332,15 +343,12 @@ export function HostSidebar({
       {/* ── Pannello link frontend ─────────────────────────── */}
       {showLinks && (
         <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowLinks(false)} />
-
-          {/* Panel */}
           <div className="relative ml-auto w-80 max-w-full h-full bg-slate-900 border-l border-white/10 overflow-y-auto flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-2 text-white font-semibold text-sm">
                 <Eye size={15} />
-                <span>Anteprima front end</span>
+                <span>{t('frontendPreview')}</span>
               </div>
               <button
                 onClick={() => setShowLinks(false)}
@@ -351,13 +359,12 @@ export function HostSidebar({
             </div>
 
             <div className="flex-1 px-4 py-4 space-y-5 text-sm">
-              {/* Link generici */}
               <section>
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Generali</p>
+                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2">{tp('general')}</p>
                 <div className="space-y-1">
                   {[
-                    { label: 'Homepage', href: '/' },
-                    { label: 'Pagina prenotazioni', href: '/book' },
+                    { label: tp('homepage'), href: '/' },
+                    { label: tp('bookingsPage'), href: '/book' },
                   ].map(({ label, href }) => (
                     <a
                       key={href}
@@ -373,9 +380,8 @@ export function HostSidebar({
                 </div>
               </section>
 
-              {/* Link per struttura */}
               {strutture.length === 0 ? (
-                <p className="text-slate-500 text-xs text-center py-4">Caricamento strutture…</p>
+                <p className="text-slate-500 text-xs text-center py-4">{tp('loadingStructures')}</p>
               ) : (
                 strutture.map((s) => (
                   <section key={s.id}>
@@ -384,9 +390,9 @@ export function HostSidebar({
                     </p>
                     <div className="space-y-1">
                       {[
-                        { label: 'Prenota', href: `/book/${s.id}` },
-                        { label: 'Prenota (SPA)', href: `/book/${s.id}/spa` },
-                        { label: 'Prenota (Pacchetti)', href: `/book/${s.id}/pacchetti` },
+                        { label: tp('book'), href: `/book/${s.id}` },
+                        { label: tp('bookSpa'), href: `/book/${s.id}/spa` },
+                        { label: tp('bookPackages'), href: `/book/${s.id}/pacchetti` },
                       ].map(({ label, href }) => (
                         <a
                           key={href}

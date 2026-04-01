@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Loader2, Check, X, Puzzle } from 'lucide-react'
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Send, Check, X, Loader2, MoreVertical, FileText, FileCode } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function FatturaActions({
   fatturaId,
@@ -16,6 +17,7 @@ export function FatturaActions({
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [menu, setMenu] = useState(false)
+  const tc = useTranslations('common')
 
   async function aggiornaStato(stato: string) {
     setLoading(true)
@@ -48,7 +50,7 @@ export function FatturaActions({
           className="btn-primary flex items-center gap-2"
         >
           {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-          {statoAttuale === 'BOZZA' ? 'Invia al cliente' : 'Reinvia'}
+          {statoAttuale === 'BOZZA' ? 'Invia al cliente' : 'Reinvia'}{/* TODO: i18n */}
         </button>
       )}
 
@@ -69,7 +71,7 @@ export function FatturaActions({
                 className="flex items-center gap-2 px-4 py-2 text-sm text-green-700 hover:bg-green-50 w-full"
               >
                 <Check size={14} />
-                Segna come pagata
+                Segna come pagata{/* TODO: i18n */}
               </button>
             )}
             {statoAttuale !== 'INVIATA' && statoAttuale !== 'PAGATA' && (
@@ -78,7 +80,7 @@ export function FatturaActions({
                 className="flex items-center gap-2 px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 w-full"
               >
                 <Send size={14} />
-                Segna come inviata
+                Segna come inviata{/* TODO: i18n */}
               </button>
             )}
             {statoAttuale !== 'ANNULLATA' && (
@@ -87,7 +89,7 @@ export function FatturaActions({
                 className="flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50 w-full"
               >
                 <X size={14} />
-                Annulla fattura
+                Annulla fattura{/* TODO: i18n */}
               </button>
             )}
             <div className="border-t border-gray-100 my-1" />
@@ -98,7 +100,7 @@ export function FatturaActions({
               className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 w-full"
             >
               <FileText size={14} />
-              Scarica PDF
+              {tc('downloadPdf')}
             </a>
             <a
               href={`/api/admin/fatture/${fatturaId}/xml`}

@@ -21,6 +21,12 @@ tsconfig.tsbuildinfo
 Thumbs.db
 .DS_Store
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # misc
 *.log
 Nuovo Documento di testo.txt

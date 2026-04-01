@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { UtensilsCrossed, Loader2, Check, Coffee, Sun, Moon, AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type PianoPastoData = {
   piano: string

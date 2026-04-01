@@ -1,10 +1,11 @@
-﻿import { getServerSession } from 'next-auth'
+import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getHostId } from '@/lib/auth-middleware'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { headers } from 'next/headers'
 import { HostSidebar } from '@/components/host/sidebar'
 import { Topbar } from '@/components/layout/topbar'
+import { BugReportButton } from '@/components/layout/bug-report-button'
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -12,10 +13,24 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   if (!session) redirect('/login')
   if (session.user.role !== 'HOST' && session.user.role !== 'ADMIN') redirect('/login')
 
-  // Per ADMIN: prende il primo host disponibile per impersonare
   const host = session.user.role === 'HOST'
-    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true } })
-    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true } })
+    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true } })
+    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true } })
+
+  // Check if we're on the onboarding page
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') || ''
+  const isOnboardingPage = pathname.startsWith('/host/onboarding')
+
+  // Redirect HOST to onboarding if not completed (skip if already on onboarding page)
+  if (session.user.role === 'HOST' && host && !host.onboardingCompletato && !isOnboardingPage) {
+    redirect('/host/onboarding')
+  }
+
+  // Onboarding page renders without sidebar/topbar (full-screen wizard)
+  if (isOnboardingPage) {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -34,6 +49,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
           {children}
         </main>
       </div>
+      <BugReportButton />
     </div>
   )
 }

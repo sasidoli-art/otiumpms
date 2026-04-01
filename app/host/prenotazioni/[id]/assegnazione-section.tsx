@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { BedDouble, Loader2, CheckCircle2, AlertTriangle, Sparkles, Zap } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 type Camera = { id: string; nome: string; capacita: number; piano: number | null; prezzoBase: number; statoHK: string; score: number; motivoScore: string }
 

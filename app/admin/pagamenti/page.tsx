@@ -4,12 +4,15 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { PagamentoActions } from './pagamento-actions'
+import { getTranslations } from 'next-intl/server'
 
 interface Props {
   searchParams: Promise<{ hostId?: string; stato?: string }>
 }
 
 export default async function AdminPagamentiPage({ searchParams }: Props) {
+  const t = await getTranslations('admin.payments')
+  const tc = await getTranslations('common')
   const { hostId, stato } = await searchParams
   const pagamenti = await prisma.pagamento.findMany({
     where: {
@@ -33,16 +36,16 @@ export default async function AdminPagamentiPage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Pagamenti</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-gray-500 text-sm mt-1">
             {totaleInAttesa > 0 && (
-              <span className="text-orange-600 font-medium">{formatValuta(totaleInAttesa)} in attesa di incasso</span>
+              <span className="text-orange-600 font-medium">{formatValuta(totaleInAttesa)} {t('pendingCollection')}</span>
             )}
           </p>
         </div>
         <Link href="/admin/pagamenti/nuovo" className="btn-primary flex items-center gap-2">
           <Plus size={16} />
-          Nuovo pagamento
+          {t('newPayment')}
         </Link>
       </div>
 
@@ -50,14 +53,14 @@ export default async function AdminPagamentiPage({ searchParams }: Props) {
       <div className="card p-4 mb-6">
         <form method="GET" className="flex flex-wrap gap-3">
           <select name="stato" defaultValue={stato ?? ''} className="input w-auto">
-            <option value="">Tutti gli stati</option>
-            <option value="IN_ATTESA">In attesa</option>
-            <option value="PAGATO">Pagati</option>
-            <option value="IN_RITARDO">In ritardo</option>
-            <option value="ANNULLATO">Annullati</option>
+            <option value="">{tc('allStatuses')}</option>
+            <option value="IN_ATTESA">{t('pending')}</option>
+            <option value="PAGATO">{t('paid')}</option>
+            <option value="IN_RITARDO">{t('late')}</option>
+            <option value="ANNULLATO">{t('cancelled')}</option>
           </select>
-          <button type="submit" className="btn-primary">Filtra</button>
-          {(stato || hostId) && <Link href="/admin/pagamenti" className="btn-secondary">Reset</Link>}
+          <button type="submit" className="btn-primary">{tc('filter')}</button>
+          {(stato || hostId) && <Link href="/admin/pagamenti" className="btn-secondary">{tc('reset')}</Link>}
         </form>
       </div>
 
@@ -66,20 +69,20 @@ export default async function AdminPagamentiPage({ searchParams }: Props) {
           <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="table-th">Cliente</th>
-                <th className="table-th">Descrizione</th>
-                <th className="table-th">Importo</th>
-                <th className="table-th">Metodo</th>
-                <th className="table-th">Scadenza</th>
-                <th className="table-th">Pagato il</th>
-                <th className="table-th">Fattura</th>
-                <th className="table-th">Stato</th>
+                <th className="table-th">{t('client')}</th>
+                <th className="table-th">{t('description')}</th>
+                <th className="table-th">{tc('amount')}</th>
+                <th className="table-th">{t('method')}</th>
+                <th className="table-th">{t('dueDate')}</th>
+                <th className="table-th">{t('paidOn')}</th>
+                <th className="table-th">{t('invoice')}</th>
+                <th className="table-th">{tc('status')}</th>
                 <th className="table-th"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {pagamenti.length === 0 ? (
-                <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">Nessun pagamento trovato</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-sm text-gray-400">{tc('noResults')}</td></tr>
               ) : pagamenti.map(p => (
                 <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                   <td className="table-td">

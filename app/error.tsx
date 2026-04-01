@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
 
 interface ErrorProps {
@@ -9,8 +10,10 @@ interface ErrorProps {
 }
 
 export default function GlobalError({ error, reset }: ErrorProps) {
+  const t = useTranslations('errors')
+  const tc = useTranslations('common')
+
   useEffect(() => {
-    // In produzione potresti inviare a Sentry o simile
     console.error('[GlobalError]', error)
   }, [error])
 
@@ -24,13 +27,13 @@ export default function GlobalError({ error, reset }: ErrorProps) {
         </div>
 
         <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Qualcosa è andato storto
+          {t('somethingWentWrong')}
         </h1>
         <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-          Si è verificato un errore imprevisto. Il problema è stato registrato.
+          {t('unexpectedError')}
           {error.digest && (
             <span className="block mt-2 font-mono text-xs text-gray-400">
-              Codice: {error.digest}
+              {t('code')} {error.digest}
             </span>
           )}
         </p>
@@ -41,14 +44,14 @@ export default function GlobalError({ error, reset }: ErrorProps) {
             className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
-            Riprova
+            {tc('retry')}
           </button>
           <a
             href="/"
             className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
           >
             <Home className="w-4 h-4" />
-            Home
+            {tc('home')}
           </a>
         </div>
       </div>

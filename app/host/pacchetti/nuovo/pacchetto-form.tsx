@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { Plus, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 

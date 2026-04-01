@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Settings, Loader2, Check, Bot, Globe, Key } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
 
 export default function ConciergeSettingsPage() {
+  const t = useTranslations('host.concierge')
+  const tc = useTranslations('common')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [successo, setSuccesso] = useState(false)
@@ -58,8 +61,8 @@ export default function ConciergeSettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <div className="page-title-box">
         <div>
-          <h1 className="page-title flex items-center gap-2"><Settings className="w-6 h-6 text-purple-500" /> Impostazioni Concierge</h1>
-          <p className="text-sm text-gray-500">Configura provider AI e collegamento WhatsApp</p>
+          <h1 className="page-title flex items-center gap-2"><Settings className="w-6 h-6 text-purple-500" /> {t('settingsTitle')}</h1>
+          <p className="text-sm text-gray-500">{t('settingsSubtitle')}</p>
         </div>
       </div>
 
@@ -68,8 +71,8 @@ export default function ConciergeSettingsPage() {
         <div className="flex items-center gap-3">
           <Bot className="w-5 h-5 text-purple-500" />
           <div>
-            <p className="text-sm font-semibold">AI Concierge</p>
-            <p className="text-xs text-gray-400">{form.conciergeAttivo ? 'Attivo — risponde automaticamente' : 'Disattivo'}</p>
+            <p className="text-sm font-semibold">{t('aiConcierge')}</p>
+            <p className="text-xs text-gray-400">{form.conciergeAttivo ? t('activeDesc') : t('disabledDesc')}</p>
           </div>
         </div>
         <button onClick={() => setForm(f => ({ ...f, conciergeAttivo: !f.conciergeAttivo }))}
@@ -80,12 +83,12 @@ export default function ConciergeSettingsPage() {
 
       {/* Provider AI */}
       <div className="card space-y-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2"><Key className="w-4 h-4 text-gray-500" /> Provider AI</h3>
+        <h3 className="text-sm font-semibold flex items-center gap-2"><Key className="w-4 h-4 text-gray-500" /> {t('aiProvider')}</h3>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { id: 'ollama', label: 'Ollama (gratis)', desc: 'Locale, zero costi' },
-            { id: 'claude', label: 'Claude', desc: 'Anthropic API' },
-            { id: 'openai', label: 'OpenAI', desc: 'GPT-4o / GPT-4o-mini' },
+            { id: 'ollama', label: t('ollama'), desc: t('ollamaDesc') },
+            { id: 'claude', label: t('claude'), desc: t('claudeDesc') },
+            { id: 'openai', label: t('openai'), desc: t('openaiDesc') },
           ].map(p => (
             <button key={p.id} onClick={() => setForm(f => ({ ...f, conciergeProvider: p.id }))}
               className={`p-3 rounded-lg border-2 text-left text-xs transition-all ${form.conciergeProvider === p.id ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-slate-600'}`}>
@@ -96,40 +99,40 @@ export default function ConciergeSettingsPage() {
         </div>
         {form.conciergeProvider !== 'ollama' && (
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">API Key</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('apiKey')}</label>
             <input type="password" value={form.conciergeApiKey} onChange={e => setForm(f => ({ ...f, conciergeApiKey: e.target.value }))} placeholder={form.conciergeProvider === 'claude' ? 'sk-ant-...' : 'sk-...'} className={inp} />
           </div>
         )}
         <div>
-          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">Modello</label>
+          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('model')}</label>
           <input type="text" value={form.conciergeModel} onChange={e => setForm(f => ({ ...f, conciergeModel: e.target.value }))} className={inp} placeholder="llama3.1 / claude-haiku-4-5-20251001 / gpt-4o-mini" />
         </div>
       </div>
 
       {/* System prompt */}
       <div className="card space-y-3">
-        <h3 className="text-sm font-semibold">Informazioni hotel (System Prompt)</h3>
-        <p className="text-xs text-gray-400">Scrivi le informazioni che l'AI deve sapere: orari colazione, checkout, Wi-Fi, ristorante, parcheggio, servizi, ecc.</p>
+        <h3 className="text-sm font-semibold">{t('systemPrompt')}</h3>
+        <p className="text-xs text-gray-400">{t('systemPromptPlaceholder')}</p>
         <textarea value={form.conciergeSystemPrompt} onChange={e => setForm(f => ({ ...f, conciergeSystemPrompt: e.target.value }))} rows={8} className={inp}
           placeholder="Colazione 7:30-10:00 al ristorante La Terrazza.&#10;Checkout ore 11:00. Late checkout possibile fino alle 14:00 su richiesta.&#10;Wi-Fi: OtiumGuest / password1234&#10;Parcheggio gratuito nel cortile interno.&#10;SPA aperta 9:00-20:00, prenotazione obbligatoria." />
       </div>
 
       {/* WhatsApp */}
       <div className="card space-y-3">
-        <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-green-500" /> WhatsApp Business</h3>
-        <p className="text-xs text-gray-400">Credenziali Meta Cloud API. Necessarie solo per la produzione — il simulatore funziona senza.</p>
+        <h3 className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4 text-green-500" /> {t('whatsapp')}</h3>
+        <p className="text-xs text-gray-400">{t('whatsappDesc')}</p>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">Phone Number ID</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('phoneNumberId')}</label>
             <input type="text" value={form.whatsappNumeroId} onChange={e => setForm(f => ({ ...f, whatsappNumeroId: e.target.value }))} className={inp} placeholder="1234567890" />
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">Verify Token</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('verifyToken')}</label>
             <input type="text" value={form.whatsappVerifyToken} onChange={e => setForm(f => ({ ...f, whatsappVerifyToken: e.target.value }))} className={inp} placeholder="myverifytoken123" />
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">Access Token</label>
+          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('accessToken')}</label>
           <input type="password" value={form.whatsappAccessToken} onChange={e => setForm(f => ({ ...f, whatsappAccessToken: e.target.value }))} className={inp} placeholder="EAAx..." />
         </div>
       </div>
@@ -138,7 +141,7 @@ export default function ConciergeSettingsPage() {
       <button onClick={salva} disabled={saving}
         className={`w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${successo ? 'bg-green-500 text-white' : 'btn-primary'}`}>
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : successo ? <Check className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-        {saving ? 'Salvo...' : successo ? 'Salvato!' : 'Salva impostazioni'}
+        {saving ? tc('saving') : successo ? tc('saved') : t('saveSettings')}
       </button>
     </div>
   )

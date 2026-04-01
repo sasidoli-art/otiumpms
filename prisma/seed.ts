@@ -20,6 +20,34 @@ async function main() {
   })
   console.log('✅ Admin creato:', admin.email)
 
+  // ─── SuperAdmin: Antonio ─────────────────────────────────────────────
+  const antonio = await prisma.user.upsert({
+    where: { email: 'antonio@otiumweek.it' },
+    update: {},
+    create: {
+      email: 'antonio@otiumweek.it',
+      password,
+      nome: 'Antonio',
+      cognome: 'Otium',
+      role: 'SUPERADMIN',
+    },
+  })
+  console.log('✅ SuperAdmin creato:', antonio.email)
+
+  // ─── SuperAdmin: Matteo ─────────────────────────────────────────────
+  const matteo = await prisma.user.upsert({
+    where: { email: 'matteo@otiumweek.it' },
+    update: {},
+    create: {
+      email: 'matteo@otiumweek.it',
+      password,
+      nome: 'Matteo',
+      cognome: 'Otium',
+      role: 'SUPERADMIN',
+    },
+  })
+  console.log('✅ SuperAdmin creato:', matteo.email)
+
   // ─── Host user + profilo ─────────────────────────────────────────────
   const hostUser = await prisma.user.upsert({
     where: { email: 'host@otiumweek.it' },
