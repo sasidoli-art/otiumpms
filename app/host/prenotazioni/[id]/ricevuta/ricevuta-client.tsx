@@ -2,7 +2,6 @@
 
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { useTranslations } from 'next-intl'
 import type { Prenotazione } from '@prisma/client'
 
 const docLabel: Record<string, string> = {

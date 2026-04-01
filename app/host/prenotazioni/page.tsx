@@ -10,7 +10,15 @@ import { MessageSquare, Plus } from 'lucide-react'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { isStatoPrenotazione } from '@/lib/validations'
 import { ExportButton, ImportButton } from './import-export'
-import { getTranslations } from 'next-intl/server'
+
+const STATI_PRENOTAZIONE = [
+  { value: '', label: 'Tutte' },
+  { value: 'RICHIESTA', label: 'In attesa' },
+  { value: 'CONFERMATA', label: 'Confermate' },
+  { value: 'ANNULLATA', label: 'Annullate' },
+  { value: 'COMPLETATA', label: 'Completate' },
+  { value: 'NO_SHOW', label: 'No show' },
+]
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -20,6 +28,17 @@ function statoColor(stato: string): BadgeVariant {
     case 'COMPLETATA': return 'blue'
     case 'NO_SHOW': return 'gray'
     default: return 'gray'
+  }
+}
+
+function statoLabel(stato: string) {
+  switch (stato) {
+    case 'RICHIESTA': return 'In attesa'
+    case 'CONFERMATA': return 'Confermata'
+    case 'ANNULLATA': return 'Annullata'
+    case 'COMPLETATA': return 'Completata'
+    case 'NO_SHOW': return 'No show'
+    default: return stato
   }
 }
 
@@ -33,29 +52,7 @@ export default async function PrenotazioniPage({
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 
-  const t = await getTranslations('host.bookings')
-  const tc = await getTranslations('common')
   const { stato = '', q = '' } = await searchParams
-
-  const STATI_PRENOTAZIONE = [
-    { value: '', label: tc('all') },
-    { value: 'RICHIESTA', label: t('pending') },
-    { value: 'CONFERMATA', label: t('confirmed') },
-    { value: 'ANNULLATA', label: t('cancelled') },
-    { value: 'COMPLETATA', label: t('completed') },
-    { value: 'NO_SHOW', label: t('noShow') },
-  ]
-
-  function statoLabel(s: string) {
-    switch (s) {
-      case 'RICHIESTA': return t('pending')
-      case 'CONFERMATA': return t('confirmed')
-      case 'ANNULLATA': return t('cancelled')
-      case 'COMPLETATA': return t('completed')
-      case 'NO_SHOW': return t('noShow')
-      default: return s
-    }
-  }
 
   const prenotazioni = await prisma.prenotazione.findMany({
     where: {
@@ -90,16 +87,16 @@ export default async function PrenotazioniPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Prenotazioni</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {prenotazioni.length} {t('found')}
+            {prenotazioni.length} trovate
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ExportButton stato={stato} />
           <ImportButton />
           <Link href="/host/prenotazioni/nuova" className="btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> {t('newManual')}
+            <Plus className="w-4 h-4" /> Nuova manuale
           </Link>
         </div>
       </div>
@@ -128,16 +125,16 @@ export default async function PrenotazioniPage({
         <input
           name="q"
           defaultValue={q}
-          placeholder={t('searchPlaceholder')}
+          placeholder="Cerca ospite, email..."
           className="input max-w-xs"
         />
-        <button type="submit" className="btn-secondary">{tc('search')}</button>
+        <button type="submit" className="btn-secondary">Cerca</button>
       </form>
 
       {/* Tabella */}
       {prenotazioni.length === 0 ? (
         <div className="card py-12 text-center text-gray-500">
-          <p>{t('noBookings')}</p>
+          <p>Nessuna prenotazione trovata</p>
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
@@ -145,14 +142,14 @@ export default async function PrenotazioniPage({
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="table-th">{t('guest')}</th>
-                  <th className="table-th">{t('structure')}</th>
-                  <th className="table-th">{t('arrival')}</th>
-                  <th className="table-th">{t('departure')}</th>
-                  <th className="table-th">{t('numGuests')}</th>
-                  <th className="table-th">{t('total')}</th>
-                  <th className="table-th">{t('status')}</th>
-                  <th className="table-th">{t('chat')}</th>
+                  <th className="table-th">Ospite</th>
+                  <th className="table-th">Struttura</th>
+                  <th className="table-th">Arrivo</th>
+                  <th className="table-th">Partenza</th>
+                  <th className="table-th">Ospiti</th>
+                  <th className="table-th">Totale</th>
+                  <th className="table-th">Stato</th>
+                  <th className="table-th">Chat</th>
                   <th className="table-th" />
                 </tr>
               </thead>
@@ -207,7 +204,7 @@ export default async function PrenotazioniPage({
                         href={`/host/prenotazioni/${p.id}`}
                         className="text-xs text-brand-600 hover:underline"
                       >
-                        {t('detailArrow')}
+                        Dettaglio →
                       </Link>
                     </td>
                   </tr>

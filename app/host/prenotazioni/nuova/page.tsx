@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Loader2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 
 type Struttura = { id: string; nome: string; unita: UnitaPrenotabile[] }
 type UnitaPrenotabile = { id: string; nome: string }

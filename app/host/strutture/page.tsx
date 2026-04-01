@@ -6,24 +6,20 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Building2, Plus, Eye, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { getTranslations } from 'next-intl/server'
+
+const tipoLabel: Record<string, string> = {
+  EVENTO: 'Evento',
+  VENUE: 'Venue',
+  ESPERIENZA: 'Esperienza',
+  ALLOGGIO: 'Alloggio',
+  SERVIZIO: 'Servizio',
+}
 
 export default async function StrutturePage() {
   const session = await getServerSession(authOptions)
   if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
-
-  const t = await getTranslations('host.structures')
-  const tc = await getTranslations('common')
-
-  const tipoLabel: Record<string, string> = {
-    EVENTO: t('event'),
-    VENUE: t('venue'),
-    ESPERIENZA: t('experience'),
-    ALLOGGIO: t('accommodation'),
-    SERVIZIO: t('service'),
-  }
 
   const strutture = await prisma.struttura.findMany({
     where: { hostId: hostId },
@@ -38,27 +34,27 @@ export default async function StrutturePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Le mie strutture</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {t('subtitle')}
+            Gestisci le strutture, le unità prenotabili, disponibilità e tariffe
           </p>
         </div>
         <Link href="/host/strutture/nuova" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
-          {t('newStructure')}
+          Nuova struttura
         </Link>
       </div>
 
       {strutture.length === 0 ? (
         <div className="card flex flex-col items-center justify-center py-16 text-center">
           <Building2 className="w-12 h-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700">{t('noStructures')}</h3>
+          <h3 className="text-lg font-semibold text-gray-700">Nessuna struttura</h3>
           <p className="text-sm text-gray-500 mt-1 mb-6">
-            {t('createFirst')}
+            Crea la tua prima struttura per iniziare a ricevere prenotazioni
           </p>
           <Link href="/host/strutture/nuova" className="btn-primary flex items-center gap-2">
             <Plus className="w-4 h-4" />
-            {t('createStructure')}
+            Crea struttura
           </Link>
         </div>
       ) : (
@@ -78,11 +74,11 @@ export default async function StrutturePage() {
                 </div>
                 {s.attiva ? (
                   <span className="flex items-center gap-1 text-xs text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
-                    <Eye className="w-3 h-3" /> {tc('active')}
+                    <Eye className="w-3 h-3" /> Attiva
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                    <EyeOff className="w-3 h-3" /> {tc('inactive')}
+                    <EyeOff className="w-3 h-3" /> Disattiva
                   </span>
                 )}
               </div>
@@ -95,10 +91,10 @@ export default async function StrutturePage() {
 
               <div className="flex items-center gap-4 text-sm text-gray-600 border-t border-gray-100 pt-3 mt-3">
                 <span>
-                  <span className="font-semibold text-gray-900">{s.unita.length}</span> {t('units')}
+                  <span className="font-semibold text-gray-900">{s.unita.length}</span> unità
                 </span>
                 <span>
-                  <span className="font-semibold text-gray-900">{s._count.prenotazioni}</span> {t('bookings')}
+                  <span className="font-semibold text-gray-900">{s._count.prenotazioni}</span> prenotazioni
                 </span>
                 {s.prezzoBase > 0 && (
                   <span>

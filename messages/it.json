@@ -1683,6 +1683,148 @@
             "link": "/host/canali"
           }
         }
+      },
+      "cashiering": {
+        "title": "Cassa & Incassi",
+        "icon": "Banknote",
+        "description": "Registrazione pagamenti, chiusura giornaliera e report cassa",
+        "articles": {
+          "dailyRegister": {
+            "title": "Registrare un pagamento",
+            "content": "Dalla sezione Cassa puoi registrare ogni incasso selezionando il metodo di pagamento (contanti, carta di credito, carta di debito, bonifico, satispay). Per i pagamenti con carta, indica il tipo di carta e le ultime 4 cifre. Ogni transazione viene associata all'operatore connesso e alla prenotazione o servizio di riferimento.",
+            "link": "/host/cassa"
+          },
+          "dailyClosing": {
+            "title": "Chiusura cassa giornaliera",
+            "content": "A fine turno, avvia la chiusura cassa per riconciliare gli incassi. Inserisci il conteggio fisico dei contanti e il sistema calcola automaticamente la differenza tra incassato e atteso. Puoi aggiungere note per giustificare eventuali scostamenti. Lo storico chiusure e sempre consultabile.",
+            "link": "/host/cassa"
+          },
+          "cashReports": {
+            "title": "Report cassa",
+            "content": "I report cassa mostrano il dettaglio degli incassi suddivisi per metodo di pagamento, per operatore e per periodo. Puoi analizzare i trend giornalieri e mensili, confrontare periodi diversi e esportare i dati in CSV per la contabilita.",
+            "link": "/host/cassa"
+          }
+        }
+      },
+      "staffManagement": {
+        "title": "Gestione Utenti",
+        "icon": "UserPlus",
+        "description": "Inviti staff, ruoli, permessi e gestione account",
+        "articles": {
+          "inviting": {
+            "title": "Invitare un membro dello staff",
+            "content": "Dalla sezione Utenti puoi inviare inviti via email. Scegli uno dei 7 ruoli disponibili: Admin, Receptionist, Housekeeper, Terapista SPA, Cameriere, Manutentore e Staff Generico. Ogni ruolo ha permessi predefiniti che determinano quali sezioni del gestionale sono accessibili. L'invito ha validita 7 giorni.",
+            "link": "/host/utenti"
+          },
+          "registration": {
+            "title": "Registrazione invitati",
+            "content": "L'invitato riceve un'email con un link di registrazione. Cliccando il link, accede a un form dove inserisce nome, cognome e password. Dopo la registrazione, l'account viene attivato automaticamente con il ruolo assegnato e l'utente puo accedere immediatamente al gestionale.",
+            "link": "/host/utenti"
+          },
+          "permissions": {
+            "title": "Gestire permessi e ruoli",
+            "content": "Dalla lista utenti puoi modificare il ruolo di ciascun membro, disattivare temporaneamente un account o rimuoverlo. Gli utenti disattivati non possono accedere ma i loro dati e lo storico operazioni vengono conservati. Solo gli admin possono gestire gli altri utenti.",
+            "link": "/host/utenti"
+          }
+        }
+      },
+      "foodBeverage": {
+        "title": "Ristorazione & Menu",
+        "icon": "UtensilsCrossed",
+        "description": "Editor menu, scelte pasto ospiti e vista cucina",
+        "articles": {
+          "menuEditor": {
+            "title": "Editor menu giornaliero",
+            "content": "Dalla sezione Ristorazione puoi creare menu giornalieri con categorie (antipasti, primi, secondi, contorni, dessert). Per ogni piatto indica nome, descrizione, allergeni (glutine, lattosio, frutta a guscio, ecc.) e se e vegetariano o vegano. I menu vengono pubblicati automaticamente per gli ospiti.",
+            "link": "/host/ristorazione/menu"
+          },
+          "guestChoices": {
+            "title": "Scelte pasto degli ospiti",
+            "content": "Gli ospiti possono selezionare i piatti online prima del pasto, indicando eventuali intolleranze o preferenze alimentari. Il sistema raccoglie le scelte e le aggrega per la cucina, semplificando la preparazione e riducendo gli sprechi.",
+            "link": "/host/ristorazione/menu"
+          },
+          "kitchenView": {
+            "title": "Vista cucina",
+            "content": "La vista cucina mostra i conteggi giornalieri: numero di coperti previsti, quantita per ogni piatto ordinato e riepilogo allergeni da gestire. Questa vista e pensata per essere visualizzata su un tablet in cucina per una consultazione rapida durante il servizio.",
+            "link": "/host/ristorazione/menu"
+          }
+        }
+      },
+      "spaAdvanced": {
+        "title": "SPA Avanzato",
+        "icon": "Gem",
+        "description": "Gift card, loyalty, lista d'attesa e kiosk cabina",
+        "articles": {
+          "giftCards": {
+            "title": "Gift Card",
+            "content": "Puoi creare gift card con importo personalizzato o legate a un trattamento specifico. Le gift card hanno un codice univoco, una data di scadenza e un saldo tracciabile. Al momento della prenotazione SPA, l'ospite puo riscattare la gift card inserendo il codice. Il saldo residuo viene aggiornato automaticamente.",
+            "link": "/host/spa/gift-card"
+          },
+          "loyalty": {
+            "title": "Programma Fedelta",
+            "content": "Configura un programma loyalty con livelli (es. Bronze, Silver, Gold). Gli ospiti accumulano punti a ogni trattamento e possono riscattarli per sconti o trattamenti gratuiti. Definisci le soglie di punti per ogni livello e i benefici associati dalla sezione Loyalty.",
+            "link": "/host/spa/loyalty"
+          },
+          "waitingList": {
+            "title": "Lista d'Attesa",
+            "content": "Quando tutti gli slot sono occupati, gli ospiti possono iscriversi alla lista d'attesa. In caso di cancellazione, il sistema notifica automaticamente il primo in lista. Il modulo traccia anche i turnaway (richieste rifiutate) per aiutarti a dimensionare l'offerta SPA.",
+            "link": "/host/spa/waiting-list"
+          },
+          "cabinKiosk": {
+            "title": "Kiosk Cabina SPA",
+            "content": "Attiva la modalita kiosk su un tablet in ogni cabina per dare al terapista accesso immediato alla scheda clinica dell'ospite, alle zone da trattare/evitare e alle note. Il terapista puo aggiornare lo stato dell'appuntamento e segnare il completamento direttamente dal tablet.",
+            "link": "/host/spa/cabine"
+          }
+        }
+      },
+      "kiosk": {
+        "title": "Kiosk & Tablet",
+        "icon": "Tablet",
+        "description": "Modalita tablet per reception, SPA e firma ospiti",
+        "articles": {
+          "tabletMode": {
+            "title": "Configurare la modalita tablet",
+            "content": "La modalita tablet trasforma qualsiasi dispositivo in un terminale dedicato. In reception, il tablet mostra arrivi e partenze del giorno con possibilita di check-in rapido. Nella SPA, ogni cabina puo avere un tablet con la vista terapista. Attiva la modalita dal menu Impostazioni del dispositivo.",
+            "link": "/host/spa/cabine"
+          },
+          "checkoutSigning": {
+            "title": "Firma conto al check-out",
+            "content": "Al momento del check-out, l'ospite puo visualizzare il riepilogo addebiti sul tablet e firmare digitalmente il conto. La firma viene salvata insieme alla ricevuta e puo essere allegata alla fattura. Questo elimina la necessita di stampare documenti cartacei.",
+            "link": "/host/cassa"
+          },
+          "cabinView": {
+            "title": "Vista cabina terapista",
+            "content": "Il tablet in cabina mostra al terapista il profilo clinico dell'ospite: condizioni mediche dichiarate, allergie, farmaci, mappa corporea con zone da trattare e da evitare, e la pressione preferita. Tutte le informazioni provengono dal waiver compilato dall'ospite.",
+            "link": "/host/spa/cabine"
+          }
+        }
+      },
+      "gdprPrivacy": {
+        "title": "GDPR & Privacy",
+        "icon": "Shield",
+        "description": "Retention dati, esportazione, anonimizzazione e registration card",
+        "articles": {
+          "dataRetention": {
+            "title": "Politiche di retention automatica",
+            "content": "Il sistema applica automaticamente politiche di pulizia dei dati: i dati sensibili SPA (waiver clinici) vengono eliminati dopo 40 giorni dal trattamento, mentre i dati di contatto degli ospiti vengono anonimizzati dopo 90 giorni dall'ultimo soggiorno. Puoi personalizzare questi intervalli dalla sezione GDPR.",
+            "link": "/host/profilo"
+          },
+          "dataExport": {
+            "title": "Esportazione dati ospite (Art. 15)",
+            "content": "Su richiesta dell'ospite puoi esportare tutti i suoi dati personali in formato JSON o PDF. Il sistema raccoglie automaticamente prenotazioni, pagamenti, comunicazioni e dati SPA. L'export e accessibile dalla scheda ospite nel CRM, sezione GDPR.",
+            "link": "/host/crm"
+          },
+          "erasure": {
+            "title": "Diritto alla cancellazione (Art. 17)",
+            "content": "Dalla scheda ospite puoi avviare la procedura di anonimizzazione che sostituisce i dati personali con valori anonimi mantenendo intatte le statistiche aggregate. Il sistema verifica che non ci siano obblighi legali di conservazione prima di procedere (es. dati fiscali 10 anni).",
+            "link": "/host/crm"
+          },
+          "regCards": {
+            "title": "Registration Card digitali",
+            "content": "Personalizza i termini e condizioni mostrati nella Registration Card dal menu Impostazioni Reg Card. Puoi configurare testi separati per hotel e SPA, in piu lingue. Le firme digitali degli ospiti vengono archiviate con timestamp e possono essere consultate dalla prenotazione.",
+            "link": "/host/impostazioni-regcard"
+          }
+        }
       }
     },
     "faq": {
@@ -1717,6 +1859,30 @@
       "data": {
         "q": "I miei dati sono al sicuro?",
         "a": "Sì, utilizziamo crittografia HTTPS, database PostgreSQL su Neon con backup automatici, e rispettiamo il GDPR. I dati degli ospiti possono essere anonimizzati dalla sezione GDPR & Privacy."
+      },
+      "kioskTablet": {
+        "q": "Come funziona il kiosk tablet?",
+        "a": "La modalita kiosk trasforma un tablet in un terminale dedicato per reception o cabina SPA. In reception mostra arrivi e partenze con check-in rapido, in SPA mostra la scheda clinica dell'ospite al terapista. Attivala dalle impostazioni del dispositivo."
+      },
+      "activateModule": {
+        "q": "Come attivo un modulo aggiuntivo?",
+        "a": "Vai su Moduli nel menu laterale. Ogni modulo ha un interruttore per attivarlo o disattivarlo. I moduli attivati compaiono nel menu principale, quelli disattivati vengono nascosti. Alcuni moduli avanzati richiedono un piano superiore."
+      },
+      "inviteStaff": {
+        "q": "Come invito un membro dello staff?",
+        "a": "Vai su Utenti nel menu laterale e clicca Invita. Inserisci l'email e seleziona il ruolo (Admin, Receptionist, Housekeeper, ecc.). L'invitato ricevera un'email con il link di registrazione valido 7 giorni."
+      },
+      "createGiftCard": {
+        "q": "Come creo una gift card?",
+        "a": "Vai su SPA → Gift Card e clicca Nuova Gift Card. Puoi scegliere un importo libero o associarla a un trattamento specifico. Il sistema genera un codice univoco che l'ospite puo utilizzare al momento della prenotazione SPA."
+      },
+      "dailyCashClosing": {
+        "q": "Come funziona la chiusura cassa?",
+        "a": "A fine turno, vai su Cassa e avvia la chiusura giornaliera. Inserisci il conteggio fisico dei contanti e il sistema confronta automaticamente con gli incassi registrati. Puoi aggiungere note per eventuali differenze e confermare la chiusura."
+      },
+      "configureMenu": {
+        "q": "Come configuro il menu del ristorante?",
+        "a": "Vai su Ristorazione → Menu e crea un nuovo menu giornaliero. Aggiungi i piatti per categoria (antipasti, primi, secondi, dessert), indica allergeni e preferenze dietetiche. Il menu viene pubblicato automaticamente per le scelte degli ospiti."
       }
     }
   },

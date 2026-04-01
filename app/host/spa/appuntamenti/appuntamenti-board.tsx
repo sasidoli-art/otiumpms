@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { useTranslations } from 'next-intl'
 import { Plus, Filter, Clock, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn, formatValuta } from '@/lib/utils'
@@ -52,8 +51,6 @@ const STATO_COLOR: Record<string, string> = {
 }
 
 export default function AppuntamentiBoard() {
-  const t = useTranslations('spa.appointments')
-  const tc = useTranslations('common')
   const [appts, setAppts] = useState<Appt[]>([])
   const [loading, setLoading] = useState(true)
   const [terapisti, setTerapisti] = useState<Terapista[]>([])
@@ -185,7 +182,7 @@ export default function AppuntamentiBoard() {
     <div className="p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-xl font-bold text-gray-900">{t('title')}</h1>
+        <h1 className="text-xl font-bold text-gray-900">Appuntamenti SPA</h1>
         <button onClick={openCreate} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Nuovo appuntamento
         </button>

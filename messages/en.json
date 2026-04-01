@@ -1683,6 +1683,148 @@
             "link": "/host/canali"
           }
         }
+      },
+      "cashiering": {
+        "title": "Cash Register & Payments",
+        "icon": "Banknote",
+        "description": "Payment registration, daily closing and cash reports",
+        "articles": {
+          "dailyRegister": {
+            "title": "Registering a payment",
+            "content": "From the Cash Register section you can record every payment by selecting the payment method (cash, credit card, debit card, bank transfer, satispay). For card payments, specify the card type and last 4 digits. Each transaction is linked to the logged-in operator and to the related booking or service.",
+            "link": "/host/cassa"
+          },
+          "dailyClosing": {
+            "title": "Daily cash closing",
+            "content": "At the end of your shift, start the cash closing to reconcile payments. Enter the physical cash count and the system automatically calculates the difference between collected and expected amounts. You can add notes to explain any discrepancies. The closing history is always available for review.",
+            "link": "/host/cassa"
+          },
+          "cashReports": {
+            "title": "Cash reports",
+            "content": "Cash reports show payment details broken down by payment method, by operator and by period. You can analyze daily and monthly trends, compare different periods and export data to CSV for accounting purposes.",
+            "link": "/host/cassa"
+          }
+        }
+      },
+      "staffManagement": {
+        "title": "Staff Management",
+        "icon": "UserPlus",
+        "description": "Staff invitations, roles, permissions and account management",
+        "articles": {
+          "inviting": {
+            "title": "Inviting a staff member",
+            "content": "From the Users section you can send email invitations. Choose one of 7 available roles: Admin, Receptionist, Housekeeper, SPA Therapist, Waiter, Maintenance and General Staff. Each role has predefined permissions that determine which sections of the system are accessible. Invitations are valid for 7 days.",
+            "link": "/host/utenti"
+          },
+          "registration": {
+            "title": "Invitee registration",
+            "content": "The invitee receives an email with a registration link. By clicking the link, they access a form where they enter their first name, last name and password. After registration, the account is automatically activated with the assigned role and the user can immediately access the system.",
+            "link": "/host/utenti"
+          },
+          "permissions": {
+            "title": "Managing permissions and roles",
+            "content": "From the user list you can change each member's role, temporarily deactivate an account or remove it. Deactivated users cannot log in but their data and operation history are preserved. Only admins can manage other users.",
+            "link": "/host/utenti"
+          }
+        }
+      },
+      "foodBeverage": {
+        "title": "Food & Beverage",
+        "icon": "UtensilsCrossed",
+        "description": "Menu editor, guest meal choices and kitchen view",
+        "articles": {
+          "menuEditor": {
+            "title": "Daily menu editor",
+            "content": "From the F&B section you can create daily menus with categories (starters, first courses, main courses, sides, desserts). For each dish, specify name, description, allergens (gluten, lactose, nuts, etc.) and whether it is vegetarian or vegan. Menus are automatically published for guests.",
+            "link": "/host/ristorazione/menu"
+          },
+          "guestChoices": {
+            "title": "Guest meal choices",
+            "content": "Guests can select dishes online before the meal, indicating any intolerances or dietary preferences. The system collects choices and aggregates them for the kitchen, simplifying preparation and reducing waste.",
+            "link": "/host/ristorazione/menu"
+          },
+          "kitchenView": {
+            "title": "Kitchen view",
+            "content": "The kitchen view shows daily counts: expected covers, quantity for each ordered dish and allergen summary to manage. This view is designed to be displayed on a kitchen tablet for quick reference during service.",
+            "link": "/host/ristorazione/menu"
+          }
+        }
+      },
+      "spaAdvanced": {
+        "title": "Advanced SPA",
+        "icon": "Gem",
+        "description": "Gift cards, loyalty program, waiting list and cabin kiosk",
+        "articles": {
+          "giftCards": {
+            "title": "Gift Cards",
+            "content": "You can create gift cards with a custom amount or linked to a specific treatment. Gift cards have a unique code, an expiration date and a trackable balance. When booking a SPA treatment, the guest can redeem the gift card by entering the code. The remaining balance is updated automatically.",
+            "link": "/host/spa/gift-card"
+          },
+          "loyalty": {
+            "title": "Loyalty Program",
+            "content": "Set up a loyalty program with tiers (e.g. Bronze, Silver, Gold). Guests earn points with each treatment and can redeem them for discounts or free treatments. Define point thresholds for each tier and associated benefits from the Loyalty section.",
+            "link": "/host/spa/loyalty"
+          },
+          "waitingList": {
+            "title": "Waiting List",
+            "content": "When all slots are booked, guests can join the waiting list. If a cancellation occurs, the system automatically notifies the first person on the list. The module also tracks turnaways (declined requests) to help you size your SPA offering.",
+            "link": "/host/spa/waiting-list"
+          },
+          "cabinKiosk": {
+            "title": "SPA Cabin Kiosk",
+            "content": "Enable kiosk mode on a tablet in each cabin to give the therapist immediate access to the guest's clinical profile, zones to treat/avoid and notes. The therapist can update the appointment status and mark completion directly from the tablet.",
+            "link": "/host/spa/cabine"
+          }
+        }
+      },
+      "kiosk": {
+        "title": "Kiosk & Tablet",
+        "icon": "Tablet",
+        "description": "Tablet mode for reception, SPA and guest signing",
+        "articles": {
+          "tabletMode": {
+            "title": "Setting up tablet mode",
+            "content": "Tablet mode turns any device into a dedicated terminal. At reception, the tablet shows the day's arrivals and departures with quick check-in. In the SPA, each cabin can have a tablet with the therapist view. Enable tablet mode from the device Settings menu.",
+            "link": "/host/spa/cabine"
+          },
+          "checkoutSigning": {
+            "title": "Checkout bill signing",
+            "content": "At checkout, the guest can view the charge summary on the tablet and digitally sign the bill. The signature is saved alongside the receipt and can be attached to the invoice. This eliminates the need for paper documents.",
+            "link": "/host/cassa"
+          },
+          "cabinView": {
+            "title": "Therapist cabin view",
+            "content": "The cabin tablet shows the therapist the guest's clinical profile: declared medical conditions, allergies, medications, body map with zones to treat and avoid, and preferred pressure. All information comes from the waiver completed by the guest.",
+            "link": "/host/spa/cabine"
+          }
+        }
+      },
+      "gdprPrivacy": {
+        "title": "GDPR & Privacy",
+        "icon": "Shield",
+        "description": "Data retention, export, anonymization and registration cards",
+        "articles": {
+          "dataRetention": {
+            "title": "Automatic retention policies",
+            "content": "The system automatically applies data cleanup policies: sensitive SPA data (clinical waivers) is deleted after 40 days from the treatment, while guest contact data is anonymized after 90 days from the last stay. You can customize these intervals from the GDPR section.",
+            "link": "/host/profilo"
+          },
+          "dataExport": {
+            "title": "Guest data export (Art. 15)",
+            "content": "Upon guest request you can export all their personal data in JSON or PDF format. The system automatically gathers bookings, payments, communications and SPA data. The export is accessible from the guest profile in CRM, under the GDPR section.",
+            "link": "/host/crm"
+          },
+          "erasure": {
+            "title": "Right to erasure (Art. 17)",
+            "content": "From the guest profile you can start the anonymization procedure which replaces personal data with anonymous values while keeping aggregate statistics intact. The system checks for legal retention obligations before proceeding (e.g. tax data for 10 years).",
+            "link": "/host/crm"
+          },
+          "regCards": {
+            "title": "Digital Registration Cards",
+            "content": "Customize the terms and conditions shown on Registration Cards from the Reg Card Settings menu. You can configure separate texts for hotel and SPA, in multiple languages. Guest digital signatures are archived with timestamps and can be viewed from the booking.",
+            "link": "/host/impostazioni-regcard"
+          }
+        }
       }
     },
     "faq": {
@@ -1717,6 +1859,30 @@
       "data": {
         "q": "Is my data safe?",
         "a": "Yes, we use HTTPS encryption, PostgreSQL database on Neon with automatic backups, and we comply with GDPR. Guest data can be anonymized from the GDPR & Privacy section."
+      },
+      "kioskTablet": {
+        "q": "How does the tablet kiosk work?",
+        "a": "Kiosk mode turns a tablet into a dedicated terminal for reception or SPA cabin. At reception it shows arrivals and departures with quick check-in, in the SPA it shows the guest's clinical profile to the therapist. Enable it from device settings."
+      },
+      "activateModule": {
+        "q": "How do I activate an additional module?",
+        "a": "Go to Modules in the sidebar. Each module has a toggle to enable or disable it. Enabled modules appear in the main menu, disabled ones are hidden. Some advanced modules require a higher subscription plan."
+      },
+      "inviteStaff": {
+        "q": "How do I invite a staff member?",
+        "a": "Go to Users in the sidebar and click Invite. Enter the email and select a role (Admin, Receptionist, Housekeeper, etc.). The invitee will receive an email with a registration link valid for 7 days."
+      },
+      "createGiftCard": {
+        "q": "How do I create a gift card?",
+        "a": "Go to SPA, then Gift Card and click New Gift Card. You can choose a custom amount or link it to a specific treatment. The system generates a unique code the guest can use when booking a SPA treatment."
+      },
+      "dailyCashClosing": {
+        "q": "How does the daily cash closing work?",
+        "a": "At the end of your shift, go to Cash Register and start the daily closing. Enter the physical cash count and the system automatically compares it with recorded payments. You can add notes for any discrepancies and confirm the closing."
+      },
+      "configureMenu": {
+        "q": "How do I configure the restaurant menu?",
+        "a": "Go to F&B, then Menu and create a new daily menu. Add dishes by category (starters, first courses, main courses, desserts), specify allergens and dietary preferences. The menu is automatically published for guest meal selections."
       }
     }
   },

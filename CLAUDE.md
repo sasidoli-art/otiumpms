@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Last updated: 2026-03-29
+> Last updated: 2026-04-01
 
 ## Development Commands
 
@@ -28,19 +28,26 @@ Manual smoke testing at `/test` (system sitemap page).
 
 ## Architecture
 
-**Stack**: Next.js 16 (App Router) · React 18 · TypeScript 5 · Prisma 5 (Neon PostgreSQL) · NextAuth 4 (JWT) · Tailwind CSS · Zod
+**Stack**: Next.js 16 (App Router) · React 18 · TypeScript 5 · Prisma 5 (Neon PostgreSQL) · NextAuth 4 (JWT) · Tailwind CSS · Zod · next-intl · @sentry/nextjs · otpauth · qrcode · @playwright/test · Recharts · Framer Motion
 
-**What this is**: Multi-tenant SaaS for event/booking management ("Otium Week"). Two roles: ADMIN (platform operator) and HOST (venue/event manager). Public-facing booking flow for guests.
+**What this is**: Multi-tenant SaaS for event/booking management ("Otium Week"). Three roles: **ADMIN** (platform operator), **HOST** (venue/event manager), **SUPERADMIN** (system-wide management). Public-facing booking flow for guests. Modular feature system with 27 activatable modules.
 
 ### Route Structure
 
 | Path | Auth | Purpose |
 |------|------|---------|
-| `/book/*`, `/checkin/*` | Public | Guest booking flow, self check-in |
+| `/book/*` | Public | Guest booking flow (rooms, SPA, meals, packages) |
+| `/checkin/*` | Public | Self check-in |
+| `/book/chat/[id]` | Public | Guest chat with host |
 | `/(auth)/login` | Public | Login page |
+| `/registrazione/[token]` | Public | Staff registration via invite token |
+| `/kiosk/[token]` | Public | Tablet kiosk for checkout signing |
+| `/kiosk/spa/[cabinaId]` | Public | SPA cabin tablet (waiver signing) |
+| `/privacy-policy`, `/terms`, `/cookie-policy` | Public | Legal pages |
 | `/test` | Public | System sitemap / dev navigation page |
 | `/host/*` | HOST role | Venue management, bookings, CRM, housekeeping, SPA |
 | `/admin/*` | ADMIN role | Platform management, invoicing, host accounts |
+| `/superadmin/*` | SUPERADMIN | Host management, subscriptions, modules, monitoring |
 
 **Middleware** (`middleware.ts`): Protects `/host/:path*` and `/admin/:path*` via NextAuth `withAuth`. Redirects wrong-role users to `/login`.
 
@@ -70,7 +77,10 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 - **Schema**: `prisma/schema.prisma` — run `db:generate` after any change
 - **Core chain**: `Host` → `Struttura` → `UnitaPrenotabile` → `Prenotazione`
 - **SPA chain**: `Struttura` → `AppuntamentoSpa` → `WaiverSpa` + `PagamentoSpa`
-- **All models**: `Abbonamento`, `AnalyticsGiornalieri`, `AppuntamentoSpa`, `CabinaSpa`, `Chat`, `ComunicazioneStaff`, `Disponibilita`, `DisponibilitaTerapista`, `Evento`, `Fattura`, `Host`, `Messaggio`, `Notifica`, `OspiteCRM`, `Pacchetto`, `Pagamento`, `PagamentoSpa`, `PassaggioPercorso`, `PercorsoBenessere`, `Prenotazione`, `RegolaTariffa`, `SegnalazioneManutenzione`, `Session`, `Struttura`, `TariffaPeriodo`, `TaskHK`, `TerapistaSpa`, `TrattamentoSpa`, `UnitaPrenotabile`, `User`, `WaiverSpa`
+- **F&B chain**: `Struttura` → `ConfigPastoStruttura` → `PastoPrenotazione` → `SceltaPastoOspite`
+- **POS chain**: `TransazionePOS` → `VocePOS`; `ChiusuraCassa` → `Incasso`
+- **Loyalty chain**: `ProgrammaFedelta` → `LivelloFedelta` → `MembroFedelta` → `MovimentoPunti`
+- **74 models total** — key additions since v1: `Ticket`, `StaffMember`, `StaffInvite`, `MenuGiornaliero`, `PiattoMenu`, `SceltaPastoOspite`, `GiftCard`, `GiftCardMovimento`, `TransazionePOS`, `VocePOS`, `ProgrammaFedelta`, `LivelloFedelta`, `MembroFedelta`, `MovimentoPunti`, `WaitingListSpa`, `TurnawayTracking`, `ChiusuraCassa`, `Incasso`, `ConfigPastoStruttura`, `PastoPrenotazione`, `ArticoloMagazzino`, `MovimentoMagazzino`, `PaymentProviderConfig`, `PagamentoCheckout`, `ServizioStruttura`, `PacchettoServizio`, `VocePacchetto`, `AddebitoPrenotazione`, `CanaleEsterno`, `PrenotazioneCanale`, `AlertOspite`, `OggettoSmarrito`, `RegolaUpsell`, `PropostaUpsell`, `DotazioneBiancheria`, `RichiestaBiancheria`, `Trace`, `Accompagnatore`, `AuditLog`, `DotazioneCabinaSpa`, `ConversazioneWhatsApp`, `MessaggioWhatsApp`, `AzioneConcierge`
 
 ### Import Alias
 
@@ -81,23 +91,45 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 | Path | Purpose |
 |------|---------|
 | `/host/dashboard` | Main overview dashboard |
-| `/host/prenotazioni` | Bookings list + detail |
-| `/host/strutture` | Properties management |
-| `/host/disponibilita` | Availability calendar |
-| `/host/tariffe` | Pricing & rate rules |
+| `/host/prenotazioni` | Bookings list + detail + new booking |
+| `/host/strutture` | Properties management + detail + tariffe |
 | `/host/crm` | Guest CRM + detail |
 | `/host/fatture` | Invoices (fatturazione elettronica) |
-| `/host/eventi` | Local events |
-| `/host/pacchetti` | Packages |
+| `/host/eventi` | Local events + new event |
+| `/host/pacchetti` | Packages + detail + new |
 | `/host/alloggiati` | Alloggiati Web (police reporting) |
-| `/host/housekeeping` | HK tasks + calendar |
+| `/host/housekeeping` | HK tasks + calendar + biancheria |
 | `/host/manutenzione` | Maintenance reports |
-| `/host/staff` | Staff management |
+| `/host/staff` | Staff communications board |
 | `/host/notifiche` | Notifications |
-| `/host/analytics` | Analytics |
+| `/host/analytics` | Analytics dashboard |
 | `/host/report` | Revenue reports |
 | `/host/profilo` | Profile & settings |
 | `/host/oggi` | Today's arrivals/departures |
+| `/host/calendario` | Calendar overview |
+| `/host/abbonamento` | Subscription management |
+| `/host/moduli` | Module activation/deactivation |
+| `/host/audit` | Audit log viewer |
+| `/host/gdpr` | GDPR compliance & data retention |
+| `/host/canali` | Channel manager (Booking/Airbnb/VRBO iCal) |
+| `/host/magazzino` | Inventory management |
+| `/host/integrazione` | External integrations |
+| `/host/servizi` | Additional services catalog |
+| `/host/upselling` | Room upselling rules |
+| `/host/oggetti-smarriti` | Lost & found registry |
+| `/host/promemoria` | Reminders / task deadlines |
+| `/host/email-automatiche` | Automated email configuration |
+| `/host/pos` | Point of Sale terminal |
+| `/host/cassa` | Cash register + daily closing |
+| `/host/utenti` | Staff user management + invites |
+| `/host/help` | Help center |
+| `/host/onboarding` | First-time setup wizard |
+| `/host/ristorazione` | F&B overview |
+| `/host/ristorazione/menu` | F&B menu editor |
+| `/host/impostazioni-regcard` | Registration card T&C settings |
+| `/host/concierge` | AI Concierge dashboard + detail |
+| `/host/concierge/impostazioni` | Concierge AI settings |
+| `/host/concierge/test` | Concierge simulator |
 | `/host/spa` | SPA dashboard (waiver + payments) |
 | `/host/spa/appuntamenti` | SPA appointment board |
 | `/host/spa/calendario` | SPA calendar |
@@ -109,13 +141,33 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 | `/host/spa/gift-card` | Gift Card management |
 | `/host/spa/loyalty` | Loyalty program |
 | `/host/spa/waiting-list` | Waiting list + turnaway |
-| `/host/pos` | Point of Sale terminal |
-| `/host/cassa` | Cash register + daily closing |
-| `/host/utenti` | Staff user management + invites |
-| `/host/help` | Help center |
-| `/host/onboarding` | First-time setup wizard |
-| `/host/ristorazione/menu` | F&B menu editor |
-| `/host/impostazioni-regcard` | Registration card T&C settings |
+
+## Admin Route Map (`/admin/*`)
+
+| Path | Purpose |
+|------|---------|
+| `/admin/dashboard` | Admin overview |
+| `/admin/clienti` | Host/client management |
+| `/admin/prenotazioni` | All bookings across hosts |
+| `/admin/eventi` | All events |
+| `/admin/fatture` | Platform invoices |
+| `/admin/pagamenti` | Payment tracking |
+| `/admin/ticket` | Support tickets |
+| `/admin/impostazioni` | Platform settings |
+
+## SuperAdmin Route Map (`/superadmin/*`)
+
+| Path | Purpose |
+|------|---------|
+| `/superadmin/host` | Host accounts management |
+| `/superadmin/strutture` | All structures across platform |
+| `/superadmin/utenti` | User management |
+| `/superadmin/abbonamenti` | Subscription plans & billing |
+| `/superadmin/fatture` | Platform-wide invoices |
+| `/superadmin/moduli` | Module catalog & pricing |
+| `/superadmin/analytics` | Platform-wide analytics |
+| `/superadmin/monitoring` | System monitoring & health |
+| `/superadmin/impostazioni` | Global settings |
 
 ## SPA Module (Waiver & Payments)
 
@@ -187,15 +239,39 @@ enum CategoriaSpa { ... }
 |------|----------|
 | `lib/auth.ts` | NextAuth config (`authOptions`) |
 | `lib/auth-middleware.ts` | `requireHost()`, `requireAdmin()`, `isUnauthorized()` |
+| `lib/superadmin-guard.ts` | `requireSuperAdmin()` guard for superadmin routes |
 | `lib/db.ts` | Prisma client singleton |
-| `lib/utils.ts` | `cn()`, `formatData()`, `formatValuta()`, `formatDataRelativa()`, enum label/color helpers (`statoPrenotazioneLabel`, `pianoLabel`, etc.) |
-| `lib/validations.ts` | Zod schemas + `parseBody()` helper + type guards (`isStatoPrenotazione`, etc.). Also: `waiverSpaSchema`, `pagamentoSpaSchema`, `ZONE_CORPO` constant |
+| `lib/utils.ts` | `cn()`, `formatData()`, `formatValuta()`, `formatDataRelativa()`, enum label/color helpers |
+| `lib/validations.ts` | Zod schemas + `parseBody()` helper + type guards. Also: `waiverSpaSchema`, `pagamentoSpaSchema`, `ZONE_CORPO` |
+| `lib/moduli.ts` | Module system: `CATALOGO_MODULI`, `parseModuli()`, `isModuloAttivo()`, `PREZZI_ADDON` |
+| `lib/billing.ts` | Subscription plans: `PLAN_DEFINITIONS`, limits, upgrade/downgrade logic |
 | `lib/email.ts` | Nodemailer SMTP transport (Gmail) |
 | `lib/email-templates.ts` | Multi-language email templates (IT/EN/FR) + `sendEmailNuovaPrenotazione()` |
+| `lib/email-queue.ts` | Email queue with retry logic for background sending |
 | `lib/ical.ts` | iCal (RFC 5545) generation, HMAC token auth for public calendar URLs |
+| `lib/ical-import.ts` | iCal import from external channels (Booking/Airbnb) |
 | `lib/rate-limit.ts` | In-memory sliding-window rate limiter + `getClientIp()` |
 | `lib/logger.ts` | Structured logger (`logger.info/warn/error`) |
 | `lib/pdf.tsx` | React-PDF invoice/receipt generation |
+| `lib/pdf-generator.ts` | PDFKit-based PDF generation |
+| `lib/chat-events.ts` | In-memory SSE event bus (`ChatEventBus`) for real-time chat |
+| `lib/use-chat.ts` | React hook for SSE chat (message stream, typing indicators) |
+| `lib/gdpr-retention.ts` | GDPR retention policies + automated data cleanup |
+| `lib/audit.ts` | Audit logging utilities |
+| `lib/ai-provider.ts` | AI provider abstraction (host brings own API key) |
+| `lib/concierge.ts` | AI Concierge logic for WhatsApp conversations |
+| `lib/whatsapp.ts` | WhatsApp API integration |
+| `lib/pricing.ts` | Dynamic pricing engine |
+| `lib/assegnazione-camera.ts` | Room assignment algorithm |
+| `lib/biancheria.ts` | Linen/housekeeping dotation logic |
+| `lib/fattura-elettronica.ts` | Italian electronic invoice (FatturaPA XML) |
+| `lib/iva.ts` | IVA (VAT) calculation |
+| `lib/payment-provider.ts` | Payment provider abstraction |
+| `lib/upsell.ts` | Upselling rule engine |
+| `lib/csrf.ts` | CSRF token protection |
+| `lib/comuni-tassa-soggiorno.ts` | City tax lookup data |
+| `lib/alloggiati.ts` | Alloggiati Web export formatting |
+| `lib/optimization.tsx` | Performance optimization utilities |
 
 ## Italian Domain Context
 
@@ -203,3 +279,109 @@ enum CategoriaSpa { ... }
 - **Fatturazione elettronica**: Invoice fields include codiceSDI, PEC, regime fiscale, aliquota IVA
 - **Locale**: Date formatting uses `it` locale, currency is EUR
 - **SPA waiver**: Clinical declarations required before treatment — includes pregnancy flag, zone corpo (14 zones), allergie, patologie, farmaci
+
+## Module System
+
+The platform uses a modular architecture where features are activatable per host. Defined in `lib/moduli.ts`.
+
+- **27 modules** in `CATALOGO_MODULI`, organized in 4 categories: `base`, `operativo`, `avanzato`, `integrazioni`
+- **Base modules** (always on by default): prenotazioni, strutture, crm, housekeeping
+- **Activation states**: `incluso` (in plan), `demo` (time-limited trial), `pagamento` (paid add-on), `off`
+- **`parseModuli(host.moduliAttivi)`** returns a `Record<string, boolean>` used by sidebar, API guards, and pages
+- **`isModuloAttivo(moduliAttivi, 'spa')`** checks if a specific module is active
+- **`PREZZI_ADDON`** defines monthly EUR price per module (e.g., SPA=30, POS=20, Concierge=25)
+- Sidebar, API routes, and pages conditionally render based on active modules
+
+## Billing & Plans
+
+Four subscription tiers defined in `lib/billing.ts` via `PLAN_DEFINITIONS`:
+
+| Plan | Price/mo | Structures | Units | Events | Key Modules |
+|------|----------|------------|-------|--------|-------------|
+| LIGHT | 29 | 1 | 10 | 0 | Core + emailAuto + iCal |
+| EVENTO_SINGOLO | 49 | 1 | 5 | 3 | + eventi |
+| VISIBILITA_MENSILE | 149 | 3 | 20 | 10 | + many advanced |
+| PARTNER_PREMIUM | 299 | 10 | 50 | 50 | All modules included |
+
+Additional modules beyond plan inclusion are billed as add-ons via `PREZZI_ADDON`.
+
+## Kiosk & Paperless
+
+- **`/kiosk/[token]`** — Tablet-mode checkout page. Guests sign digitally on a tablet at reception. Token-authenticated (no login required).
+- **`/kiosk/spa/[cabinaId]`** — SPA cabin tablet for waiver signing before treatment. Mounted in each cabin.
+- Both routes are optimized for touch interaction, large buttons, and signature capture.
+
+## GDPR & Data Retention
+
+Full documentation in `docs/GDPR.md`. Key policies from `lib/gdpr-retention.ts`:
+
+- **SPA health data (waiver)**: 90 days on platform, then purged (host notified to download)
+- **Alloggiati data**: 5 years (Art. 109 TULPS)
+- **Accounting documents**: 10 years (Art. 2220 Codice Civile)
+- **Guest personal data**: 40 days after checkout (anonymized, not deleted)
+- Automated cron job for retention enforcement
+- Host is Titolare del trattamento; platform is Responsabile
+
+## Staff & Users
+
+7 staff roles defined by `RuoloStaff` enum:
+
+| Role | Access |
+|------|--------|
+| `MANAGER` | Full host access |
+| `RECEPTIONIST` | Bookings, check-in, CRM, cashier |
+| `HOUSEKEEPING` | HK tasks, linen, room status |
+| `SPA_OPERATOR` | SPA module only |
+| `RESTAURANT` | F&B module only |
+| `CONCIERGE` | Chat, concierge, guest communications |
+| `READONLY` | View-only access to all sections |
+
+**Invitation flow**: Host creates `StaffInvite` with role + email -> system sends link to `/registrazione/[token]` -> staff member creates account with pre-assigned role.
+
+## F&B System (Ristorazione)
+
+- **Menu editor** (`/host/ristorazione/menu`): daily menus with courses (antipasto, primo, secondo, contorno, dolce, bevanda)
+- **Guest meal choices**: guests select meals via `/book/[strutturaId]/pasti` public page
+- **Models**: `ConfigPastoStruttura` (structure meal plan config) -> `MenuGiornaliero` -> `PiattoMenu` (dishes) -> `SceltaPastoOspite` (guest selections)
+- **Meal plans**: B&B, Mezza Pensione, Pensione Completa — configured per structure
+
+## SPA Advanced Features
+
+Beyond core waiver/booking:
+
+- **Gift Cards** (`GiftCard` + `GiftCardMovimento`): purchasable vouchers with balance, recharge, expiry, redemption tracking
+- **POS** (`TransazionePOS` + `VocePOS`): integrated point-of-sale for selling treatments, products, gift cards
+- **Loyalty** (`ProgrammaFedelta` + `LivelloFedelta` + `MembroFedelta` + `MovimentoPunti`): points-based program with tier levels, automatic accumulation
+- **Waiting List** (`WaitingListSpa`): queue management with automatic notification when slots open
+- **Turnaway Tracking** (`TurnawayTracking`): logs demand that could not be served (capacity planning)
+- **Advanced Reports** (`/host/spa/report`): revenue by treatment, therapist utilization, occupancy rates
+
+## Cashiering (Cassa & Incassi)
+
+- **`/host/cassa`**: Daily cash register with opening/closing balance
+- **`ChiusuraCassa`**: Daily closing record — expected vs actual amounts, discrepancies
+- **`Incasso`**: Individual payment records by method (cash, card, transfer, room credit)
+- **Reconciliation**: End-of-day report matching POS transactions, SPA payments, and booking payments against cash drawer
+
+## i18n (Internationalization)
+
+- **Library**: `next-intl` v4
+- **Locale detection**: Cookie-based (`NEXT_LOCALE`), defaults to `it`
+- **Message files**: `messages/it.json`, `messages/en.json`
+- **Language switcher**: `components/layout/language-switcher.tsx` in topbar
+- **Usage**: `useTranslations('namespace')` hook in client components, `getTranslations()` in server components
+
+## Real-time Chat
+
+Host-guest messaging via Server-Sent Events (SSE), not WebSocket.
+
+- **`lib/chat-events.ts`**: In-memory `ChatEventBus` — publish/subscribe per `chatId`. Single-process only (Redis Pub/Sub for multi-instance).
+- **`lib/use-chat.ts`**: React hook consuming SSE stream — messages, typing indicators, read receipts, presence
+- **Event types**: `message`, `typing`, `read`, `presence`
+- **Public**: `/book/chat/[id]` for guests; `/host/concierge/[id]` for host staff
+
+## CI/CD & Monitoring
+
+- **Sentry** (`@sentry/nextjs`): Error tracking and performance monitoring. Disabled in development.
+- **GitHub Actions**: `ci.yml` (lint + build + Playwright tests on PR), `deploy.yml` (production deployment)
+- **Playwright**: E2E tests in `/e2e/` directory, Chromium browser, auto-starts dev server if needed
