@@ -23,22 +23,16 @@ export const viewport: Viewport = {
   initialScale: 1,
 }
 
+// Force dynamic rendering — never prerender statically
+export const dynamic = 'force-dynamic'
+
 export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  let locale = 'it'
-  let messages = {}
-
-  try {
-    locale = await getLocale()
-    messages = await getMessages()
-  } catch {
-    // Fallback: load Italian messages directly
-    const it = await import('../messages/it.json')
-    messages = it.default
-  }
+  const locale = await getLocale()
+  const messages = await getMessages()
 
   return (
     <html lang={locale}>
