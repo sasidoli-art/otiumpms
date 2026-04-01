@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 // PATCH /api/admin/eventi/[id]  — approva o rifiuta
 export async function PATCH(req: NextRequest, { params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = await paramsPromise
