@@ -27,6 +27,9 @@ Thumbs.db
 /blob-report/
 /playwright/.cache/
 
+# reference files (too large for git)
+opla*/
+
 # misc
 *.log
 Nuovo Documento di testo.txt
