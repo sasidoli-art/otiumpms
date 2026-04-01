@@ -42,8 +42,8 @@ export default async function RootLayout({
       <body className="antialiased">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
+          <PwaProvider />
         </NextIntlClientProvider>
-        <PwaProvider />
       </body>
     </html>
   )
