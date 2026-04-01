@@ -1,4 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs'
 import createNextIntlPlugin from 'next-intl/plugin'
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
@@ -6,14 +5,13 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['@react-pdf/renderer'],
-  
+
   // Headers di sicurezza HTTP
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
-          // Protezione base
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
@@ -30,14 +28,12 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
           },
-          // HSTS (solo in produzione)
           ...(process.env.NODE_ENV === 'production' ? [{
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
           }] : []),
         ],
       },
-      // CORS per API pubbliche
       {
         source: '/api/:path*',
         headers: [
@@ -63,15 +59,4 @@ const nextConfig = {
   },
 }
 
-// Sentry wrapping only in production — in dev it kills performance (source maps + webpack overhead)
-const finalConfig = withNextIntl(nextConfig)
-
-export default process.env.NODE_ENV === 'production'
-  ? withSentryConfig(finalConfig, {
-      silent: !process.env.SENTRY_AUTH_TOKEN,
-      org: process.env.SENTRY_ORG,
-      project: process.env.SENTRY_PROJECT,
-      disableLogger: true,
-      hideSourceMaps: true,
-    })
-  : finalConfig
+export default withNextIntl(nextConfig)
