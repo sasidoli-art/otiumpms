@@ -10,7 +10,6 @@ import { it } from 'date-fns/locale'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { KioskButton } from './kiosk-button'
 import { RegCardDownload } from './regcard-download'
-import { DocumentScanner } from './document-scanner'
 import PrenotazioneActions from './prenotazione-actions'
 import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
@@ -229,9 +228,6 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
 
           {/* Pagamento checkout */}
           <PagamentoSection prenotazioneId={prenotazione.id} saldoDovuto={prenotazione.prezzoTotale ?? 0} />
-
-          {/* Scansione documento ospite */}
-          <DocumentScanner prenotazioneId={prenotazione.id} />
 
           {/* Check-in / Check-out */}
           <div className="card">

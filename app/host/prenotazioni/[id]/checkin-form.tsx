@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, LogIn, LogOut, Loader2, AlertTriangle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { DocumentScanner } from './document-scanner'
 
 type Props = {
   prenotazioneId: string
@@ -247,6 +248,17 @@ export default function CheckInForm({ prenotazioneId, stato, datiEsistenti }: Pr
               </div>
 
               <hr className="border-gray-100" />
+
+              {/* Scanner documento con OCR */}
+              <DocumentScanner
+                prenotazioneId={prenotazioneId}
+                onOCRExtract={(data) => {
+                  if (data.guestTipoDocumento) set('guestTipoDocumento', data.guestTipoDocumento)
+                  if (data.guestNumeroDocumento) set('guestNumeroDocumento', data.guestNumeroDocumento)
+                  if (data.guestDataNascita) set('guestDataNascita', data.guestDataNascita)
+                  if (data.guestLuogoNascita) set('guestLuogoNascita', data.guestLuogoNascita)
+                }}
+              />
 
               {/* Documento */}
               <div>
