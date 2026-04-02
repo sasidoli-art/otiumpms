@@ -163,6 +163,20 @@ const allNavGroups = [
   },
 ]
 
+// Color dots for section headers
+const GROUP_DOT_COLOR: Record<string, string> = {
+  'PANORAMICA': 'bg-blue-400',
+  'PRENOTAZIONI': 'bg-indigo-400',
+  'STRUTTURA': 'bg-emerald-400',
+  'OSPITI': 'bg-violet-400',
+  'OPERAZIONI': 'bg-amber-400',
+  'RISTORAZIONE': 'bg-orange-400',
+  'SPA & BENESSERE': 'bg-teal-400',
+  'CASSA & VENDITE': 'bg-green-400',
+  'REPORT & FINANZA': 'bg-sky-400',
+  'IMPOSTAZIONI': 'bg-slate-400',
+}
+
 export function HostSidebar({
   nomeUtente,
   nomeAzienda,
@@ -260,7 +274,8 @@ export function HostSidebar({
           <div key={group.label} className="mb-1">
             {/* Section header */}
             {!collapsed ? (
-              <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-2 mb-1 mt-2 first:mt-0">
+              <p className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-widest px-2 mb-1 mt-2 first:mt-0">
+                <span className={cn('inline-block w-1.5 h-1.5 rounded-full shrink-0', GROUP_DOT_COLOR[group.label] || 'bg-slate-500')} />
                 {group.label}
               </p>
             ) : (
@@ -286,15 +301,10 @@ export function HostSidebar({
                     'relative flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all group',
                     collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-2',
                     isActive
-                      ? 'bg-blue-600/15 text-blue-400'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                      ? 'bg-blue-600/20 text-blue-400 border-l-[3px] border-blue-400'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-100 hover:translate-x-0.5'
                   )}
                 >
-                  {/* Active left bar */}
-                  {isActive && !collapsed && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-blue-400 rounded-full -ml-2" />
-                  )}
-
                   <Icon size={16} className="shrink-0" />
 
                   {!collapsed && <span className="flex-1 truncate">{label}</span>}
@@ -316,8 +326,11 @@ export function HostSidebar({
       <div className="border-t border-white/10 shrink-0 py-3 px-2">
         {!collapsed && (
           <div className="px-2 py-1 mb-1">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">Accesso come</p>
-            <p className="text-xs font-medium text-slate-300 truncate mt-0.5">{nomeUtente}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest">Accesso come</p>
+              <span className="text-[9px] font-medium text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">v1.0</span>
+            </div>
+            <p className="text-xs font-semibold text-white truncate mt-0.5">{nomeUtente}</p>
           </div>
         )}
 

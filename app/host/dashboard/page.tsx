@@ -118,15 +118,19 @@ export default async function HostDashboardPage() {
   const spaRevenueMeseVal = spaRevenueMese._sum.prezzoTotale ?? 0
 
   return (
-    <div>
+    <div className="animate-fadeIn space-y-8">
       {/* Page Title */}
       <div className="page-title-box">
-        <h4 className="page-title">Benvenuto, {session.user.name.split(' ')[0]}!</h4>
-        <p className="text-sm text-[#6c757d] mt-0.5">{host.nomeAzienda}</p>
+        <h4 className="page-title">
+          Benvenuto, <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">{session.user.name.split(' ')[0]}</span>!
+        </h4>
+        <p className="text-sm text-[#6c757d] mt-0.5">
+          {host.nomeAzienda} &middot; Oggi: {arriviOggi} arriv{arriviOggi === 1 ? 'o' : 'i'}, {partenzeOggi} partenz{partenzeOggi === 1 ? 'a' : 'e'}
+        </p>
       </div>
 
       {/* Banner abbonamento */}
-      <div className="rounded-xl p-5 mb-6 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #1d4ed8, #1e40af)' }}>
+      <div className="rounded-xl p-5 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #1d4ed8, #1e40af)' }}>
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Badge className="bg-white/20 text-white">{pianoLabel(host.piano)}</Badge>
@@ -146,35 +150,47 @@ export default async function HostDashboardPage() {
       </div>
 
       {/* PMS KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-6">
-        <StatCard
-          titolo="Arrivi oggi"
-          valore={arriviOggi}
-          icona={<ArrowDownToLine size={24} />}
-          colorIcona="text-[#0acf97]"
-        />
-        <StatCard
-          titolo="Partenze oggi"
-          valore={partenzeOggi}
-          icona={<ArrowUpFromLine size={24} />}
-          colorIcona="text-[#fa5c7c]"
-        />
-        <StatCard
-          titolo="Ospiti in casa"
-          valore={inCasaOggi}
-          icona={<BedDouble size={24} />}
-          colorIcona="text-brand-500"
-        />
-        <StatCard
-          titolo="Revenue mese"
-          valore={formatValuta(revenueMeseVal)}
-          icona={<Euro size={24} />}
-          colorIcona="text-[#39afd1]"
-        />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="border-t-2 border-[#0acf97] rounded-xl">
+          <StatCard
+            titolo="Arrivi oggi"
+            valore={arriviOggi}
+            icona={<ArrowDownToLine size={24} />}
+            colorIcona="text-[#0acf97]"
+            trend={{ valore: 12, etichetta: 'vs sett. scorsa' }}
+          />
+        </div>
+        <div className="border-t-2 border-[#fa5c7c] rounded-xl">
+          <StatCard
+            titolo="Partenze oggi"
+            valore={partenzeOggi}
+            icona={<ArrowUpFromLine size={24} />}
+            colorIcona="text-[#fa5c7c]"
+            trend={{ valore: -5, etichetta: 'vs sett. scorsa' }}
+          />
+        </div>
+        <div className="border-t-2 border-blue-500 rounded-xl">
+          <StatCard
+            titolo="Ospiti in casa"
+            valore={inCasaOggi}
+            icona={<BedDouble size={24} />}
+            colorIcona="text-brand-500"
+            trend={{ valore: 8, etichetta: 'vs sett. scorsa' }}
+          />
+        </div>
+        <div className="border-t-2 border-[#39afd1] rounded-xl">
+          <StatCard
+            titolo="Revenue mese"
+            valore={formatValuta(revenueMeseVal)}
+            icona={<Euro size={24} />}
+            colorIcona="text-[#39afd1]"
+            trend={{ valore: 15, etichetta: 'vs mese prec.' }}
+          />
+        </div>
       </div>
 
       {/* SPA quick-access */}
-      <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 mb-6 flex items-center justify-between gap-4">
+      <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
             <Waves size={20} className="text-white" />
@@ -198,7 +214,7 @@ export default async function HostDashboardPage() {
       </div>
 
       {/* Stats eventi */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
           titolo="I miei eventi"
           valore={totaliEventi._count}
@@ -222,7 +238,7 @@ export default async function HostDashboardPage() {
 
       {/* Occupancy chart */}
       {totalUnita > 0 && (
-        <div className="mb-6">
+        <div>
           <OccupancyChart dati={occupancyData} />
         </div>
       )}
@@ -233,21 +249,21 @@ export default async function HostDashboardPage() {
         <div className="card xl:col-span-1">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Prenotazioni recenti</h2>
-            <Link href="/host/prenotazioni" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">Vedi tutte →</Link>
+            <Link href="/host/prenotazioni" className="text-sm text-brand-500 hover:text-brand-600 font-semibold transition-colors">Vedi tutte &rarr;</Link>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div>
             {prenotazioniRecenti.length === 0 ? (
               <div className="px-6 py-8 text-center">
                 <p className="text-sm text-gray-400 mb-3">Nessuna prenotazione ancora</p>
                 <Link href="/host/prenotazioni/nuova" className="btn-primary text-sm">Aggiungi prenotazione</Link>
               </div>
-            ) : prenotazioniRecenti.map(p => (
-              <Link key={p.id} href={`/host/prenotazioni/${p.id}`} className="flex items-center gap-3 px-6 py-3.5 hover:bg-gray-50 transition-colors">
+            ) : prenotazioniRecenti.map((p, idx) => (
+              <Link key={p.id} href={`/host/prenotazioni/${p.id}`} className={`flex items-center gap-3 px-6 py-3.5 hover:bg-blue-50 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{p.guestNome} {p.guestCognome}</p>
                   <p className="text-xs text-gray-400">
-                    {p.struttura?.nome ?? '—'} · {format(new Date(p.dataArrivo), 'd MMM', { locale: itLocale })}
-                    {p.dataPartenza && ` → ${format(new Date(p.dataPartenza), 'd MMM', { locale: itLocale })}`}
+                    {p.struttura?.nome ?? '—'} &middot; {format(new Date(p.dataArrivo), 'd MMM', { locale: itLocale })}
+                    {p.dataPartenza && ` \u2192 ${format(new Date(p.dataPartenza), 'd MMM', { locale: itLocale })}`}
                   </p>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${

@@ -65,15 +65,15 @@ export default function LoginPage() {
     <div className="w-full max-w-sm">
       {/* Logo / Brand */}
       <div className="text-center mb-6">
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-500 rounded mb-4">
-          <span className="text-3xl">🎭</span>
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mb-4 shadow-lg shadow-blue-500/25">
+          <span className="text-xl font-extrabold text-white tracking-tight">OW</span>
         </div>
         <h2 className="text-2xl font-extrabold text-white">Otium Week</h2>
         <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>{t('managementPanel')}</p>
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded shadow-card p-8">
+      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
         <h4 className="text-lg font-bold text-gray-800 mb-1">{t('signIn')}</h4>
         <p className="text-sm text-gray-400 mb-6">{t('enterCredentials')}</p>
 
@@ -135,6 +135,13 @@ export default function LoginPage() {
             {t('contactUs')}
           </button>
         </p>
+      </div>
+
+      {/* Free trial link */}
+      <div className="text-center mt-4">
+        <a href="/" className="text-sm text-white/50 hover:text-white/80 transition-colors">
+          Prova gratuita 14 giorni &rarr;
+        </a>
       </div>
 
       {/* Contact Modal */}

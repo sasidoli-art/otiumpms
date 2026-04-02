@@ -14,8 +14,8 @@ export function StatCard({ titolo, valore, sotto, icona, colorIcona = 'text-bran
     <div className="stat-card">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <h5 className="text-[#6c757d] font-semibold text-sm mt-0 truncate" title={titolo}>{titolo}</h5>
-          <h3 className="text-gray-800 font-extrabold text-2xl mt-2 mb-2">{valore}</h3>
+          <h5 className="text-[#6c757d] font-medium text-xs mt-0 uppercase tracking-wide truncate" title={titolo}>{titolo}</h5>
+          <h3 className="text-gray-800 font-extrabold text-3xl mt-2 mb-2">{valore}</h3>
           {sotto && (
             <p className="mb-0 text-[#6c757d] text-xs">{sotto}</p>
           )}
