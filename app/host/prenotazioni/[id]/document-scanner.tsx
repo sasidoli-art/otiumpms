@@ -27,7 +27,7 @@ export function DocumentScanner({ prenotazioneId, onOCRExtract }: { prenotazione
   const [fotoRetro, setFotoRetro] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(true)
   const [ocrRunning, setOcrRunning] = useState(false)
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null)
   const fronteRef = useRef<HTMLInputElement>(null)

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, X, ChevronDown, Link2, Copy, CheckCircle2, Mail, Printer, Loader2, HelpCircle } from 'lucide-react'
+import { Check, X, ChevronDown, Link2, Copy, CheckCircle2, Mail, Printer, Loader2, HelpCircle, Send } from 'lucide-react'
 import {
   getEmailTemplate, LINGUE_DISPONIBILI, TIPI_TEMPLATE,
   type LinguaTemplate, type TipoTemplate, type TemplateData,
@@ -309,15 +309,43 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
           <Printer className="w-4 h-4" /> Scheda ospite PDF
         </a>
 
-        {/* Conto Ospite PDF */}
-        <a
-          href={`/api/host/prenotazioni/${prenotazione.id}/conto`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center gap-2 py-2 px-3 text-sm text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition-colors"
-        >
-          <Printer className="w-4 h-4" /> Conto ospite PDF
-        </a>
+        {/* Conto Ospite — PDF stampa o invio email */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-gray-500 pl-1">Conto ospite</p>
+          <a
+            href={`/api/host/prenotazioni/${prenotazione.id}/conto`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-2 py-2 px-3 text-sm text-brand-600 hover:bg-brand-50 rounded-lg border border-brand-200 transition-colors"
+          >
+            <Printer className="w-4 h-4" /> Stampa conto (PDF)
+          </a>
+          {prenotazione.guestEmail && (
+            <button
+              onClick={async () => {
+                setLoading('conto-email')
+                try {
+                  const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}/conto-email`, { method: 'POST' })
+                  if (res.ok) {
+                    setLoading(null)
+                    alert('Conto inviato via email a ' + prenotazione.guestEmail)
+                  } else {
+                    setLoading(null)
+                    alert('Errore nell\'invio')
+                  }
+                } catch {
+                  setLoading(null)
+                  alert('Errore di connessione')
+                }
+              }}
+              disabled={loading === 'conto-email'}
+              className="w-full flex items-center gap-2 py-2 px-3 text-sm text-purple-600 hover:bg-purple-50 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+            >
+              {loading === 'conto-email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+              Invia conto via email
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Modal checkout — tassa di soggiorno */}
@@ -442,23 +470,58 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                 </p>
               </div>
             </div>
-            <div className="p-4 border-t flex gap-3">
-              <button
-                onClick={() => {
-                  const testo = `Oggetto: ${emailPreview.oggetto}\n\n${emailPreview.corpo}`
-                  navigator.clipboard.writeText(testo)
-                }}
-                className="btn-primary flex items-center gap-2 flex-1"
-              >
-                <Copy className="w-4 h-4" /> Copia tutto
-              </button>
-              {prenotazione.guestEmail && (
-                <a
-                  href={`mailto:${prenotazione.guestEmail}?subject=${encodeURIComponent(emailPreview.oggetto)}&body=${encodeURIComponent(emailPreview.corpo)}`}
-                  className="btn-secondary flex items-center gap-2"
+            <div className="p-4 border-t space-y-2">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    const testo = `Oggetto: ${emailPreview.oggetto}\n\n${emailPreview.corpo}`
+                    navigator.clipboard.writeText(testo)
+                  }}
+                  className="btn-secondary flex items-center gap-2 flex-1"
                 >
-                  <Mail className="w-4 h-4" /> Apri in email
-                </a>
+                  <Copy className="w-4 h-4" /> Copia tutto
+                </button>
+                {prenotazione.guestEmail && (
+                  <a
+                    href={`mailto:${prenotazione.guestEmail}?subject=${encodeURIComponent(emailPreview.oggetto)}&body=${encodeURIComponent(emailPreview.corpo)}`}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" /> Apri in email
+                  </a>
+                )}
+              </div>
+              {prenotazione.guestEmail && (
+                <button
+                  onClick={async () => {
+                    setLoading('send-email')
+                    try {
+                      const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}/send-email`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          to: prenotazione.guestEmail,
+                          subject: emailPreview.oggetto,
+                          body: emailPreview.corpo,
+                        }),
+                      })
+                      if (res.ok) {
+                        setEmailModal(false)
+                        alert('Email inviata e registrata nella chat!')
+                      } else {
+                        const data = await res.json().catch(() => ({}))
+                        alert(data.error || 'Errore nell\'invio')
+                      }
+                    } catch {
+                      alert('Errore di connessione')
+                    }
+                    setLoading(null)
+                  }}
+                  disabled={loading === 'send-email'}
+                  className="w-full btn-primary flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700"
+                >
+                  {loading === 'send-email' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={16} />}
+                  Invia direttamente
+                </button>
               )}
             </div>
           </div>
