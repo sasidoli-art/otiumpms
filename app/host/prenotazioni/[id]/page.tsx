@@ -177,15 +177,17 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
             numOspiti={prenotazione.numOspiti}
           />
 
-          {/* Chat */}
-          <div className="card">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Chat con l&apos;ospite</h2>
+          {/* Chat — collassabile */}
+          <ChatCollapsible
+            messaggiCount={prenotazione.chat?.messaggi.length ?? 0}
+            nonLetti={prenotazione.chat?.messaggi.filter(m => m.mittente === 'GUEST' && !m.letto).length ?? 0}
+          >
             {prenotazione.chat ? (
               <ChatBox chatId={prenotazione.chat.id} messaggiIniziali={prenotazione.chat.messaggi} />
             ) : (
               <AprChat prenotazioneId={prenotazione.id} />
             )}
-          </div>
+          </ChatCollapsible>
         </div>
 
         {/* Sidebar destra */}
@@ -289,5 +291,6 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
   )
 }
 
-// Client component per aprire chat
+// Client components
 import AprChat from './apri-chat'
+import ChatCollapsible from './chat-collapsible'
