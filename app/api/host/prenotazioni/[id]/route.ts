@@ -131,7 +131,7 @@ export async function PATCH(
     })
   }
 
-  // Completata → notifica host
+  // Completata → notifica host + libera camera + task HK
   if (stato === 'COMPLETATA' && prenotazione.stato !== 'COMPLETATA') {
     await prisma.notifica.create({
       data: {
@@ -142,6 +142,29 @@ export async function PATCH(
         linkUrl: `/host/prenotazioni/${params.id}`,
       },
     })
+
+    // Libera camera se richiesto
+    const rawObj = raw as Record<string, unknown>
+    const liberaCamera = rawObj.liberaCamera !== false // default true
+    if (liberaCamera && prenotazione.unitaId) {
+      await prisma.unitaPrenotabile.update({
+        where: { id: prenotazione.unitaId },
+        data: { statoHK: 'SPORCA' }, // Camera da pulire dopo checkout
+      })
+
+      // Crea task HK automatica
+      try {
+        await prisma.taskHK.create({
+          data: {
+            hostId: auth.user.hostId,
+            unitaId: prenotazione.unitaId,
+            tipo: 'PULIZIA_CHECKOUT',
+            priorita: 'ALTA',
+            note: `Checkout ${guestFull}`,
+          },
+        })
+      } catch { /* silenzioso se fallisce */ }
+    }
   }
 
   logger.info('Prenotazione aggiornata', 'host/prenotazioni/[id]', {

@@ -57,6 +57,8 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
   // Checkout modal
   const [checkoutModal, setCheckoutModal] = useState(false)
   const [checkoutTassa, setCheckoutTassa] = useState(prenotazione.tassaSoggiorno?.toString() ?? '')
+  const [inviaContoEmail, setInviaContoEmail] = useState(true)
+  const [liberaCamera, setLiberaCamera] = useState(true)
   const router = useRouter()
 
   const tassaSuggerita = prenotazione.strutturaCitta
@@ -81,14 +83,24 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
 
   async function confermaCheckout() {
     setLoading('COMPLETATA')
-    const body: Record<string, unknown> = { stato: 'COMPLETATA' }
+    const body: Record<string, unknown> = {
+      stato: 'COMPLETATA',
+      liberaCamera,
+    }
     if (checkoutTassa) body.tassaSoggiorno = Number(checkoutTassa)
+
     const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     if (res.ok) {
+      // Invio conto via email se toggle attivo
+      if (inviaContoEmail && prenotazione.guestEmail) {
+        try {
+          await fetch(`/api/host/prenotazioni/${prenotazione.id}/conto-email`, { method: 'POST' })
+        } catch { /* silenzioso */ }
+      }
       setCheckoutModal(false)
       setTassaSoggiorno(checkoutTassa)
       router.refresh()
@@ -348,20 +360,56 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
         </div>
       </div>
 
-      {/* Modal checkout — tassa di soggiorno */}
-      {checkoutModal && (
+      {/* Modal checkout completo */}
+      {checkoutModal && (() => {
+        const notti = prenotazione.dataArrivo && prenotazione.dataPartenza
+          ? Math.round((new Date(prenotazione.dataPartenza).getTime() - new Date(prenotazione.dataArrivo).getTime()) / 86400000)
+          : 0
+        const tassaTotale = checkoutTassa ? Number(checkoutTassa) * notti : 0
+        const totale = (prenotazione.prezzoTotale ?? 0) + tassaTotale
+        const saldo = totale - (prenotazione.acconto ?? 0)
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-bold text-gray-900">Check-out</h3>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h3 className="font-bold text-gray-900 text-lg">Check-out</h3>
               <button onClick={() => setCheckoutModal(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
-              <p className="text-sm text-gray-600">
-                Stai per segnare questa prenotazione come <strong>completata</strong>. Inserisci la tassa di soggiorno se applicabile.
-              </p>
+
+            <div className="p-5 space-y-5">
+              {/* Riepilogo conto */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Riepilogo conto</p>
+                <div className="space-y-1.5 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Soggiorno ({notti} notti × {prenotazione.numOspiti} ospiti)</span>
+                    <span className="font-semibold">€{(prenotazione.prezzoTotale ?? 0).toFixed(2)}</span>
+                  </div>
+                  {prenotazione.acconto != null && prenotazione.acconto > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Acconto versato</span>
+                      <span>−€{prenotazione.acconto.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {tassaTotale > 0 && (
+                    <div className="flex justify-between text-gray-500">
+                      <span>Tassa soggiorno ({notti}n × €{Number(checkoutTassa).toFixed(2)})</span>
+                      <span>€{tassaTotale.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-gray-200 font-bold text-base">
+                    <span>Saldo da pagare</span>
+                    <span className={saldo > 0 ? 'text-red-600' : 'text-green-600'}>
+                      {saldo > 0 ? `€${saldo.toFixed(2)}` : 'SALDATO'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tassa di soggiorno */}
               <div>
                 <div className="flex items-center gap-1.5 mb-1">
                   <label className="label">Tassa di soggiorno (€/notte)</label>
@@ -370,42 +418,68 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                       type="button"
                       onClick={() => setCheckoutTassa(tassaSuggerita.toFixed(2))}
                       className="text-xs text-brand-600 font-medium hover:underline"
-                      title="Usa valore suggerito dal comune"
                     >
                       Sugg. €{tassaSuggerita.toFixed(2)}
                     </button>
                   )}
                 </div>
                 <input
-                  type="number"
-                  step="0.01"
-                  min={0}
+                  type="number" step="0.01" min={0}
                   value={checkoutTassa}
                   onChange={(e) => setCheckoutTassa(e.target.value)}
-                  placeholder={tassaSuggerita ? `€${tassaSuggerita.toFixed(2)}` : 'Inserisci importo'}
+                  placeholder={tassaSuggerita ? `€${tassaSuggerita.toFixed(2)}` : '0.00'}
                   className="input"
-                  autoFocus
                 />
-                {prenotazione.strutturaCitta && (
-                  <p className="text-xs text-gray-400 mt-1">Comune: {prenotazione.strutturaCitta}</p>
-                )}
+              </div>
+
+              {/* Toggle opzioni */}
+              <div className="space-y-3">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Invia conto via email</p>
+                    <p className="text-xs text-gray-400">{prenotazione.guestEmail || 'Nessuna email ospite'}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={inviaContoEmail && !!prenotazione.guestEmail}
+                    disabled={!prenotazione.guestEmail}
+                    onChange={e => setInviaContoEmail(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                </label>
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Libera camera</p>
+                    <p className="text-xs text-gray-400">{prenotazione.unitaNome || 'Nessuna camera assegnata'}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={liberaCamera && !!prenotazione.unitaNome}
+                    disabled={!prenotazione.unitaNome}
+                    onChange={e => setLiberaCamera(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                  />
+                </label>
               </div>
             </div>
-            <div className="p-4 border-t flex gap-3">
+
+            <div className="p-5 border-t flex gap-3">
               <button
                 onClick={confermaCheckout}
                 disabled={loading === 'COMPLETATA'}
-                className="btn-primary flex-1 bg-blue-600 hover:bg-blue-700"
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
+                {loading === 'COMPLETATA' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 {loading === 'COMPLETATA' ? 'Completamento...' : 'Conferma check-out'}
               </button>
-              <button onClick={() => setCheckoutModal(false)} className="btn-secondary">
+              <button onClick={() => setCheckoutModal(false)} className="px-4 py-3 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50">
                 Annulla
               </button>
             </div>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* Modal email template */}
       {emailModal && (
