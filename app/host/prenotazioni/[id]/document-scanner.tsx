@@ -134,83 +134,92 @@ export function DocumentScanner({ prenotazioneId, onOCRExtract }: { prenotazione
     return (
       <button
         onClick={() => setExpanded(true)}
-        className="flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+        className="w-full flex items-center justify-center gap-3 py-4 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold text-sm shadow-md hover:shadow-lg hover:from-blue-600 hover:to-indigo-700 transition-all"
       >
-        <Camera size={14} />
-        Scansiona documento
+        <Camera size={20} />
+        Scansiona documento d&apos;identità
       </button>
     )
   }
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 space-y-3 animate-fadeIn">
+    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 border-2 border-blue-200 dark:border-blue-800 rounded-xl p-5 space-y-4 animate-fadeIn">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-          <Camera size={15} className="text-blue-600" />
-          Acquisizione documento
+        <p className="text-base font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+          <div className="p-2 bg-blue-600 rounded-lg">
+            <Camera size={18} className="text-white" />
+          </div>
+          Scansione documento
         </p>
-        <button onClick={() => setExpanded(false)} className="text-slate-400 hover:text-slate-600 p-1">
-          <X size={14} />
+        <button onClick={() => setExpanded(false)} className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-white/50">
+          <X size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <p className="text-xs text-blue-600 dark:text-blue-400 -mt-1">
+        Scatta una foto del documento fronte e retro. L&apos;OCR compilerà automaticamente i campi.
+      </p>
+
+      <div className="grid grid-cols-2 gap-4">
         {/* Fronte */}
         <div>
-          <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1.5">Fronte</p>
+          <p className="text-xs font-bold text-blue-700 uppercase mb-2 tracking-wide">Fronte</p>
           {fotoFronte ? (
             <div className="relative group">
-              <img src={fotoFronte} alt="Fronte" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                <button onClick={() => { setFotoFronte(null); fronteRef.current?.click() }} className="p-1.5 bg-white rounded-full">
-                  <RotateCcw size={12} />
+              <img src={fotoFronte} alt="Fronte" className="w-full h-32 object-cover rounded-xl border-2 border-green-300 shadow-sm" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
+                <button onClick={() => { setFotoFronte(null); fronteRef.current?.click() }} className="p-2 bg-white rounded-full shadow">
+                  <RotateCcw size={14} />
                 </button>
-                <button onClick={() => setFotoFronte(null)} className="p-1.5 bg-white rounded-full">
-                  <X size={12} />
+                <button onClick={() => setFotoFronte(null)} className="p-2 bg-white rounded-full shadow">
+                  <X size={14} />
                 </button>
               </div>
-              <span className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                <Check size={10} className="text-white" />
+              <span className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow">
+                <Check size={12} className="text-white" />
               </span>
             </div>
           ) : (
             <button
               onClick={() => fronteRef.current?.click()}
-              className="w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+              className="w-full h-32 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-100/50 transition-all bg-white/60"
             >
-              <Camera size={20} className="text-slate-400" />
-              <span className="text-[10px] text-slate-400">Scatta o carica</span>
+              <div className="p-2.5 bg-blue-100 rounded-full">
+                <Camera size={24} className="text-blue-500" />
+              </div>
+              <span className="text-xs font-medium text-blue-500">Scatta o carica</span>
             </button>
           )}
-          {/* Input nascosti — capture="environment" usa la fotocamera posteriore su mobile */}
           <input ref={fronteRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleCapture(e, 'fronte')} />
         </div>
 
         {/* Retro */}
         <div>
-          <p className="text-[10px] font-semibold text-slate-500 uppercase mb-1.5">Retro</p>
+          <p className="text-xs font-bold text-blue-700 uppercase mb-2 tracking-wide">Retro</p>
           {fotoRetro ? (
             <div className="relative group">
-              <img src={fotoRetro} alt="Retro" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                <button onClick={() => { setFotoRetro(null); retroRef.current?.click() }} className="p-1.5 bg-white rounded-full">
-                  <RotateCcw size={12} />
+              <img src={fotoRetro} alt="Retro" className="w-full h-32 object-cover rounded-xl border-2 border-green-300 shadow-sm" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-3">
+                <button onClick={() => { setFotoRetro(null); retroRef.current?.click() }} className="p-2 bg-white rounded-full shadow">
+                  <RotateCcw size={14} />
                 </button>
-                <button onClick={() => setFotoRetro(null)} className="p-1.5 bg-white rounded-full">
-                  <X size={12} />
+                <button onClick={() => setFotoRetro(null)} className="p-2 bg-white rounded-full shadow">
+                  <X size={14} />
                 </button>
               </div>
-              <span className="absolute top-1 right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                <Check size={10} className="text-white" />
+              <span className="absolute top-2 right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow">
+                <Check size={12} className="text-white" />
               </span>
             </div>
           ) : (
             <button
               onClick={() => retroRef.current?.click()}
-              className="w-full h-24 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-1 hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
+              className="w-full h-32 border-2 border-dashed border-blue-300 dark:border-blue-600 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-500 hover:bg-blue-100/50 transition-all bg-white/60"
             >
-              <Camera size={20} className="text-slate-400" />
-              <span className="text-[10px] text-slate-400">Scatta o carica</span>
+              <div className="p-2.5 bg-blue-100 rounded-full">
+                <Camera size={24} className="text-blue-500" />
+              </div>
+              <span className="text-xs font-medium text-blue-500">Scatta o carica</span>
             </button>
           )}
           <input ref={retroRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={e => handleCapture(e, 'retro')} />
@@ -239,24 +248,19 @@ export function DocumentScanner({ prenotazioneId, onOCRExtract }: { prenotazione
         </div>
       )}
 
-      {/* Info */}
-      <p className="text-[10px] text-slate-400">
-        Usa la fotocamera del dispositivo, la webcam o collega uno scanner. L'OCR compila automaticamente i campi del check-in.
-      </p>
-
       {/* Salva */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={salva}
           disabled={!fotoFronte || saving}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
         >
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
           {saving ? 'Salvataggio...' : 'Salva documenti'}
         </button>
         {saved && (
-          <span className="flex items-center gap-1 text-xs text-green-600">
-            <FileCheck size={13} /> Salvato!
+          <span className="flex items-center gap-1.5 text-sm text-green-600 font-semibold">
+            <FileCheck size={16} /> Salvato!
           </span>
         )}
       </div>
