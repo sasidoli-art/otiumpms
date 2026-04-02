@@ -416,3 +416,11 @@ export const eventoCreateSchema = z.object({
 })
 
 export type EventoCreateInput = z.infer<typeof eventoCreateSchema>
+
+// ─── Abbonamento Upgrade ─────────────────────────────────────────────────────
+
+export const abbonamentoUpgradeSchema = z.object({
+  nuovoPiano: z.enum(['LIGHT', 'EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM']),
+})
+
+export type AbbonamentoUpgradeInput = z.infer<typeof abbonamentoUpgradeSchema>
