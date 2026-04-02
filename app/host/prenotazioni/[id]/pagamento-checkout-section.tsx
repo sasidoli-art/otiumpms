@@ -17,6 +17,7 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-
 export default function PagamentoCheckoutSection({ prenotazioneId, saldoDovuto }: { prenotazioneId: string; saldoDovuto: number }) {
   const [pagamenti, setPagamenti] = useState<Pagamento[]>([])
   const [totalePagato, setTotalePagato] = useState(0)
+  const [totaleAddebiti, setTotaleAddebiti] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -24,10 +25,14 @@ export default function PagamentoCheckoutSection({ prenotazioneId, saldoDovuto }
   const [form, setForm] = useState({ importo: '', metodo: 'CARTA', ultime4Cifre: '', circuito: '', note: '' })
 
   useEffect(() => {
-    fetch(`/api/host/pagamento-checkout?prenotazioneId=${prenotazioneId}`)
-      .then(r => r.ok ? r.json() : { pagamenti: [], totalePagato: 0 })
-      .then(d => { setPagamenti(d.pagamenti); setTotalePagato(d.totalePagato) })
-      .finally(() => setLoading(false))
+    Promise.all([
+      fetch(`/api/host/pagamento-checkout?prenotazioneId=${prenotazioneId}`).then(r => r.ok ? r.json() : { pagamenti: [], totalePagato: 0 }),
+      fetch(`/api/host/prenotazioni/${prenotazioneId}/addebiti`).then(r => r.ok ? r.json() : { totale: 0 }),
+    ]).then(([pag, add]) => {
+      setPagamenti(pag.pagamenti)
+      setTotalePagato(pag.totalePagato)
+      setTotaleAddebiti(add.totale ?? 0)
+    }).finally(() => setLoading(false))
   }, [prenotazioneId])
 
   async function registra(e: React.FormEvent) {
@@ -49,7 +54,8 @@ export default function PagamentoCheckoutSection({ prenotazioneId, saldoDovuto }
     setSaving(false)
   }
 
-  const saldo = Math.round((saldoDovuto - totalePagato) * 100) / 100
+  const totaleDovuto = saldoDovuto + totaleAddebiti
+  const saldo = Math.round((totaleDovuto - totalePagato) * 100) / 100
 
   if (loading) return null
 
@@ -64,8 +70,10 @@ export default function PagamentoCheckoutSection({ prenotazioneId, saldoDovuto }
 
       {/* Saldo */}
       <div className="flex items-center justify-between mb-3 p-2.5 rounded-lg bg-gray-50 dark:bg-slate-800">
-        <div className="text-xs text-gray-500">
-          <p>Dovuto: <span className="font-medium">€{saldoDovuto.toFixed(2)}</span></p>
+        <div className="text-xs text-gray-500 space-y-0.5">
+          <p>Soggiorno: <span className="font-medium">€{saldoDovuto.toFixed(2)}</span></p>
+          {totaleAddebiti > 0 && <p>Extra: <span className="font-medium text-blue-600">€{totaleAddebiti.toFixed(2)}</span></p>}
+          <p>Totale: <span className="font-bold">€{totaleDovuto.toFixed(2)}</span></p>
           <p>Pagato: <span className="font-medium text-green-600">€{totalePagato.toFixed(2)}</span></p>
         </div>
         <div className="text-right">

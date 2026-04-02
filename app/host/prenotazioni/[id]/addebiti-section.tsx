@@ -182,8 +182,9 @@ export default function AddebitiSection({ prenotazioneId, guestNome, guestEmail 
         <div className="space-y-0.5 mb-3">
           {addebiti.map((a, i) => (
             <div key={a.id} className={cn(
-              'flex items-center justify-between text-xs py-2 px-2 rounded',
-              i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/50' : ''
+              'flex items-center justify-between text-xs py-2 px-2 rounded group',
+              a.totale < 0 ? 'bg-red-50 dark:bg-red-900/10 line-through opacity-60' : '',
+              i % 2 === 0 && a.totale >= 0 ? 'bg-slate-50 dark:bg-slate-800/50' : ''
             )}>
               <div className="flex-1">
                 <span className="font-medium text-slate-700 dark:text-slate-300">{a.descrizione}</span>
@@ -191,7 +192,24 @@ export default function AddebitiSection({ prenotazioneId, guestNome, guestEmail 
                 <span className="text-slate-400 ml-2 text-[10px]">IVA {a.aliquotaIva}%</span>
                 {a.addebitatoDa && <span className="text-slate-400 ml-2 text-[10px]">({a.addebitatoDa})</span>}
               </div>
-              <span className="font-bold text-slate-900 dark:text-white">€{a.totale.toFixed(2)}</span>
+              <div className="flex items-center gap-2">
+                <span className={cn('font-bold', a.totale < 0 ? 'text-red-500' : 'text-slate-900 dark:text-white')}>
+                  {a.totale < 0 ? '-' : ''}€{Math.abs(a.totale).toFixed(2)}
+                </span>
+                {a.totale > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Stornare "${a.descrizione}" (€${a.totale.toFixed(2)})?`)) return
+                      await fetch(`/api/host/prenotazioni/${prenotazioneId}/addebiti/${a.id}/storno`, { method: 'POST' })
+                      carica()
+                    }}
+                    className="opacity-0 group-hover:opacity-100 text-[10px] text-red-500 hover:text-red-700 font-medium transition-opacity"
+                    title="Storna"
+                  >
+                    Storna
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

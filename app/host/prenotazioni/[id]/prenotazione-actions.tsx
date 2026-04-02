@@ -59,6 +59,7 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
   const [checkoutTassa, setCheckoutTassa] = useState(prenotazione.tassaSoggiorno?.toString() ?? '')
   const [inviaContoEmail, setInviaContoEmail] = useState(true)
   const [liberaCamera, setLiberaCamera] = useState(true)
+  const [totaleExtra, setTotaleExtra] = useState(0)
   const router = useRouter()
 
   const tassaSuggerita = prenotazione.strutturaCitta
@@ -68,6 +69,10 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
   async function cambiaStato(stato: string) {
     if (stato === 'COMPLETATA') {
       setCheckoutTassa(tassaSoggiorno || (prenotazione.tassaSoggiorno?.toString() ?? ''))
+      // Carica addebiti extra
+      fetch(`/api/host/prenotazioni/${prenotazione.id}/addebiti`)
+        .then(r => r.ok ? r.json() : { totale: 0 })
+        .then(d => setTotaleExtra(d.totale ?? 0))
       setCheckoutModal(true)
       return
     }
@@ -366,7 +371,7 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
           ? Math.round((new Date(prenotazione.dataPartenza).getTime() - new Date(prenotazione.dataArrivo).getTime()) / 86400000)
           : 0
         const tassaTotale = checkoutTassa ? Number(checkoutTassa) * notti : 0
-        const totale = (prenotazione.prezzoTotale ?? 0) + tassaTotale
+        const totale = (prenotazione.prezzoTotale ?? 0) + totaleExtra + tassaTotale
         const saldo = totale - (prenotazione.acconto ?? 0)
 
         return (
@@ -388,6 +393,12 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                     <span className="text-gray-600">Soggiorno ({notti} notti × {prenotazione.numOspiti} ospiti)</span>
                     <span className="font-semibold">€{(prenotazione.prezzoTotale ?? 0).toFixed(2)}</span>
                   </div>
+                  {totaleExtra > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Addebiti extra</span>
+                      <span className="font-semibold text-blue-600">€{totaleExtra.toFixed(2)}</span>
+                    </div>
+                  )}
                   {prenotazione.acconto != null && prenotazione.acconto > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Acconto versato</span>
