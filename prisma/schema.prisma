@@ -207,6 +207,9 @@ model Host {
   regCardSpaTerminiHtml String?
   regCardCampiExtra     Json?
 
+  // Modalità check-in: 'completo' (ospite fa tutto online) | 'leggero' (documenti in reception)
+  modalitaCheckin       String?   @default("completo")
+
   // Moduli attivabili per struttura
   // JSON: { "spa": true, "concierge": false, "lostFound": true, ... }
   moduliAttivi Json? @default("{}")

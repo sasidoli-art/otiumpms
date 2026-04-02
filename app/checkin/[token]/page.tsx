@@ -46,7 +46,7 @@ export default async function CheckInPortalePage({ params: paramsPromise }: { pa
       guestProvinciaRilascio: true,
       struttura: { select: { nome: true, indirizzo: true, citta: true } },
       unita: { select: { nome: true } },
-      host: { select: { nomeAzienda: true, telefono: true } },
+      host: { select: { nomeAzienda: true, telefono: true, modalitaCheckin: true } },
     },
   })
 
@@ -129,7 +129,7 @@ export default async function CheckInPortalePage({ params: paramsPromise }: { pa
         </div>
 
         {/* Form */}
-        <CheckInPortaleForm token={token} prenotazione={serialized} />
+        <CheckInPortaleForm token={token} prenotazione={serialized} modalitaCheckin={prenotazione.host?.modalitaCheckin ?? 'completo'} />
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { KioskView } from './kiosk-view'
+import { KioskDocs } from './kiosk-docs'
 
 export default async function KioskPage({
   params: paramsPromise,
@@ -38,19 +39,30 @@ export default async function KioskPage({
 
   if (!prenotazione) notFound()
 
+  const serialized = {
+    ...prenotazione,
+    dataArrivo: prenotazione.dataArrivo.toISOString(),
+    dataPartenza: prenotazione.dataPartenza?.toISOString() ?? null,
+    addebiti: prenotazione.addebiti.map(a => ({
+      ...a,
+      data: a.data.toISOString(),
+    })),
+  }
+
+  if (tipo === 'documenti') {
+    return (
+      <KioskDocs
+        token={token}
+        prenotazione={serialized}
+      />
+    )
+  }
+
   return (
     <KioskView
       token={token}
       tipo={tipo as 'checkin' | 'checkout' | 'spa_waiver'}
-      prenotazione={{
-        ...prenotazione,
-        dataArrivo: prenotazione.dataArrivo.toISOString(),
-        dataPartenza: prenotazione.dataPartenza?.toISOString() ?? null,
-        addebiti: prenotazione.addebiti.map(a => ({
-          ...a,
-          data: a.data.toISOString(),
-        })),
-      }}
+      prenotazione={serialized}
     />
   )
 }

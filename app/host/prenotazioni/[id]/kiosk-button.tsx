@@ -8,7 +8,7 @@ export function KioskButton({ prenotazioneId }: { prenotazioneId: string }) {
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [tipo, setTipo] = useState<'checkin' | 'checkout'>('checkout')
+  const [tipo, setTipo] = useState<'checkin' | 'checkout' | 'documenti'>('checkout')
 
   async function generateKiosk() {
     setLoading(true)
@@ -37,11 +37,12 @@ export function KioskButton({ prenotazioneId }: { prenotazioneId: string }) {
         <div className="flex items-center gap-2">
           <select
             value={tipo}
-            onChange={e => setTipo(e.target.value as 'checkin' | 'checkout')}
+            onChange={e => setTipo(e.target.value as 'checkin' | 'checkout' | 'documenti')}
             className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white"
           >
             <option value="checkin">Check-in + Reg Card</option>
             <option value="checkout">Conto checkout</option>
+            <option value="documenti">Completa documenti</option>
           </select>
           <button
             onClick={generateKiosk}

@@ -70,6 +70,8 @@ export async function PATCH(req: NextRequest) {
       // Multi-valuta
       valutaBase: data.valutaBase !== undefined ? data.valutaBase : host.valutaBase,
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
+      // Modalita check-in
+      modalitaCheckin: data.modalitaCheckin !== undefined ? data.modalitaCheckin : host.modalitaCheckin,
     },
   })
 

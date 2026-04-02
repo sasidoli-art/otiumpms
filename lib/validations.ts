@@ -279,6 +279,8 @@ export const profiloUpdateSchema = z.object({
   // Multi-valuta
   valutaBase: z.enum(['EUR', 'USD', 'GBP', 'CHF']).optional().nullable(),
   valuteAccettate: z.array(z.enum(['EUR', 'USD', 'GBP', 'CHF'])).optional(),
+  // Modalita check-in
+  modalitaCheckin: z.enum(['completo', 'leggero']).optional().nullable(),
 })
 
 export type ProfiloUpdateInput = z.infer<typeof profiloUpdateSchema>

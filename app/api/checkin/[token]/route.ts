@@ -74,7 +74,21 @@ export async function POST(
     fotoDocumentoFronte,  // base64 foto fronte (opzionale)
     fotoDocumentoRetro,   // base64 foto retro (opzionale)
     accompagnatori,       // array opzionale di accompagnatori
+    soloDocumenti,        // true when kiosk is only capturing document photos
   } = body
+
+  // Solo documenti mode: update only document photos (from reception kiosk)
+  if (soloDocumenti) {
+    const updated = await prisma.prenotazione.update({
+      where: { id: prenotazione.id },
+      data: {
+        fotoDocumentoFronte: fotoDocumentoFronte || null,
+        fotoDocumentoRetro: fotoDocumentoRetro || null,
+      },
+      select: { id: true, checkInCompletato: true },
+    })
+    return NextResponse.json(updated)
+  }
 
   if (!guestTipoDocumento || !guestNumeroDocumento) {
     return NextResponse.json({ error: 'Tipo e numero documento obbligatori' }, { status: 400 })

@@ -148,9 +148,11 @@ function PhotoCapture({
 export default function CheckInPortaleForm({
   token,
   prenotazione: p,
+  modalitaCheckin = 'completo',
 }: {
   token: string
   prenotazione: Prenotazione
+  modalitaCheckin?: string
 }) {
   const [completato, setCompletato] = useState(p.checkInCompletato)
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -398,26 +400,35 @@ export default function CheckInPortaleForm({
           </div>
 
           {/* Document photos */}
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">
-              Foto documento <span className="font-normal text-gray-400">(facoltativo)</span>
-            </p>
-            <p className="text-xs text-gray-400 mb-3">
-              Scatta una foto del fronte e del retro del documento per velocizzare la verifica in reception.
-            </p>
-            <div className="flex gap-3">
-              <PhotoCapture
-                label="Foto fronte"
-                value={fotoFronte}
-                onChange={setFotoFronte}
-              />
-              <PhotoCapture
-                label="Foto retro"
-                value={fotoRetro}
-                onChange={setFotoRetro}
-              />
+          {modalitaCheckin === 'leggero' ? (
+            <div className="pt-2 border-t border-gray-100">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
+                <p className="font-semibold mb-1">Foto documento</p>
+                <p>Le foto del documento verranno acquisite alla reception al momento dell&apos;arrivo.</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">
+                Foto documento <span className="font-normal text-gray-400">(facoltativo)</span>
+              </p>
+              <p className="text-xs text-gray-400 mb-3">
+                Scatta una foto del fronte e del retro del documento per velocizzare la verifica in reception.
+              </p>
+              <div className="flex gap-3">
+                <PhotoCapture
+                  label="Foto fronte"
+                  value={fotoFronte}
+                  onChange={setFotoFronte}
+                />
+                <PhotoCapture
+                  label="Foto retro"
+                  value={fotoRetro}
+                  onChange={setFotoRetro}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Avviso obbligo legale */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">
