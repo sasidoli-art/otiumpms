@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 
 const kioskSchema = z.object({
   prenotazioneId: z.string().min(1),
-  tipo: z.enum(['checkin', 'checkout', 'spa_waiver']),
+  tipo: z.enum(['checkin', 'checkout', 'documenti', 'spa_waiver']),
 })
 
 /**
