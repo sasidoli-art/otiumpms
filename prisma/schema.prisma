@@ -688,6 +688,8 @@ model Prenotazione {
   guestComuneRilascioIstat String? // ISTAT comune rilascio
   guestProvinciaRilascio   String? // sigla 2 lettere
   guestStatoRilascioIstat  String? // ISTAT stato rilascio
+  fotoDocumentoFronte      String?
+  fotoDocumentoRetro       String?
 
   // Notifiche / Email automatiche
   emailInviata    Boolean @default(false)

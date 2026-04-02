@@ -71,7 +71,9 @@ export async function POST(
     guestTipoDocumento, guestNumeroDocumento, guestLuogoRilascio,
     guestComuneRilascioIstat, guestProvinciaRilascio, guestStatoRilascioIstat,
     guestTelefono,
-    accompagnatori,  // array opzionale di accompagnatori
+    fotoDocumentoFronte,  // base64 foto fronte (opzionale)
+    fotoDocumentoRetro,   // base64 foto retro (opzionale)
+    accompagnatori,       // array opzionale di accompagnatori
   } = body
 
   if (!guestTipoDocumento || !guestNumeroDocumento) {
@@ -95,6 +97,8 @@ export async function POST(
       guestProvinciaRilascio: guestProvinciaRilascio || null,
       guestStatoRilascioIstat: guestStatoRilascioIstat || '100000100',
       guestTelefono: guestTelefono || undefined,
+      fotoDocumentoFronte: fotoDocumentoFronte || null,
+      fotoDocumentoRetro: fotoDocumentoRetro || null,
       checkInCompletato: true,
     },
     select: { id: true, checkInCompletato: true },

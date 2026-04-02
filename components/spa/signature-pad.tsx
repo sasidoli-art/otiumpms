@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useRef, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
 import { motion } from 'framer-motion'
 import { RotateCcw } from 'lucide-react'
 
@@ -16,7 +15,6 @@ interface SignaturePadProps {
  * Permettere all'utente di disegnare la firma e esportarla come base64.
  */
 export function SignaturePad({ onSave, onClear, disabilitato }: SignaturePadProps) {
-  const t = useTranslations('spa.signature')
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [isEmpty, setIsEmpty] = useState(true)
@@ -122,7 +120,7 @@ export function SignaturePad({ onSave, onClear, disabilitato }: SignaturePadProp
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium"
         >
           <RotateCcw size={16} />
-          {t('clear')}
+          Cancella
         </motion.button>
 
         <motion.button
@@ -132,12 +130,12 @@ export function SignaturePad({ onSave, onClear, disabilitato }: SignaturePadProp
           disabled={disabilitato || isEmpty}
           className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition"
         >
-          {t('save')}
+          Salva Firma ✓
         </motion.button>
       </div>
 
       {isEmpty && (
-        <p className="text-sm text-gray-500 text-center">{t('instructions')}</p>
+        <p className="text-sm text-gray-500 text-center">Disegna la tua firma nel riquadro sopra</p>
       )}
     </div>
   )
