@@ -10,11 +10,12 @@ interface Props {
   nomeUtente: string
   nomeAzienda: string
   moduliAttivi: unknown
+  logo?: string | null
   ruolo: 'HOST' | 'ADMIN' | 'SUPERADMIN'
   children: React.ReactNode
 }
 
-export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, ruolo, children }: Props) {
+export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
@@ -52,6 +53,7 @@ export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, ruolo, childr
           nomeUtente={nomeUtente}
           nomeAzienda={nomeAzienda}
           moduliAttivi={moduliAttivi}
+          logo={logo}
           onMobileClose={() => setMobileOpen(false)}
         />
       </div>

@@ -167,11 +167,13 @@ export function HostSidebar({
   nomeUtente,
   nomeAzienda,
   moduliAttivi,
+  logo,
   onMobileClose,
 }: {
   nomeUtente: string
   nomeAzienda: string
   moduliAttivi: unknown
+  logo?: string | null
   onMobileClose?: () => void
 }) {
   const pathname = usePathname()
@@ -219,9 +221,13 @@ export function HostSidebar({
         )}
       >
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-base shrink-0 select-none">
-            🏨
-          </div>
+          {logo ? (
+            <img src={logo} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-base shrink-0 select-none">
+              🏨
+            </div>
+          )}
           {!collapsed && (
             <div className="min-w-0">
               <p className="font-bold text-white text-sm leading-tight">Otium Week</p>
