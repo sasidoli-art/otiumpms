@@ -309,6 +309,13 @@ model Host {
   chiusureCassa ChiusuraCassa[]
   incassi       Incasso[]
 
+  // Allotment
+  contratti ContrattoAllotment[]
+
+  // Multi-valuta
+  valutaBase       String?  @default("EUR")
+  valuteAccettate  String[] @default(["EUR"])
+
   @@map("hosts")
 }
 
@@ -515,6 +522,7 @@ model Struttura {
   pacchettiServizio PacchettoServizio[]
   regoleUpsell      RegolaUpsell[]
   menuGiornalieri   MenuGiornaliero[]
+  contrattiAllotment ContrattoAllotment[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -2686,4 +2694,54 @@ model Incasso {
   @@index([hostId, riconciliato])
   @@index([chiusuraCassaId])
   @@map("incassi")
+}
+
+// ─── Contratti & Allotment ───────────────────────────────────────────────────
+
+enum TipoContratto {
+  TOUR_OPERATOR
+  AGENZIA
+  CORPORATE
+  GRUPPO
+}
+
+enum StatoContratto {
+  ATTIVO
+  SCADUTO
+  SOSPESO
+}
+
+model ContrattoAllotment {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  tipo          TipoContratto
+  nomePartner   String
+  contatto      String?
+  email         String?
+  telefono      String?
+  dataInizio    DateTime @db.Date
+  dataFine      DateTime @db.Date
+  stato         StatoContratto @default(ATTIVO)
+
+  // Allotment
+  strutturaId          String
+  struttura            Struttura @relation(fields: [strutturaId], references: [id])
+  unitaRiservate       Int
+  unitaVendute         Int       @default(0)
+  tariffaNegoziata     Float?
+  scontoPercentuale    Float?
+  commissionePercentuale Float?
+
+  // Policy
+  releaseGiorni         Int     @default(7)
+  cancellazioneGratuita Boolean @default(true)
+
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, stato])
+  @@map("contratti_allotment")
 }

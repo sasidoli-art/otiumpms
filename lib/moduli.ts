@@ -58,6 +58,10 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   { id: 'emailAuto',     nome: 'Email Automatiche',   descrizione: 'Conferme, reminder, follow-up automatici',             icona: 'Mail',            categoria: 'integrazioni', defaultAttivo: true },
   { id: 'ical',          nome: 'Calendario iCal',     descrizione: 'Export calendario per sync con altri sistemi',          icona: 'CalendarRange',   categoria: 'integrazioni', defaultAttivo: true },
   { id: 'channelMgr',   nome: 'Channel Manager',     descrizione: 'Import prenotazioni da Booking.com, Airbnb, VRBO via iCal', icona: 'Globe',      categoria: 'integrazioni', defaultAttivo: false },
+  { id: 'fatturazioneE', nome: 'Fatturazione Elettronica', descrizione: 'Emissione fatture, invio SDI, note di credito, provider Aruba/FIC', icona: 'FileText', categoria: 'avanzato', defaultAttivo: false },
+  { id: 'allotment',   nome: 'Contratti & Allotment', descrizione: 'Gestione accordi con tour operator, agenzie viaggio, contingenti', icona: 'Handshake', categoria: 'avanzato', defaultAttivo: false },
+  { id: 'biPrevisionale', nome: 'Business Intelligence', descrizione: 'Forecast revenue, analisi previsionale, confronti YoY, budget', icona: 'LineChart', categoria: 'avanzato', defaultAttivo: false },
+  { id: 'multiValuta', nome: 'Multi-valuta',          descrizione: 'Supporto EUR, USD, GBP, CHF con tassi di cambio automatici', icona: 'Coins',     categoria: 'avanzato', defaultAttivo: false },
 ]
 
 // ─── Tipo stato moduli ────────────────────────────────────────────────────────
@@ -78,6 +82,7 @@ export const PREZZI_ADDON: Record<string, number> = {
   concierge: 25, fatturazione: 15, channelMgr: 15, ristorazione: 15,
   catalogo: 10, upselling: 10, alloggiati: 10, manutenzione: 10,
   magazzino: 10, lostFound: 5, alertOspite: 5, tariffeDurata: 10,
+  fatturazioneE: 20, allotment: 25, biPrevisionale: 30, multiValuta: 15,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -199,6 +204,9 @@ export const MODULO_ROUTES: Record<string, string[]> = {
   pos:           ['/host/pos'],
   loyalty:       ['/host/spa/loyalty'],
   waitingList:   ['/host/spa/waiting-list'],
+  allotment:     ['/host/allotment'],
+  biPrevisionale: ['/host/business-intelligence'],
+  multiValuta:   ['/host/impostazioni-valuta'],
 }
 
 /**

@@ -49,6 +49,9 @@ const HREF_MODULO: Record<string, string> = {
   '/host/fatture': 'fatturazione',
   '/host/email-automatiche': 'emailAuto',
   '/host/canali': 'channelMgr',
+  '/host/fatture-emesse': 'fatturazioneE',
+  '/host/allotment': 'allotment',
+  '/host/business-intelligence': 'biPrevisionale',
 }
 
 const allNavGroups = [
@@ -138,11 +141,14 @@ const allNavGroups = [
   {
     label: 'REPORT & FINANZA',
     items: [
-      { href: '/host/report',             label: 'Report',        icon: BarChart3 },
-      { href: '/host/analytics',          label: 'Analytics',     icon: TrendingUp },
-      { href: '/host/fatture',            label: 'Fatture',       icon: FileText },
-      { href: '/host/email-automatiche',  label: 'Email auto',    icon: Mail },
-      { href: '/host/eventi',             label: 'I miei eventi', icon: CalendarDays },
+      { href: '/host/report',                label: 'Report',                icon: BarChart3 },
+      { href: '/host/analytics',             label: 'Analytics',              icon: TrendingUp },
+      { href: '/host/business-intelligence', label: 'Business Intelligence',  icon: BarChart3 },
+      { href: '/host/fatture',               label: 'Fatture ricevute',       icon: FileText },
+      { href: '/host/fatture-emesse',        label: 'Fatture emesse',         icon: Receipt },
+      { href: '/host/allotment',             label: 'Contratti & Allotment',  icon: FileText },
+      { href: '/host/email-automatiche',     label: 'Email auto',             icon: Mail },
+      { href: '/host/eventi',                label: 'I miei eventi',          icon: CalendarDays },
     ],
   },
   // ── IMPOSTAZIONI ──

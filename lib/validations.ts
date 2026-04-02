@@ -276,6 +276,9 @@ export const profiloUpdateSchema = z.object({
   smtpUser: z.string().max(254).trim().optional().nullable(),
   smtpPass: z.string().max(512).optional().nullable(),
   emailMittente: z.string().max(320).trim().optional().nullable(),
+  // Multi-valuta
+  valutaBase: z.enum(['EUR', 'USD', 'GBP', 'CHF']).optional().nullable(),
+  valuteAccettate: z.array(z.enum(['EUR', 'USD', 'GBP', 'CHF'])).optional(),
 })
 
 export type ProfiloUpdateInput = z.infer<typeof profiloUpdateSchema>

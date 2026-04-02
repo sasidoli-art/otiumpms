@@ -67,6 +67,9 @@ export async function PATCH(req: NextRequest) {
       smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
       smtpPass: data.smtpPass !== undefined ? (data.smtpPass || null) : host.smtpPass,
       emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
+      // Multi-valuta
+      valutaBase: data.valutaBase !== undefined ? data.valutaBase : host.valutaBase,
+      valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
     },
   })
 
