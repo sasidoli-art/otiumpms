@@ -48,7 +48,7 @@ export default function GuestChatBox({
   })
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [messaggi])
 
   async function invia(e: React.FormEvent) {
