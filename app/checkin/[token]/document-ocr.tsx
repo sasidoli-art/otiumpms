@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { useTranslations } from 'next-intl'
 import { Loader2, Camera, Upload, X, CheckCircle2 } from 'lucide-react'
 
 interface OCRResult {
@@ -96,7 +95,6 @@ function parseDocument(text: string): OCRResult {
   }
 
 export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
-  const t = useTranslations('checkin.ocr')
   const [loading, setLoading] = useState(false)
   const [extracted, setExtracted] = useState<OCRResult | null>(null)
   const [error, setError] = useState('')
@@ -110,7 +108,7 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
         const devices = await navigator.mediaDevices.enumerateDevices()
         const cam = devices.some(d => d.kind === 'videoinput')
         if (!cam) {
-          setError(t('noCameraDetected'))
+          setError('Nessuna fotocamera rilevata su questo dispositivo. Usa "Carica file" per selezionare un\'immagine del documento.')
           return
         }
       }
@@ -142,13 +140,13 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
           setShowModal(true)
           setLoading(false)
         } catch (err) {
-          setError(err instanceof Error ? err.message : t('parseError'))
+          setError(err instanceof Error ? err.message : 'Errore nel parsing')
           setLoading(false)
         }
       }
       reader.readAsDataURL(file)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('ocrError'))
+      setError(err instanceof Error ? err.message : 'Errore OCR')
       setLoading(false)
     }
   }
@@ -164,8 +162,8 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
     return (
       <div className="border-2 border-dashed border-indigo-200 rounded-xl p-8 flex flex-col items-center justify-center gap-3 bg-indigo-50">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-        <p className="text-sm font-medium text-indigo-700">{t('analyzing')}</p>
-        <p className="text-xs text-indigo-600">{t('analyzeNote')}</p>
+        <p className="text-sm font-medium text-indigo-700">Analizzando documento...</p>
+        <p className="text-xs text-indigo-600">Questa operazione potrebbe richiedere alcuni secondi</p>
       </div>
     )
   }
@@ -176,43 +174,41 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
         <div className="bg-white rounded-2xl shadow-lg p-6 max-w-sm w-full space-y-4">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 text-green-500" />
-            <h3 className="font-bold text-gray-900">{t('extractedData')}</h3>
+            <h3 className="font-bold text-gray-900">Dati estratti</h3>
           </div>
 
           <div className="space-y-3 text-sm">
             {extracted.guestTipoDocumento && (
               <div>
-                <p className="text-gray-600 font-medium">{t('documentType')}</p>
+                <p className="text-gray-600 font-medium">Tipo documento</p>
                 <p className="text-gray-900">{extracted.guestTipoDocumento}</p>
               </div>
             )}
             {extracted.guestNumeroDocumento && (
               <div>
-                <p className="text-gray-600 font-medium">{t('number')}</p>
+                <p className="text-gray-600 font-medium">Numero</p>
                 <p className="text-gray-900">{extracted.guestNumeroDocumento}</p>
               </div>
             )}
             {extracted.guestDataNascita && (
               <div>
-                <p className="text-gray-600 font-medium">{t('birthDate')}</p>
+                <p className="text-gray-600 font-medium">Data di nascita</p>
                 <p className="text-gray-900">{new Date(extracted.guestDataNascita).toLocaleDateString('it-IT')}</p>
               </div>
             )}
             {extracted.guestLuogoNascita && (
               <div>
-                <p className="text-gray-600 font-medium">{t('birthPlace')}</p>
+                <p className="text-gray-600 font-medium">Luogo di nascita</p>
                 <p className="text-gray-900">{extracted.guestLuogoNascita}</p>
               </div>
             )}
           </div>
 
           <p className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-            {/* TODO: i18n */}
-            Verifica i dati estratti. Se non corretti, modificali manualmente.
+            ⚠️ Verifica i dati estratti. Se non corretti, modificali manualmente.
           </p>
 
           <button onClick={() => setShowModal(false)} className="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700">
-            {/* TODO: i18n */}
             Continua
           </button>
         </div>
@@ -225,23 +221,23 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
       <div className="flex gap-3">
         <button type="button" onClick={handleCameraClick} className="flex-1 border-2 border-indigo-200 rounded-xl px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 flex items-center justify-center gap-2">
           <Camera className="w-4 h-4" />
-          {t('takePhoto')}
+          Fotocamera
         </button>
         <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 border-2 border-indigo-200 rounded-xl px-4 py-3 text-sm font-medium text-indigo-700 hover:bg-indigo-50 flex items-center justify-center gap-2">
           <Upload className="w-4 h-4" />
-          {t('uploadFile')}
+          Carica file
         </button>
       </div>
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3">
           <X className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-900">{t('ocrError')}</p>
+            <p className="text-sm font-medium text-red-900">Errore OCR</p>
             <p className="text-sm text-red-700">{error}</p>
           </div>
         </div>
       )}
-      <p className="text-xs text-gray-500 text-center">{t('uploadPhoto')}</p>
+      <p className="text-xs text-gray-500 text-center">Fotografia il documento per compilare i campi automaticamente</p>
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
     </div>
