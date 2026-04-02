@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { randomUUID } from 'crypto'
 
@@ -9,13 +8,13 @@ export async function POST(
   _req: NextRequest,
   { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user.hostId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
 
   const { id } = await paramsPromise
 
   const prenotazione = await prisma.prenotazione.findFirst({
-    where: { id, hostId: session.user.hostId },
+    where: { id, hostId: auth.user.hostId },
     select: { id: true, checkInToken: true, stato: true },
   })
 

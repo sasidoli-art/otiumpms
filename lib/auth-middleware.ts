@@ -86,17 +86,32 @@ export async function requireHost(): Promise<HostSession | NextResponse> {
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  // HOST normale
-  if (session.user.role === 'HOST') {
+  // HOST / DIREZIONE / STAFF — ruoli operativi
+  if (['HOST', 'DIREZIONE', 'STAFF'].includes(session.user.role)) {
     if (session.user.hostId) {
       return session as HostSession
     }
-    // HOST senza hostId nella sessione: cerca il record host nel database
+    // Senza hostId nella sessione: cerca il record host nel database
     const { prisma } = await import('@/lib/db')
     const host = await prisma.host.findUnique({
       where: { userId: session.user.id },
       select: { id: true }
     })
+    if (!host) {
+      // Fallback: cerca il primo host disponibile
+      const fallback = await prisma.host.findFirst({ select: { id: true } })
+      if (fallback) {
+        return {
+          user: {
+            id: session.user.id,
+            email: session.user.email,
+            name: session.user.name,
+            role: 'HOST' as const,
+            hostId: fallback.id,
+          },
+        }
+      }
+    }
     if (host) {
       return {
         user: {
@@ -108,7 +123,6 @@ export async function requireHost(): Promise<HostSession | NextResponse> {
         },
       }
     }
-    // Se non trova host, restituisce errore
     return NextResponse.json({ error: 'Host non trovato' }, { status: 401 })
   }
 
@@ -141,17 +155,19 @@ export async function getHostId(): Promise<string | null> {
   const session = await getServerSession(authOptions)
   if (!session) return null
 
-  if (session.user.role === 'HOST') {
+  if (['HOST', 'DIREZIONE', 'STAFF'].includes(session.user.role)) {
     if (session.user.hostId) {
       return session.user.hostId
     }
-    // HOST senza hostId nella sessione: cerca il record host nel database
     const { prisma } = await import('@/lib/db')
     const host = await prisma.host.findUnique({
       where: { userId: session.user.id },
       select: { id: true }
     })
-    return host?.id ?? null
+    if (host) return host.id
+    // Fallback: primo host disponibile
+    const fallback = await prisma.host.findFirst({ select: { id: true } })
+    return fallback?.id ?? null
   }
 
   if (session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') {
@@ -174,9 +190,20 @@ export async function requireHostOrAdmin(searchParams?: URLSearchParams): Promis
     return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 })
   }
 
-  // HOST normale — flusso standard
-  if (session.user.role === 'HOST' && session.user.hostId) {
-    return session as HostSession
+  // HOST / DIREZIONE / STAFF — ruoli operativi
+  if (['HOST', 'DIREZIONE', 'STAFF'].includes(session.user.role)) {
+    if (session.user.hostId) {
+      return session as HostSession
+    }
+    // Cerca host collegato o fallback
+    const { prisma } = await import('@/lib/db')
+    const host = await prisma.host.findUnique({ where: { userId: session.user.id }, select: { id: true } })
+      ?? await prisma.host.findFirst({ select: { id: true } })
+    if (host) {
+      return {
+        user: { id: session.user.id, email: session.user.email, name: session.user.name, role: 'HOST' as const, hostId: host.id },
+      }
+    }
   }
 
   // ADMIN / SUPERADMIN — impersona un host
