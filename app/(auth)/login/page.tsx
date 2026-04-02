@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, X, Send, CheckCircle2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -15,6 +15,26 @@ export default function LoginPage() {
   const [mostraPassword, setMostraPassword] = useState(false)
   const [errore, setErrore] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showContact, setShowContact] = useState(false)
+  const [contactForm, setContactForm] = useState({ nome: '', email: '', messaggio: '' })
+  const [contactSending, setContactSending] = useState(false)
+  const [contactSent, setContactSent] = useState(false)
+
+  async function handleContact(e: React.FormEvent) {
+    e.preventDefault()
+    if (!contactForm.nome.trim() || !contactForm.email.trim() || !contactForm.messaggio.trim()) return
+    setContactSending(true)
+    try {
+      await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm),
+      })
+      setContactSent(true)
+      setContactForm({ nome: '', email: '', messaggio: '' })
+    } catch {}
+    setContactSending(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -111,11 +131,77 @@ export default function LoginPage() {
 
         <p className="text-center text-xs text-gray-400 mt-6">
           {t('trouble')}{' '}
-          <a href="mailto:info@otiumweek.it" className="text-brand-500 hover:underline font-medium">
+          <button onClick={() => { setShowContact(true); setContactSent(false) }} className="text-brand-500 hover:underline font-medium">
             {t('contactUs')}
-          </a>
+          </button>
         </p>
       </div>
+
+      {/* Contact Modal */}
+      {showContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowContact(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <button onClick={() => setShowContact(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+
+            {contactSent ? (
+              <div className="text-center py-6">
+                <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="font-bold text-gray-900 text-lg">Messaggio inviato!</p>
+                <p className="text-sm text-gray-500 mt-1">Ti risponderemo al più presto.</p>
+                <button onClick={() => setShowContact(false)} className="mt-4 text-sm text-brand-500 hover:underline">Chiudi</button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">Contattaci</h3>
+                <p className="text-sm text-gray-500 mb-4">Compila il form e ti risponderemo a info@otiumweek.it</p>
+                <form onSubmit={handleContact} className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Nome *</label>
+                    <input
+                      type="text"
+                      value={contactForm.nome}
+                      onChange={e => setContactForm(f => ({ ...f, nome: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Email *</label>
+                    <input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={e => setContactForm(f => ({ ...f, email: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Messaggio *</label>
+                    <textarea
+                      value={contactForm.messaggio}
+                      onChange={e => setContactForm(f => ({ ...f, messaggio: e.target.value }))}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 resize-none"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={contactSending}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-50"
+                  >
+                    {contactSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    {contactSending ? 'Invio...' : 'Invia messaggio'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
