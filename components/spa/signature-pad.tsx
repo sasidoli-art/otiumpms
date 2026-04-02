@@ -83,9 +83,8 @@ export function SignaturePad({ onSave, onClear, disabilitato }: SignaturePadProp
     const ctx = canvas?.getContext('2d')
     if (!ctx) return
 
-    const dpr = window.devicePixelRatio || 2
     ctx.beginPath()
-    ctx.moveTo(coords.x * dpr, coords.y * dpr)
+    ctx.moveTo(coords.x, coords.y)
     setIsDrawing(true)
   }, [disabilitato, getCoords])
 
@@ -98,8 +97,7 @@ export function SignaturePad({ onSave, onClear, disabilitato }: SignaturePadProp
     const ctx = canvas?.getContext('2d')
     if (!ctx) return
 
-    const dpr = window.devicePixelRatio || 2
-    ctx.lineTo(coords.x * dpr, coords.y * dpr)
+    ctx.lineTo(coords.x, coords.y)
     ctx.stroke()
     setIsEmpty(false)
   }, [isDrawing, disabilitato, getCoords])
