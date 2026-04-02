@@ -250,6 +250,7 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
                 guestComuneRilascioIstat: prenotazione.guestComuneRilascioIstat,
                 guestProvinciaRilascio: prenotazione.guestProvinciaRilascio,
                 guestStatoRilascioIstat: prenotazione.guestStatoRilascioIstat,
+                guestCodiceFiscale: (prenotazione as Record<string, unknown>).guestCodiceFiscale as string | null,
               }}
             />
           </div>

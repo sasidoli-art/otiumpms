@@ -78,6 +78,7 @@ export default async function StrutturaDetailPage({
           >
             <ExternalLink className="w-4 h-4" /> Pagina pubblica
           </a>
+          <DeleteStrutturaButton strutturaId={struttura.id} strutturaNome={struttura.nome} />
         </div>
       </div>
 
@@ -203,15 +204,22 @@ export default async function StrutturaDetailPage({
                   <p className="font-medium text-gray-900">{u.nome}</p>
                   <p className="text-sm text-gray-500">
                     Capienza: {u.capacita} · da {formatValuta(u.prezzoBase)}
+                    {u.piano !== null && ` · P${u.piano}`}
                     {u._count.prenotazioni > 0 && ` · ${u._count.prenotazioni} pren.`}
                     {u.tariffe.length > 0 && ` · ${u.tariffe.length} tariffe`}
                   </p>
                 </div>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${u.attiva ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
-                >
-                  {u.attiva ? 'Attiva' : 'Disattiva'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${u.attiva ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    {u.attiva ? 'Attiva' : 'Disattiva'}
+                  </span>
+                  <UnitaRowActions
+                    unita={{ id: u.id, nome: u.nome, capacita: u.capacita, prezzoBase: u.prezzoBase, descrizione: u.descrizione, piano: u.piano, attiva: u.attiva }}
+                    strutturaId={struttura.id}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -230,3 +238,5 @@ export default async function StrutturaDetailPage({
 }
 
 import NuovaUnitaButton from './nuova-unita-button'
+import UnitaRowActions from './unita-row-actions'
+import DeleteStrutturaButton from './delete-struttura-button'

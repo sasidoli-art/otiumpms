@@ -117,7 +117,8 @@ export default function AccompagnatoriSection({
     }
   }
 
-  const puoAggiungere = true
+  const maxAccompagnatori = Math.max(0, numOspiti - 1)
+  const puoAggiungere = lista.length < maxAccompagnatori
 
   return (
     <div className="card">
@@ -125,7 +126,7 @@ export default function AccompagnatoriSection({
         <div>
           <h2 className="text-base font-semibold text-gray-900">Accompagnatori</h2>
           <p className="text-xs text-gray-400">
-            {lista.length} registrat{lista.length === 1 ? 'o' : 'i'}
+            {lista.length} di {maxAccompagnatori} registrat{lista.length === 1 ? 'o' : 'i'}
           </p>
         </div>
         {puoAggiungere && !showForm && (

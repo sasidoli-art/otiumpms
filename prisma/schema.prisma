@@ -692,6 +692,7 @@ model Prenotazione {
   guestComuneRilascioIstat String? // ISTAT comune rilascio
   guestProvinciaRilascio   String? // sigla 2 lettere
   guestStatoRilascioIstat  String? // ISTAT stato rilascio
+  guestCodiceFiscale       String? // solo per italiani
   fotoDocumentoFronte      String?
   fotoDocumentoRetro       String?
 

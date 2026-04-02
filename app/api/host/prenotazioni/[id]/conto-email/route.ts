@@ -68,7 +68,9 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
   const body = `Gentile ${p.guestNome} ${p.guestCognome},\n\necco il riepilogo del tuo soggiorno:\n\n${righe}\n\nGrazie per averci scelto!\n${host?.nomeAzienda ?? 'Lo staff'}`
 
   try {
+    console.log('[conto-email] to:', p.guestEmail, 'hostId:', auth.user.hostId)
     await sendEmailGeneric({ to: p.guestEmail, subject, text: body, hostId: auth.user.hostId })
+    console.log('[conto-email] email sent OK')
 
     // Registra nella chat
     const chat = await prisma.chat.findFirst({ where: { prenotazioneId: p.id } })

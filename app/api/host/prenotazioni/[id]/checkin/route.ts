@@ -51,6 +51,7 @@ export async function POST(
       guestComuneRilascioIstat: body.guestComuneRilascioIstat ?? prenotazione.guestComuneRilascioIstat,
       guestProvinciaRilascio: body.guestProvinciaRilascio ?? prenotazione.guestProvinciaRilascio,
       guestStatoRilascioIstat: body.guestStatoRilascioIstat ?? prenotazione.guestStatoRilascioIstat,
+      guestCodiceFiscale: body.guestCodiceFiscale ?? (prenotazione as Record<string, unknown>).guestCodiceFiscale ?? null,
     },
   })
 

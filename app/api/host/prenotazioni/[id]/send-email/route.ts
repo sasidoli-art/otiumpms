@@ -27,8 +27,10 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
   if (!to) return NextResponse.json({ error: 'Email ospite mancante' }, { status: 400 })
 
   try {
+    console.log('[send-email] to:', to, 'subject:', subject, 'hostId:', auth.user.hostId)
     // Invia email
     await sendEmailGeneric({ to, subject, text: body, hostId: auth.user.hostId })
+    console.log('[send-email] email sent, saving to chat...')
 
     // Registra nella chat (crea chat se non esiste)
     let chatId = prenotazione.chat?.id

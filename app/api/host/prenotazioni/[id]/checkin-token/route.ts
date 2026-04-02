@@ -33,6 +33,6 @@ export async function POST(
     })
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  const baseUrl = (process.env.NEXTAUTH_URL ?? 'http://localhost:3000').trim().replace(/\/+$/, '')
   return NextResponse.json({ token, url: `${baseUrl}/checkin/${token}` })
 }

@@ -48,8 +48,15 @@ async function dispatchMail(
   opts: { to: string; subject: string; html: string; replyTo?: string },
   hostId?: string | null,
 ) {
-  const { transporter, from } = await getTransporterAndFrom(hostId)
-  await transporter.sendMail({ from, ...opts })
+  try {
+    const { transporter, from } = await getTransporterAndFrom(hostId)
+    console.log('[email] sending to:', opts.to, 'from:', from, 'host:', process.env.SMTP_HOST)
+    await transporter.sendMail({ from, ...opts })
+    console.log('[email] sent OK')
+  } catch (err) {
+    console.error('[email] FAILED:', err instanceof Error ? err.message : err)
+    throw err
+  }
 }
 
 /**

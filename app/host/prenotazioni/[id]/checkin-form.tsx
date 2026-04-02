@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X, LogIn, LogOut, Loader2, AlertTriangle } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 import { DocumentScanner } from './document-scanner'
+import { STATI, PROVINCE_ITALIANE, isItaliano } from '@/lib/nazionalita'
 
 type Props = {
   prenotazioneId: string
@@ -23,12 +23,13 @@ type Props = {
     guestComuneRilascioIstat: string | null
     guestProvinciaRilascio: string | null
     guestStatoRilascioIstat: string | null
+    guestCodiceFiscale?: string | null
   } | null
 }
 
 const TIPI_DOCUMENTO = [
-  { value: 'PPORT', label: 'Passaporto' },
   { value: 'IDENTE', label: "Carta d'identità" },
+  { value: 'PPORT', label: 'Passaporto' },
   { value: 'PATEN', label: 'Patente di guida' },
   { value: 'PERMSOS', label: 'Permesso di soggiorno' },
 ]
@@ -56,10 +57,24 @@ export default function CheckInForm({ prenotazioneId, stato, datiEsistenti }: Pr
     guestComuneRilascioIstat: d?.guestComuneRilascioIstat ?? '',
     guestProvinciaRilascio: d?.guestProvinciaRilascio ?? '',
     guestStatoRilascioIstat: d?.guestStatoRilascioIstat ?? '100000100',
+    guestCodiceFiscale: d?.guestCodiceFiscale ?? '',
   })
+
+  const italiano = isItaliano(form.guestCittadinanzaIstat)
 
   function set(campo: string, valore: string) {
     setForm(f => ({ ...f, [campo]: valore }))
+  }
+
+  // Quando cambia cittadinanza, aggiorna stato nascita se vuoto
+  function setCittadinanza(codice: string) {
+    set('guestCittadinanzaIstat', codice)
+    if (!form.guestStatoNascitaIstat || form.guestStatoNascitaIstat === '100000100') {
+      set('guestStatoNascitaIstat', codice)
+    }
+    if (!form.guestStatoRilascioIstat || form.guestStatoRilascioIstat === '100000100') {
+      set('guestStatoRilascioIstat', codice)
+    }
   }
 
   async function eseguiCheckIn() {
@@ -136,41 +151,64 @@ export default function CheckInForm({ prenotazioneId, stato, datiEsistenti }: Pr
         )}
       </div>
 
-      {/* Modal check-in con dati documento */}
+      {/* Modal check-in */}
       {aperto && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {/* Header modal */}
+            {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div>
                 <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <LogIn className="w-5 h-5 text-green-600" /> Check-in ospite
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Compila i dati per Alloggiati Web (Questura)
+                  Dati per Alloggiati Web (Questura)
                 </p>
               </div>
-              <button
-                onClick={() => setAperto(false)}
-                className="p-1 rounded hover:bg-gray-100 text-gray-400"
-              >
+              <button onClick={() => setAperto(false)} className="p-1 rounded hover:bg-gray-100 text-gray-400">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Corpo form */}
+            {/* Form */}
             <div className="p-5 space-y-4">
-              {/* Sesso */}
+
+              {/* Nazionalità — primo campo, determina cosa mostrare */}
+              <div>
+                <label className="label">Nazionalità / Cittadinanza <span className="text-red-500">*</span></label>
+                <select
+                  value={form.guestCittadinanzaIstat}
+                  onChange={e => setCittadinanza(e.target.value)}
+                  className="input"
+                >
+                  {STATI.map(s => (
+                    <option key={s.codice} value={s.codice}>{s.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Codice Fiscale — solo per italiani */}
+              {italiano && (
+                <div>
+                  <label className="label">Codice Fiscale</label>
+                  <input
+                    type="text"
+                    value={form.guestCodiceFiscale}
+                    onChange={e => set('guestCodiceFiscale', e.target.value.toUpperCase())}
+                    placeholder="RSSMRA85M01H501Z"
+                    maxLength={16}
+                    className="input font-mono tracking-wide"
+                  />
+                </div>
+              )}
+
+              {/* Sesso + Data nascita */}
               <div className="flex gap-3">
-                <div className="flex-1">
+                <div className="w-28">
                   <label className="label">Sesso <span className="text-red-500">*</span></label>
-                  <select
-                    value={form.guestSesso}
-                    onChange={e => set('guestSesso', e.target.value)}
-                    className="input"
-                  >
-                    <option value="M">Maschio</option>
-                    <option value="F">Femmina</option>
+                  <select value={form.guestSesso} onChange={e => set('guestSesso', e.target.value)} className="input">
+                    <option value="M">M</option>
+                    <option value="F">F</option>
                   </select>
                 </div>
                 <div className="flex-1">
@@ -186,66 +224,42 @@ export default function CheckInForm({ prenotazioneId, stato, datiEsistenti }: Pr
               </div>
 
               {/* Luogo nascita */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              <div className="flex gap-3">
+                <div className="flex-1">
                   <label className="label">Luogo di nascita <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={form.guestLuogoNascita}
                     onChange={e => set('guestLuogoNascita', e.target.value)}
-                    placeholder="es. Roma"
+                    placeholder={italiano ? 'es. Roma' : 'es. London'}
                     className="input"
                     required
                   />
                 </div>
-                <div>
-                  <label className="label">Prov.</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    value={form.guestProvinciaNascita}
-                    onChange={e => set('guestProvinciaNascita', e.target.value.toUpperCase())}
-                    placeholder="RM"
-                    className="input"
-                  />
-                </div>
+                {italiano && (
+                  <div className="w-20">
+                    <label className="label">Prov.</label>
+                    <select value={form.guestProvinciaNascita} onChange={e => set('guestProvinciaNascita', e.target.value)} className="input text-xs">
+                      <option value="">—</option>
+                      {PROVINCE_ITALIANE.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Codici ISTAT */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Stato nascita (solo se straniero) */}
+              {!italiano && (
                 <div>
-                  <label className="label">Cod. ISTAT comune nascita</label>
-                  <input
-                    type="text"
-                    value={form.guestComuneNascitaIstat}
-                    onChange={e => set('guestComuneNascitaIstat', e.target.value)}
-                    placeholder="es. H501"
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="label">Stato nascita (ISTAT)</label>
-                  <input
-                    type="text"
+                  <label className="label">Stato di nascita</label>
+                  <select
                     value={form.guestStatoNascitaIstat}
                     onChange={e => set('guestStatoNascitaIstat', e.target.value)}
-                    placeholder="100000100"
                     className="input"
-                  />
+                  >
+                    {STATI.map(s => <option key={s.codice} value={s.codice}>{s.nome}</option>)}
+                  </select>
                 </div>
-              </div>
-
-              {/* Cittadinanza */}
-              <div>
-                <label className="label">Cittadinanza (codice stato ISTAT)</label>
-                <input
-                  type="text"
-                  value={form.guestCittadinanzaIstat}
-                  onChange={e => set('guestCittadinanzaIstat', e.target.value)}
-                  placeholder="100000100"
-                  className="input"
-                />
-              </div>
+              )}
 
               <hr className="border-gray-100" />
 
@@ -261,76 +275,53 @@ export default function CheckInForm({ prenotazioneId, stato, datiEsistenti }: Pr
               />
 
               {/* Documento */}
-              <div>
-                <label className="label">Tipo documento <span className="text-red-500">*</span></label>
-                <select
-                  value={form.guestTipoDocumento}
-                  onChange={e => set('guestTipoDocumento', e.target.value)}
-                  className="input"
-                >
-                  {TIPI_DOCUMENTO.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="label">Tipo documento <span className="text-red-500">*</span></label>
+                  <select
+                    value={form.guestTipoDocumento}
+                    onChange={e => set('guestTipoDocumento', e.target.value)}
+                    className="input"
+                  >
+                    {TIPI_DOCUMENTO.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="label">Numero <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={form.guestNumeroDocumento}
+                    onChange={e => set('guestNumeroDocumento', e.target.value.toUpperCase())}
+                    placeholder="AX1234567"
+                    className="input font-mono"
+                    required
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="label">Numero documento <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  value={form.guestNumeroDocumento}
-                  onChange={e => set('guestNumeroDocumento', e.target.value.toUpperCase())}
-                  placeholder="es. AX1234567"
-                  className="input"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
+              {/* Luogo rilascio */}
+              <div className="flex gap-3">
+                <div className="flex-1">
                   <label className="label">Luogo di rilascio</label>
                   <input
                     type="text"
                     value={form.guestLuogoRilascio}
                     onChange={e => set('guestLuogoRilascio', e.target.value)}
-                    placeholder="es. Roma"
+                    placeholder={italiano ? 'es. Roma' : 'es. Embassy'}
                     className="input"
                   />
                 </div>
-                <div>
-                  <label className="label">Prov.</label>
-                  <input
-                    type="text"
-                    maxLength={2}
-                    value={form.guestProvinciaRilascio}
-                    onChange={e => set('guestProvinciaRilascio', e.target.value.toUpperCase())}
-                    placeholder="RM"
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Cod. ISTAT comune rilascio</label>
-                  <input
-                    type="text"
-                    value={form.guestComuneRilascioIstat}
-                    onChange={e => set('guestComuneRilascioIstat', e.target.value)}
-                    placeholder="es. H501"
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="label">Stato rilascio (ISTAT)</label>
-                  <input
-                    type="text"
-                    value={form.guestStatoRilascioIstat}
-                    onChange={e => set('guestStatoRilascioIstat', e.target.value)}
-                    placeholder="100000100"
-                    className="input"
-                  />
-                </div>
+                {italiano && (
+                  <div className="w-20">
+                    <label className="label">Prov.</label>
+                    <select value={form.guestProvinciaRilascio} onChange={e => set('guestProvinciaRilascio', e.target.value)} className="input text-xs">
+                      <option value="">—</option>
+                      {PROVINCE_ITALIANE.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {errore && (
