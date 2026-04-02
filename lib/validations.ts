@@ -45,7 +45,7 @@ export function parseBody<T>(
 
 const STATI_PRENOTAZIONE = ['RICHIESTA', 'CONFERMATA', 'ANNULLATA', 'COMPLETATA', 'NO_SHOW'] as const
 const STATI_ABBONAMENTO = ['ATTIVO', 'SOSPESO', 'SCADUTO', 'IN_PROVA'] as const
-const STATI_FATTURA = ['BOZZA', 'INVIATA', 'PAGATA', 'SCADUTA', 'ANNULLATA'] as const
+const STATI_FATTURA = ['BOZZA', 'INVIATA', 'PAGATA', 'SCADUTA', 'ANNULLATA', 'STORNATA'] as const
 const STATI_PAGAMENTO = ['IN_ATTESA', 'PAGATO', 'IN_RITARDO', 'ANNULLATO'] as const
 const PIANI_TIPO = ['EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM'] as const
 
@@ -411,13 +411,3 @@ export const eventoCreateSchema = z.object({
 })
 
 export type EventoCreateInput = z.infer<typeof eventoCreateSchema>
-
-// ─── Host: upgrade abbonamento ───────────────────────────────────────────────
-
-export const abbonamentoUpgradeSchema = z.object({
-  nuovoPiano: z.enum(PIANI_TIPO, {
-    errorMap: () => ({ message: 'Piano non valido' }),
-  }),
-})
-
-export type AbbonamentoUpgradeInput = z.infer<typeof abbonamentoUpgradeSchema>

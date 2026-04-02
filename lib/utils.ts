@@ -118,6 +118,7 @@ export function statoFatturaLabel(stato: StatoFattura): string {
     PAGATA: 'Pagata',
     SCADUTA: 'Scaduta',
     ANNULLATA: 'Annullata',
+    STORNATA: 'Stornata',
   }
   return labels[stato]
 }
@@ -129,6 +130,7 @@ export function statoFatturaColor(stato: StatoFattura): string {
     PAGATA: 'bg-green-100 text-green-800',
     SCADUTA: 'bg-red-100 text-red-800',
     ANNULLATA: 'bg-gray-100 text-gray-500',
+    STORNATA: 'bg-orange-100 text-orange-800',
   }
   return colors[stato]
 }

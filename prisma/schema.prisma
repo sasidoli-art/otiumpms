@@ -30,10 +30,10 @@ enum RuoloStaff {
 }
 
 enum PianoTipo {
-  LIGHT              // €29/mese — B&B base (prenotazioni, check-in, HK, chat, report, email)
-  EVENTO_SINGOLO     // €49 una tantum
+  LIGHT // €29/mese — B&B base (prenotazioni, check-in, HK, chat, report, email)
+  EVENTO_SINGOLO // €49 una tantum
   VISIBILITA_MENSILE // €149/mese — tutti i moduli base + operativi
-  PARTNER_PREMIUM    // €349/mese — tutto incluso + SPA + POS + AI
+  PARTNER_PREMIUM // €349/mese — tutto incluso + SPA + POS + AI
 }
 
 enum StatoAbbonamento {
@@ -64,6 +64,7 @@ enum StatoFattura {
   PAGATA
   SCADUTA
   ANNULLATA
+  STORNATA
 }
 
 enum CategoriaEvento {
@@ -228,6 +229,12 @@ model Host {
   fattPec         String?
   fattCodiceSDI   String?
   regimeFiscale   String? @default("RF01") // RF01=Ordinario, RF02=Minimi, RF04=Agricoltura, ecc.
+
+  // SDI provider configuration
+  sdiProvider  String? // 'manuale' | 'aruba' | 'fattureincloud'
+  sdiApiKey    String? // API key for the provider
+  sdiUsername  String? // Aruba username
+  sdiCompanyId String? // FattureInCloud company ID
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -447,6 +454,19 @@ model Fattura {
   dataScadenza  DateTime?
   note          String?
 
+  // SDI (Sistema di Interscambio) integration
+  sdiId         String? // provider reference ID
+  sdiStato      String? // 'accettata' | 'scartata' | 'in_attesa'
+  sdiMessaggio  String? // error message from SDI
+  sdiProvider   String? // 'manuale' | 'aruba' | 'fattureincloud'
+  sdiInviatoAt  DateTime?
+  tipoDocumento String?   @default("TD01") // TD01=fattura, TD04=nota credito
+
+  // Nota di credito: riferimento alla fattura originale
+  riferimentoFatturaId String?
+  riferimentoFattura   Fattura?  @relation("NoteDiCredito", fields: [riferimentoFatturaId], references: [id])
+  noteDiCredito        Fattura[] @relation("NoteDiCredito")
+
   prenotazioni Prenotazione[]
 
   createdAt DateTime @default(now())
@@ -455,6 +475,7 @@ model Fattura {
   @@index([hostId])
   @@index([hostId, stato])
   @@index([anno])
+  @@index([riferimentoFatturaId])
   @@map("fatture")
 }
 
