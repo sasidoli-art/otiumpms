@@ -99,7 +99,7 @@ export default function PastoSection({ prenotazioneId }: { prenotazioneId: strin
     <div className="card">
       <div className="flex items-center gap-2 mb-3">
         <UtensilsCrossed className="w-4 h-4 text-amber-500" />
-        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Piano pasto</h2>
+        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Pacchetto F&amp;B</h2>
         {pianoPasto && (
           <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full font-medium">
             {PIANI.find(p => p.id === pianoPasto.piano)?.label || pianoPasto.piano}
@@ -172,7 +172,7 @@ export default function PastoSection({ prenotazioneId }: { prenotazioneId: strin
         }`}
       >
         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : successo ? <Check className="w-4 h-4" /> : <UtensilsCrossed className="w-4 h-4" />}
-        {saving ? 'Salvo...' : successo ? 'Salvato!' : pianoSelezionato !== (pianoPasto?.piano || 'PERNOTTAMENTO_COLAZIONE') ? 'Cambia piano' : 'Salva piano pasto'}
+        {saving ? 'Salvo...' : successo ? 'Salvato!' : pianoSelezionato !== (pianoPasto?.piano || 'PERNOTTAMENTO_COLAZIONE') ? 'Cambia pacchetto' : 'Salva pacchetto F&B'}
       </button>
     </div>
   )

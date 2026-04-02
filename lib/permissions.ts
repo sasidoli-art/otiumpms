@@ -56,7 +56,7 @@ const SECTION_TO_GROUP: Record<string, HostSection> = {
   'STRUTTURA': 'struttura',
   'OSPITI': 'ospiti',
   'OPERAZIONI': 'operazioni',
-  'RISTORAZIONE': 'ristorazione',
+  'F&B': 'ristorazione',
   'SPA & BENESSERE': 'spa',
   'CASSA & VENDITE': 'cassa',
   'REPORT & FINANZA': 'report',

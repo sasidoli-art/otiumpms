@@ -104,12 +104,12 @@ const allNavGroups = [
       { href: '/host/staff',                   label: 'Bacheca staff', icon: MessageSquare },
     ],
   },
-  // ── RISTORAZIONE ──
+  // ── F&B ──
   {
-    label: 'RISTORAZIONE',
+    label: 'F&B',
     items: [
-      { href: '/host/ristorazione',      label: 'Coperti',         icon: UtensilsCrossed },
-      { href: '/host/ristorazione/menu', label: 'Gestione menu',   icon: ClipboardCheck },
+      { href: '/host/ristorazione',      label: 'Coperti giornalieri', icon: UtensilsCrossed },
+      { href: '/host/ristorazione/menu', label: 'Menu & piatti',       icon: ClipboardCheck },
     ],
   },
   // ── SPA & BENESSERE ──
@@ -177,7 +177,7 @@ const GROUP_DOT_COLOR: Record<string, string> = {
   'STRUTTURA': 'bg-emerald-400',
   'OSPITI': 'bg-violet-400',
   'OPERAZIONI': 'bg-amber-400',
-  'RISTORAZIONE': 'bg-orange-400',
+  'F&B': 'bg-orange-400',
   'SPA & BENESSERE': 'bg-teal-400',
   'CASSA & VENDITE': 'bg-green-400',
   'REPORT & FINANZA': 'bg-sky-400',
