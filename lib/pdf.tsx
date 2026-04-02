@@ -1,6 +1,12 @@
-import { renderToBuffer, Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer'
+/**
+ * Generatore PDF Fattura con PDFKit.
+ * Compatibile serverless Vercel + Turbopack.
+ */
 
-// Tipi locali per la fattura (compatibili con Prisma)
+import PDFDocument from 'pdfkit'
+
+// ─── Tipi ────────────────────────────────────────────────────────────────────
+
 interface RigaFattura {
   descrizione: string
   quantita: number
@@ -15,8 +21,6 @@ interface Fattura {
   dataEmissione: Date
   dataScadenza?: Date | null
   stato: string
-
-  // Dati cliente
   clienteNome: string
   clientePIva?: string | null
   clienteCF?: string | null
@@ -28,126 +32,18 @@ interface Fattura {
   clienteEmail?: string | null
   clientePec?: string | null
   clienteSDI?: string | null
-
-  // Economici
   righe: RigaFattura[] | unknown
   imponibile: number
   iva: number
   totale: number
   aliquotaIva: number
-
   note?: string | null
 }
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 const BRAND = '#4f46e5'
-const GRAY_LIGHT = '#f9fafb'
-const GRAY_BORDER = '#e5e7eb'
-const GRAY_TEXT = '#6b7280'
-
-const styles = StyleSheet.create({
-  page: {
-    fontFamily: 'Helvetica',
-    fontSize: 9,
-    color: '#111827',
-    padding: 48,
-  },
-  // Header
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 32,
-  },
-  brandBlock: { flexDirection: 'column', gap: 2 },
-  brandName: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: BRAND },
-  brandSub: { fontSize: 8, color: GRAY_TEXT },
-  docBlock: { alignItems: 'flex-end' },
-  docTitle: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#111827', marginBottom: 4 },
-  docNumero: { fontSize: 10, color: BRAND, fontFamily: 'Helvetica-Bold' },
-  docMeta: { fontSize: 8, color: GRAY_TEXT, marginTop: 2 },
-
-  // Indirizzi
-  addressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
-  addressBox: { width: '45%' },
-  addressLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: GRAY_TEXT, textTransform: 'uppercase', marginBottom: 5, letterSpacing: 0.5 },
-  addressName: { fontSize: 10, fontFamily: 'Helvetica-Bold', marginBottom: 2 },
-  addressLine: { fontSize: 9, color: '#374151', marginBottom: 1 },
-
-  // Tabella
-  table: { marginBottom: 20 },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: BRAND,
-    borderRadius: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    marginBottom: 1,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: GRAY_BORDER,
-  },
-  tableRowAlt: { backgroundColor: GRAY_LIGHT },
-
-  colDesc: { flex: 4 },
-  colQty: { flex: 1, textAlign: 'center' },
-  colPrice: { flex: 1.5, textAlign: 'right' },
-  colIva: { flex: 1, textAlign: 'center' },
-  colTotale: { flex: 1.5, textAlign: 'right' },
-
-  th: { fontSize: 8, color: '#ffffff', fontFamily: 'Helvetica-Bold' },
-  td: { fontSize: 9, color: '#374151' },
-
-  // Totali
-  totalsBlock: {
-    alignSelf: 'flex-end',
-    width: '40%',
-    borderTopWidth: 1,
-    borderTopColor: GRAY_BORDER,
-    paddingTop: 10,
-    gap: 3,
-  },
-  totalsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  totalsLabel: { fontSize: 9, color: GRAY_TEXT },
-  totalsValue: { fontSize: 9, color: '#111827' },
-  totaleFinalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1.5,
-    borderTopColor: BRAND,
-    paddingTop: 5,
-    marginTop: 3,
-  },
-  totaleFinalLabel: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#111827' },
-  totaleFinalValue: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: BRAND },
-
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 36,
-    left: 48,
-    right: 48,
-    borderTopWidth: 1,
-    borderTopColor: GRAY_BORDER,
-    paddingTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  footerText: { fontSize: 7, color: GRAY_TEXT },
-
-  // Note
-  noteBox: {
-    marginBottom: 20,
-    backgroundColor: GRAY_LIGHT,
-    borderRadius: 4,
-    padding: 10,
-  },
-  noteLabel: { fontSize: 7, fontFamily: 'Helvetica-Bold', color: GRAY_TEXT, textTransform: 'uppercase', marginBottom: 4 },
-  noteText: { fontSize: 8, color: '#374151' },
-})
+const GRAY = '#6b7280'
 
 function fmtData(d: Date): string {
   return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -157,109 +53,119 @@ function fmtValuta(n: number): string {
   return `€ ${n.toFixed(2)}`
 }
 
-function FatturaDocument({ fattura }: { fattura: Fattura }) {
-  const righe = Array.isArray(fattura.righe) ? (fattura.righe as RigaFattura[]) : []
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.brandBlock}>
-            <Text style={styles.brandName}>Otium Week</Text>
-            <Text style={styles.brandSub}>otiumweek.it</Text>
-          </View>
-          <View style={styles.docBlock}>
-            <Text style={styles.docTitle}>FATTURA</Text>
-            <Text style={styles.docNumero}>N. {fattura.numero}</Text>
-            <Text style={styles.docMeta}>Emessa il {fmtData(new Date(fattura.dataEmissione))}</Text>
-            {fattura.dataScadenza && (
-              <Text style={styles.docMeta}>Scadenza: {fmtData(new Date(fattura.dataScadenza))}</Text>
-            )}
-          </View>
-        </View>
-
-        {/* Indirizzi */}
-        <View style={styles.addressRow}>
-          <View style={styles.addressBox}>
-            <Text style={styles.addressLabel}>Fornitore</Text>
-            <Text style={styles.addressName}>Otium Week S.r.l.</Text>
-            <Text style={styles.addressLine}>P.IVA: IT00000000000</Text>
-            <Text style={styles.addressLine}>otiumweek.it</Text>
-          </View>
-          <View style={styles.addressBox}>
-            <Text style={styles.addressLabel}>Cliente</Text>
-            <Text style={styles.addressName}>{fattura.clienteNome}</Text>
-            {fattura.clientePIva && <Text style={styles.addressLine}>P.IVA: {fattura.clientePIva}</Text>}
-            {fattura.clienteCF && <Text style={styles.addressLine}>CF: {fattura.clienteCF}</Text>}
-            {fattura.clienteIndirizzo && <Text style={styles.addressLine}>{fattura.clienteIndirizzo}</Text>}
-            {(fattura.clienteCitta || fattura.clienteCap) && (
-              <Text style={styles.addressLine}>
-                {[fattura.clienteCap, fattura.clienteCitta, fattura.clienteProvincia].filter(Boolean).join(' ')}
-              </Text>
-            )}
-            <Text style={styles.addressLine}>{fattura.clientePaese}</Text>
-            {fattura.clienteSDI && <Text style={styles.addressLine}>SDI: {fattura.clienteSDI}</Text>}
-            {fattura.clientePec && <Text style={styles.addressLine}>PEC: {fattura.clientePec}</Text>}
-            {fattura.clienteEmail && <Text style={styles.addressLine}>{fattura.clienteEmail}</Text>}
-          </View>
-        </View>
-
-        {/* Tabella */}
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.th, styles.colDesc]}>Descrizione</Text>
-            <Text style={[styles.th, styles.colQty]}>Qtà</Text>
-            <Text style={[styles.th, styles.colPrice]}>Unitario</Text>
-            <Text style={[styles.th, styles.colIva]}>IVA %</Text>
-            <Text style={[styles.th, styles.colTotale]}>Totale</Text>
-          </View>
-          {righe.map((r, i) => (
-            <View key={i} style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}>
-              <Text style={[styles.td, styles.colDesc]}>{r.descrizione}</Text>
-              <Text style={[styles.td, styles.colQty]}>{r.quantita}</Text>
-              <Text style={[styles.td, styles.colPrice]}>{fmtValuta(r.prezzoUnitario)}</Text>
-              <Text style={[styles.td, styles.colIva]}>{r.iva}%</Text>
-              <Text style={[styles.td, styles.colTotale]}>{fmtValuta(r.totale)}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Totali */}
-        <View style={styles.totalsBlock}>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Imponibile</Text>
-            <Text style={styles.totalsValue}>{fmtValuta(fattura.imponibile)}</Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>IVA ({fattura.aliquotaIva}%)</Text>
-            <Text style={styles.totalsValue}>{fmtValuta(fattura.iva)}</Text>
-          </View>
-          <View style={styles.totaleFinalRow}>
-            <Text style={styles.totaleFinalLabel}>TOTALE</Text>
-            <Text style={styles.totaleFinalValue}>{fmtValuta(fattura.totale)}</Text>
-          </View>
-        </View>
-
-        {/* Note */}
-        {fattura.note && (
-          <View style={styles.noteBox}>
-            <Text style={styles.noteLabel}>Note</Text>
-            <Text style={styles.noteText}>{fattura.note}</Text>
-          </View>
-        )}
-
-        {/* Footer */}
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Otium Week · otiumweek.it</Text>
-          <Text style={styles.footerText}>Fattura N. {fattura.numero}</Text>
-        </View>
-      </Page>
-    </Document>
-  )
+function pdfToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+    doc.on('end', () => resolve(Buffer.concat(chunks)))
+    doc.on('error', reject)
+    doc.end()
+  })
 }
 
+// ─── Genera PDF Fattura ──────────────────────────────────────────────────────
+
 export async function generaPdfFattura(fattura: Fattura): Promise<Uint8Array> {
-  const buffer = await renderToBuffer(<FatturaDocument fattura={fattura} />)
+  const doc = new PDFDocument({ size: 'A4', margin: 48 })
+  const righe = Array.isArray(fattura.righe) ? (fattura.righe as RigaFattura[]) : []
+
+  // ── Header ──
+  doc.fontSize(18).fillColor(BRAND).text('Otium Week', { continued: false })
+  doc.fontSize(8).fillColor(GRAY).text('otiumweek.it')
+  doc.moveUp(2)
+  doc.fontSize(14).fillColor('#111827').text('FATTURA', { align: 'right' })
+  doc.fontSize(10).fillColor(BRAND).text(`N. ${fattura.numero}`, { align: 'right' })
+  doc.fontSize(8).fillColor(GRAY).text(`Emessa il ${fmtData(new Date(fattura.dataEmissione))}`, { align: 'right' })
+  if (fattura.dataScadenza) {
+    doc.text(`Scadenza: ${fmtData(new Date(fattura.dataScadenza))}`, { align: 'right' })
+  }
+
+  doc.moveDown(2)
+
+  // ── Indirizzi ──
+  const addrY = doc.y
+
+  // Fornitore (sinistra)
+  doc.fontSize(7).fillColor(GRAY).text('FORNITORE', 48, addrY)
+  doc.fontSize(10).fillColor('#111827').text('Otium Week S.r.l.', 48, addrY + 14, { bold: true } as any)
+  doc.fontSize(9).fillColor('#374151').text('P.IVA: IT00000000000', 48, addrY + 28)
+  doc.text('otiumweek.it', 48, addrY + 40)
+
+  // Cliente (destra)
+  doc.fontSize(7).fillColor(GRAY).text('CLIENTE', 300, addrY)
+  doc.fontSize(10).fillColor('#111827').text(fattura.clienteNome, 300, addrY + 14)
+  let clienteY = addrY + 28
+  if (fattura.clientePIva) { doc.fontSize(9).fillColor('#374151').text(`P.IVA: ${fattura.clientePIva}`, 300, clienteY); clienteY += 12 }
+  if (fattura.clienteCF) { doc.text(`CF: ${fattura.clienteCF}`, 300, clienteY); clienteY += 12 }
+  if (fattura.clienteIndirizzo) { doc.text(fattura.clienteIndirizzo, 300, clienteY); clienteY += 12 }
+  if (fattura.clienteCitta || fattura.clienteCap) {
+    doc.text([fattura.clienteCap, fattura.clienteCitta, fattura.clienteProvincia].filter(Boolean).join(' '), 300, clienteY)
+    clienteY += 12
+  }
+  doc.text(fattura.clientePaese, 300, clienteY); clienteY += 12
+  if (fattura.clienteSDI) { doc.text(`SDI: ${fattura.clienteSDI}`, 300, clienteY); clienteY += 12 }
+  if (fattura.clientePec) { doc.text(`PEC: ${fattura.clientePec}`, 300, clienteY); clienteY += 12 }
+  if (fattura.clienteEmail) { doc.text(fattura.clienteEmail, 300, clienteY); clienteY += 12 }
+
+  doc.y = Math.max(doc.y, clienteY) + 20
+
+  // ── Tabella righe ──
+  const tableTop = doc.y
+  const colX = { desc: 48, qty: 310, price: 370, iva: 430, tot: 475 }
+
+  // Header tabella
+  doc.rect(48, tableTop, 500, 20).fill(BRAND)
+  doc.fontSize(8).fillColor('#ffffff')
+  doc.text('Descrizione', colX.desc + 6, tableTop + 5)
+  doc.text('Qtà', colX.qty, tableTop + 5, { width: 50, align: 'center' })
+  doc.text('Unitario', colX.price, tableTop + 5, { width: 55, align: 'right' })
+  doc.text('IVA %', colX.iva, tableTop + 5, { width: 40, align: 'center' })
+  doc.text('Totale', colX.tot, tableTop + 5, { width: 65, align: 'right' })
+
+  let rowY = tableTop + 24
+  doc.fontSize(9).fillColor('#374151')
+
+  righe.forEach((r, i) => {
+    if (i % 2 === 1) {
+      doc.rect(48, rowY - 2, 500, 18).fill('#f9fafb')
+      doc.fillColor('#374151')
+    }
+    doc.text(r.descrizione, colX.desc + 6, rowY, { width: 250 })
+    doc.text(String(r.quantita), colX.qty, rowY, { width: 50, align: 'center' })
+    doc.text(fmtValuta(r.prezzoUnitario), colX.price, rowY, { width: 55, align: 'right' })
+    doc.text(`${r.iva}%`, colX.iva, rowY, { width: 40, align: 'center' })
+    doc.text(fmtValuta(r.totale), colX.tot, rowY, { width: 65, align: 'right' })
+    // Separatore
+    doc.moveTo(48, rowY + 14).lineTo(548, rowY + 14).strokeColor('#e5e7eb').lineWidth(0.5).stroke()
+    rowY += 18
+  })
+
+  // ── Totali ──
+  const totY = rowY + 15
+  doc.fontSize(9).fillColor(GRAY)
+  doc.text('Imponibile', 380, totY, { width: 80, align: 'right' })
+  doc.fillColor('#111827').text(fmtValuta(fattura.imponibile), 470, totY, { width: 70, align: 'right' })
+
+  doc.fillColor(GRAY).text(`IVA (${fattura.aliquotaIva}%)`, 380, totY + 16, { width: 80, align: 'right' })
+  doc.fillColor('#111827').text(fmtValuta(fattura.iva), 470, totY + 16, { width: 70, align: 'right' })
+
+  doc.moveTo(380, totY + 34).lineTo(540, totY + 34).strokeColor(BRAND).lineWidth(1.5).stroke()
+  doc.fontSize(11).fillColor('#111827').text('TOTALE', 380, totY + 40, { width: 80, align: 'right' })
+  doc.fillColor(BRAND).text(fmtValuta(fattura.totale), 470, totY + 40, { width: 70, align: 'right' })
+
+  // ── Note ──
+  if (fattura.note) {
+    const noteY = totY + 65
+    doc.rect(48, noteY, 500, 40).fill('#f9fafb')
+    doc.fontSize(7).fillColor(GRAY).text('NOTE', 58, noteY + 8)
+    doc.fontSize(8).fillColor('#374151').text(fattura.note, 58, noteY + 20, { width: 480 })
+  }
+
+  // ── Footer ──
+  doc.fontSize(7).fillColor(GRAY)
+  doc.text('Otium Week · otiumweek.it', 48, 780)
+  doc.text(`Fattura N. ${fattura.numero}`, 400, 780, { width: 140, align: 'right' })
+
+  const buffer = await pdfToBuffer(doc)
   return new Uint8Array(buffer)
 }
