@@ -11,7 +11,7 @@ interface Props {
   nomeAzienda: string
   moduliAttivi: unknown
   logo?: string | null
-  ruolo: 'HOST' | 'ADMIN' | 'SUPERADMIN'
+  ruolo: string
   children: React.ReactNode
 }
 
@@ -54,6 +54,7 @@ export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, 
           nomeAzienda={nomeAzienda}
           moduliAttivi={moduliAttivi}
           logo={logo}
+          ruolo={ruolo}
           onMobileClose={() => setMobileOpen(false)}
         />
       </div>
@@ -62,7 +63,7 @@ export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar
           nomeUtente={nomeUtente}
-          ruolo={ruolo === 'SUPERADMIN' ? 'ADMIN' : ruolo}
+          ruolo={ruolo}
           settingsHref="/host/profilo"
           onMenuClick={() => setMobileOpen(v => !v)}
         />

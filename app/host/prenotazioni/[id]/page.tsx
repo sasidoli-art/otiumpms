@@ -20,6 +20,7 @@ import PastoSection from './pasto-section'
 import AddebitiSection from './addebiti-section'
 import AssegnazioneSection from './assegnazione-section'
 import PagamentoSection from './pagamento-checkout-section'
+import { isHostAuthorized } from '@/lib/permissions'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -46,7 +47,7 @@ function statoLabel(stato: string) {
 export default async function PrenotazioneDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = await paramsPromise
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

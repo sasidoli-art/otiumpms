@@ -13,10 +13,11 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum Role {
-  SUPERADMIN // piattaforma — vede tutto, gestisce host, billing, piani
-  ADMIN // proprietario hotel — gestisce le sue strutture, staff, moduli
-  HOST // operatore/receptionist — accesso operativo quotidiano
-  STAFF // membro staff con permessi granulari per ruolo
+  SUPERADMIN  // piattaforma — tu e Matteo, gestisce tutto
+  ADMIN       // admin piattaforma — gestisce clienti, fatture, pagamenti
+  DIREZIONE   // managing director hotel — vede tutto dell'host, report, BI, impostazioni
+  HOST        // manager operativo — operatività quotidiana (prenotazioni, check-in, HK, SPA, CRM)
+  STAFF       // membro staff con permessi granulari da RuoloStaff
 }
 
 enum RuoloStaff {

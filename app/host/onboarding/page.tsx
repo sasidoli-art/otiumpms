@@ -3,11 +3,11 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { OnboardingWizard } from './onboarding-wizard'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions)
-  if (!session) redirect('/login')
-  if (session.user.role !== 'HOST' && session.user.role !== 'ADMIN') redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
 
   // Check if already completed
   const host = session.user.role === 'HOST'

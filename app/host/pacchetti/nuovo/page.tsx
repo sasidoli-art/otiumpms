@@ -6,10 +6,11 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import PacchettoForm from './pacchetto-form'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function NuovoPacchettoPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

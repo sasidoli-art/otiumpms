@@ -6,6 +6,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Calendar, ExternalLink, Package, Plus } from 'lucide-react'
 import { formatData, formatValuta } from '@/lib/utils'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function EventiLocaliPage({
   params: paramsPromise,
@@ -14,7 +15,7 @@ export default async function EventiLocaliPage({
 }) {
   const params = await paramsPromise
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

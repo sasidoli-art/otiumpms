@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseModuli } from '@/lib/moduli'
+import { canAccessSection } from '@/lib/permissions'
 import { useState, useEffect, useMemo } from 'react'
 
 // Mapping: href sidebar → id modulo (se non presente = sempre visibile)
@@ -188,12 +189,14 @@ export function HostSidebar({
   nomeAzienda,
   moduliAttivi,
   logo,
+  ruolo = 'HOST',
   onMobileClose,
 }: {
   nomeUtente: string
   nomeAzienda: string
   moduliAttivi: unknown
   logo?: string | null
+  ruolo?: string
   onMobileClose?: () => void
 }) {
   const pathname = usePathname()
@@ -201,20 +204,22 @@ export function HostSidebar({
   const [showLinks, setShowLinks] = useState(false)
   const [strutture, setStrutture] = useState<{ id: string; nome: string }[]>([])
 
-  // Filtra i gruppi sidebar in base ai moduli attivi
+  // Filtra i gruppi sidebar in base ai moduli attivi + permessi ruolo
   const moduli = useMemo(() => parseModuli(moduliAttivi), [moduliAttivi])
   const navGroups = useMemo(() => {
     return allNavGroups
+      // Filtra gruppi in base al ruolo utente
+      .filter(group => canAccessSection(ruolo, null, group.label))
       .map(group => ({
         ...group,
         items: group.items.filter(item => {
           const moduloId = HREF_MODULO[item.href]
-          if (!moduloId) return true // nessun modulo associato → sempre visibile
+          if (!moduloId) return true
           return moduli[moduloId] === true
         }),
       }))
       .filter(group => group.items.length > 0)
-  }, [moduli])
+  }, [moduli, ruolo])
 
   useEffect(() => {
     if (!showLinks || strutture.length > 0) return

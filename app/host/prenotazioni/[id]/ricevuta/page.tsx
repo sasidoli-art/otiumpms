@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import RicevutaClient from './ricevuta-client'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export async function generateMetadata({ params: paramsPromise }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const params = await paramsPromise
@@ -24,8 +25,7 @@ export default async function RicevutaPage({
 }) {
   const params = await paramsPromise
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN'))
-    redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

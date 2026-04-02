@@ -9,10 +9,12 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   const session = await getServerSession(authOptions)
 
   if (!session) redirect('/login')
-  if (session.user.role !== 'HOST' && session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN') redirect('/login')
+  const allowedRoles = ['HOST', 'ADMIN', 'SUPERADMIN', 'DIREZIONE', 'STAFF']
+  if (!allowedRoles.includes(session.user.role)) redirect('/login')
 
-  const host = session.user.role === 'HOST'
+  const host = session.user.role === 'HOST' || session.user.role === 'DIREZIONE' || session.user.role === 'STAFF'
     ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
+      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
     : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
 
   // Check if we're on the onboarding page
@@ -36,7 +38,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
       nomeAzienda={host?.nomeAzienda ?? 'La mia azienda'}
       moduliAttivi={host?.moduliAttivi ?? {}}
       logo={host?.logo}
-      ruolo={session.user.role as 'HOST' | 'ADMIN' | 'SUPERADMIN'}
+      ruolo={session.user.role}
     >
       {children}
     </HostShell>

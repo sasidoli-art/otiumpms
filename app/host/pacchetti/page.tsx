@@ -7,10 +7,11 @@ import Link from 'next/link'
 import { Plus, Package, Calendar, MapPin, Users, Tag } from 'lucide-react'
 import { formatValuta, formatData } from '@/lib/utils'
 import { getTranslations } from 'next-intl/server'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function PacchettiPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

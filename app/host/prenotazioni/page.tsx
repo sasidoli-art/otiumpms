@@ -10,6 +10,7 @@ import { MessageSquare, Plus } from 'lucide-react'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { isStatoPrenotazione } from '@/lib/validations'
 import { ExportButton, ImportButton } from './import-export'
+import { isHostAuthorized } from '@/lib/permissions'
 
 const STATI_PRENOTAZIONE = [
   { value: '', label: 'Tutte' },
@@ -48,7 +49,7 @@ export default async function PrenotazioniPage({
   searchParams: Promise<{ stato?: string; q?: string }>
 }) {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

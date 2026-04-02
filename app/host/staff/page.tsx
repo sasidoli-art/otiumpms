@@ -4,10 +4,11 @@ import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import StaffBoard from './staff-board'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function StaffPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

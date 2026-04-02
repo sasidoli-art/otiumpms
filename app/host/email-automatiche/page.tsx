@@ -8,10 +8,11 @@ import { it } from 'date-fns/locale'
 import { Mail, Clock, CheckCircle2, XCircle, Send, CalendarCheck, Star, Sparkles } from 'lucide-react'
 import EmailTriggerButton from './email-trigger-button'
 import { getTranslations } from 'next-intl/server'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function EmailAutomatichePage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

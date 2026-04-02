@@ -10,6 +10,7 @@ import {
   LogIn, LogOut as LogOutIcon, Home, Users, Phone,
   Calendar, AlertCircle, CheckCircle2, MessageSquare,
 } from 'lucide-react'
+import { isHostAuthorized } from '@/lib/permissions'
 // Badge imported if needed for future use
 
 function notti(arrivo: Date, partenza: Date | null) {
@@ -19,7 +20,7 @@ function notti(arrivo: Date, partenza: Date | null) {
 
 export default async function OggiPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN' && session.user.role !== 'SUPERADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

@@ -6,6 +6,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import StanzaDetail from './stanza-detail'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function HousekeepingStanzaPage({
   params: paramsPromise,
@@ -13,7 +14,7 @@ export default async function HousekeepingStanzaPage({
   params: Promise<{ unitaId: string }>
 }) {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

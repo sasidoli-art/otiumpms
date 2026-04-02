@@ -9,10 +9,11 @@ import { formatData, categoriaEventoLabel, statoEventoColor, statoEventoLabel } 
 import { Badge } from '@/components/ui/badge'
 import { AnalyticsChart } from './analytics-chart'
 import Link from 'next/link'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function HostAnalyticsPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

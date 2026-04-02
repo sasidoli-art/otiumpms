@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Building2, Plus, Eye, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { isHostAuthorized } from '@/lib/permissions'
 
 const tipoLabel: Record<string, string> = {
   EVENTO: 'Evento',
@@ -17,7 +18,7 @@ const tipoLabel: Record<string, string> = {
 
 export default async function StrutturePage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

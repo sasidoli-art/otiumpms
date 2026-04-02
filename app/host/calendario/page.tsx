@@ -5,10 +5,11 @@ import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import CalendarioTimeline from './calendario-timeline'
 import { getTranslations } from 'next-intl/server'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function CalendarioPage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

@@ -4,6 +4,7 @@ import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import NotificheClient from './notifiche-client'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function NotifichePage({
   searchParams: searchParamsPromise,
@@ -11,7 +12,7 @@ export default async function NotifichePage({
   searchParams: Promise<{ tipo?: string; pagina?: string }>
 }) {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

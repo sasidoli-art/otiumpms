@@ -3,10 +3,11 @@ import { authOptions } from '@/lib/auth'
 import { getHostId } from '@/lib/auth-middleware'
 import { redirect } from 'next/navigation'
 import CabineManager from './cabine-manager'
+import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function SpaCabinePage() {
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
   return <CabineManager />

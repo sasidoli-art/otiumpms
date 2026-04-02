@@ -8,6 +8,7 @@ import { ArrowLeft, CalendarDays, Tag, LayoutGrid, ExternalLink, Settings, Calen
 import { formatValuta } from '@/lib/utils'
 import { generateIcalToken } from '@/lib/ical'
 import IcalCopyButton from './ical-copy-button'
+import { isHostAuthorized } from '@/lib/permissions'
 
 const tipoLabel: Record<string, string> = {
   EVENTO: 'Evento', VENUE: 'Venue', ESPERIENZA: 'Esperienza', ALLOGGIO: 'Alloggio', SERVIZIO: 'Servizio',
@@ -20,7 +21,7 @@ export default async function StrutturaDetailPage({
 }) {
   const params = await paramsPromise
   const session = await getServerSession(authOptions)
-  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
+  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

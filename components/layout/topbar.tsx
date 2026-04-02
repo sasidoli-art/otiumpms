@@ -11,7 +11,7 @@ import { useTheme } from '@/components/theme-provider'
 
 interface TopbarProps {
   nomeUtente: string
-  ruolo: 'ADMIN' | 'HOST'
+  ruolo: string
   settingsHref: string
   onMenuClick?: () => void
 }
