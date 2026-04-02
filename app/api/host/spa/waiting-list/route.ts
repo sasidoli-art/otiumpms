@@ -8,6 +8,7 @@ import { parseBody } from '@/lib/validations'
 
 const createSchema = z.object({
   guestNome: z.string().min(1).max(100).trim(),
+  guestCognome: z.string().max(100).trim().optional().nullable(),
   guestEmail: z.string().email().max(254).trim().toLowerCase(),
   guestTelefono: z.string().max(30).trim().optional().nullable(),
   trattamentoId: z.string().optional().nullable(),

@@ -11,6 +11,7 @@ const createSchema = z.object({
   trattamentoId: z.string().optional().nullable(),
   motivo: z.enum(['PIENO', 'NON_DISPONIBILE', 'PREZZO', 'ORARIO', 'ALTRO']),
   guestNome: z.string().max(200).trim().optional().nullable(),
+  guestEmail: z.string().email().trim().optional().nullable(),
   note: z.string().max(1000).trim().optional().nullable(),
 })
 

@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     PRENOTAZIONE: 0,
     POS: 0,
     SPA: 0,
-    RISTORANTE: 0,
+    RISTORAZIONE: 0,
     GIFT_CARD: 0,
     ALTRO: 0,
   }
