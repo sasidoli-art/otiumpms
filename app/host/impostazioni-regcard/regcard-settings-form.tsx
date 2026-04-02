@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
   FileText, Shield, Waves, Plus, Trash2, Save, Loader2,
-  CheckCircle, GripVertical,
+  CheckCircle, GripVertical, RotateCcw, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { DEFAULT_REGCARD_IT, DEFAULT_REGCARD_EN, CLAUSOLE_OBBLIGATORIE_IT } from '@/lib/regcard-defaults'
 
 type CampoExtra = {
   label: string
@@ -112,14 +113,29 @@ export function RegCardSettingsForm({ terminiHtml, privacyHtml, spaTerminiHtml, 
               <FileText size={14} className="text-indigo-500" />
               Termini e Condizioni del Soggiorno
             </label>
-            <p className="text-xs text-slate-400 mb-2">
-              Se lasciato vuoto, verrà usato il testo predefinito. Puoi usare HTML o testo semplice.
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-slate-400">
+                Usa i placeholder: {'{{NOME_HOTEL}}'}, {'{{CITTA_FORO}}'}, {'{{PENALE_FUMO}}'}, {'{{COSTO_CHIAVE}}'} — verranno sostituiti automaticamente.
+              </p>
+              <button
+                type="button"
+                onClick={() => { if (!termini || confirm('Sovrascrivere il testo attuale con lo standard legale?')) setTermini(DEFAULT_REGCARD_IT) }}
+                className="flex items-center gap-1 text-[11px] font-medium text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded hover:bg-indigo-50 transition-colors shrink-0"
+              >
+                <RotateCcw size={12} /> Carica standard
+              </button>
+            </div>
+            {termini && !CLAUSOLE_OBBLIGATORIE_IT.every(c => termini.includes(c)) && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 mb-2">
+                <AlertTriangle size={14} className="shrink-0" />
+                Attenzione: il testo personalizzato non contiene alcune clausole GDPR obbligatorie. Clicca "Carica standard" per ripristinarle.
+              </div>
+            )}
             <textarea
               value={termini}
               onChange={e => setTermini(e.target.value)}
-              rows={12}
-              placeholder="1. CHECK-IN / CHECK-OUT&#10;L'orario di check-in è dalle 14:00...&#10;&#10;2. PAGAMENTO&#10;..."
+              rows={16}
+              placeholder="Clicca 'Carica standard' per iniziare dal testo legale professionale..."
               className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500/20 resize-y font-mono"
             />
           </div>
