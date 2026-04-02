@@ -5,14 +5,33 @@ import { BedDouble, Loader2, CheckCircle2, AlertTriangle, Sparkles, Zap } from '
 import { useTranslations } from 'next-intl'
 
 type Camera = { id: string; nome: string; capacita: number; piano: number | null; prezzoBase: number; statoHK: string; score: number; motivoScore: string }
+type StatoCamera = { nome: string; statoHK: string; piano: number | null; ultimaPulizia: string | null; noteHK: string | null } | null
+
+const HK_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  PULITA: { label: 'Pulita', color: 'text-green-700', bg: 'bg-green-100' },
+  OCCUPATA: { label: 'Occupata', color: 'text-blue-700', bg: 'bg-blue-100' },
+  IN_PULIZIA: { label: 'In pulizia', color: 'text-yellow-700', bg: 'bg-yellow-100' },
+  SPORCA: { label: 'Da pulire', color: 'text-red-700', bg: 'bg-red-100' },
+  NON_DISPONIBILE: { label: 'Non disponibile', color: 'text-gray-700', bg: 'bg-gray-100' },
+}
 
 export default function AssegnazioneSection({ prenotazioneId, cameraAttuale }: { prenotazioneId: string; cameraAttuale: string | null }) {
   const [camere, setCamere] = useState<Camera[]>([])
   const [consigliata, setConsigliata] = useState<Camera | null>(null)
+  const [statoCamera, setStatoCamera] = useState<StatoCamera>(null)
   const [loading, setLoading] = useState(false)
   const [assegnando, setAssegnando] = useState(false)
   const [successo, setSuccesso] = useState<string | null>(null)
   const [aperto, setAperto] = useState(false)
+
+  // Carica stato camera assegnata
+  useState(() => {
+    if (cameraAttuale) {
+      fetch(`/api/host/prenotazioni/${prenotazioneId}/stato-camera`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) setStatoCamera(d) })
+    }
+  })
 
   async function carica() {
     setLoading(true); setAperto(true)
@@ -61,7 +80,27 @@ export default function AssegnazioneSection({ prenotazioneId, cameraAttuale }: {
         {successo && <span className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> {successo}</span>}
       </div>
 
-      {cameraAttuale && !successo && <p className="text-xs text-gray-500 mb-2">Attuale: <span className="font-medium">{cameraAttuale}</span></p>}
+      {/* Stato camera assegnata */}
+      {statoCamera && !successo && (
+        <div className="mb-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-900 dark:text-slate-100">{statoCamera.nome}</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${HK_LABELS[statoCamera.statoHK]?.bg ?? 'bg-gray-100'} ${HK_LABELS[statoCamera.statoHK]?.color ?? 'text-gray-700'}`}>
+              {HK_LABELS[statoCamera.statoHK]?.label ?? statoCamera.statoHK}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-gray-400">
+            {statoCamera.piano !== null && <span>Piano {statoCamera.piano}</span>}
+            {statoCamera.ultimaPulizia && <span>Ultima pulizia: {statoCamera.ultimaPulizia}</span>}
+          </div>
+          {statoCamera.noteHK && (
+            <p className="text-[10px] text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" /> {statoCamera.noteHK}
+            </p>
+          )}
+        </div>
+      )}
+      {cameraAttuale && !successo && !statoCamera && <p className="text-xs text-gray-500 mb-2">Attuale: <span className="font-medium">{cameraAttuale}</span></p>}
 
       <div className="flex gap-2">
         <button onClick={autoAssegna} disabled={assegnando} className="btn-primary text-xs flex items-center gap-1.5 py-1.5">
