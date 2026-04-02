@@ -39,7 +39,7 @@ async function getTransporterAndFrom(hostId?: string | null): Promise<{
   })
   return {
     transporter: t,
-    from: `"Otium Week" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || '',
   }
 }
 
