@@ -9,6 +9,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { KioskButton } from './kiosk-button'
+import { RegCardDownload } from './regcard-download'
 import PrenotazioneActions from './prenotazione-actions'
 import CheckInForm from './checkin-form'
 import ChatBox from './chat-box-wrapper'
@@ -88,8 +89,11 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
         </div>
       </div>
 
-      {/* Kiosk: firma su tablet */}
-      <KioskButton prenotazioneId={prenotazione.id} />
+      {/* Kiosk + Registration Card */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <KioskButton prenotazioneId={prenotazione.id} />
+        <RegCardDownload prenotazioneId={prenotazione.id} firmata={prenotazione.regCardFirmata} />
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Colonna principale */}
