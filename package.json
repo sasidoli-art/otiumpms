@@ -27,7 +27,9 @@
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
     "framer-motion": "^12.38.0",
+    "imapflow": "^1.2.18",
     "lucide-react": "^0.427.0",
+    "mailparser": "^3.9.6",
     "next": "^16.2.1",
     "next-auth": "^4.24.7",
     "next-intl": "^4.8.4",
@@ -46,6 +48,7 @@
   "devDependencies": {
     "@playwright/test": "^1.59.0",
     "@types/bcryptjs": "^2.4.6",
+    "@types/mailparser": "^3.4.6",
     "@types/node": "^20.19.37",
     "@types/nodemailer": "^6.4.17",
     "@types/qrcode": "^1.5.6",

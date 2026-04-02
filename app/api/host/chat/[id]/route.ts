@@ -83,6 +83,7 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
         strutturaNome: p.struttura?.nome ?? 'N/D',
         testo: testo.trim(),
         chatUrl: `${process.env.NEXTAUTH_URL}/book/chat/${chat.id}`,
+        chatId: chat.id,
         hostId: auth.user.hostId,
       })
     } catch (err) {

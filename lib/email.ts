@@ -45,7 +45,7 @@ async function getTransporterAndFrom(hostId?: string | null): Promise<{
 
 /** Helper interno: invia una email usando il transporter corretto per il host. */
 async function dispatchMail(
-  opts: { to: string; subject: string; html: string },
+  opts: { to: string; subject: string; html: string; replyTo?: string },
   hostId?: string | null,
 ) {
   const { transporter, from } = await getTransporterAndFrom(hostId)
@@ -260,9 +260,13 @@ export async function sendEmailNuovoMessaggio(params: {
   strutturaNome: string
   testo: string
   chatUrl: string
+  chatId?: string | null
   hostId?: string | null
 }) {
-  const { destinatarioEmail, destinatarioNome, mittenteNome, strutturaNome, testo, chatUrl, hostId } = params
+  const { destinatarioEmail, destinatarioNome, mittenteNome, strutturaNome, testo, chatUrl, chatId, hostId } = params
+
+  // Tag per threading email — permette al sistema IMAP di collegare le risposte alla chat
+  const tag = chatId ? ` [OTM-${chatId}]` : ''
 
   const htmlBody = `
     <p>Ciao <strong>${destinatarioNome}</strong>,</p>
@@ -274,11 +278,14 @@ export async function sendEmailNuovoMessaggio(params: {
     <p>
       <a class="btn" href="${chatUrl}">Rispondi nella chat →</a>
     </p>
+    <p style="color:#9ca3af;font-size:11px;">
+      Puoi anche rispondere direttamente a questa email — il messaggio apparirà nella chat.
+    </p>
   `
 
   await dispatchMail({
     to: destinatarioEmail,
-    subject: `Nuovo messaggio da ${mittenteNome} – ${strutturaNome}`,
+    subject: `Nuovo messaggio da ${mittenteNome} – ${strutturaNome}${tag}`,
     html: base(htmlBody),
   }, hostId)
 }
