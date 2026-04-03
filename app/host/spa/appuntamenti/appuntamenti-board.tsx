@@ -270,6 +270,10 @@ export default function AppuntamentiBoard() {
                         className="text-xs text-brand-600 hover:text-brand-700 px-2 py-1 border border-brand-200 rounded-lg hover:bg-brand-50">
                         Modifica
                       </button>
+                      <a href={`/spa/wellness-card/${a.id}`} target="_blank" rel="noopener noreferrer"
+                        className="text-xs text-violet-600 hover:text-violet-700 px-2 py-1 border border-violet-200 rounded-lg hover:bg-violet-50">
+                        Wellness Card
+                      </a>
                       <button onClick={() => remove(a.id)} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 border border-red-100 rounded-lg hover:bg-red-50">
                         Elimina
                       </button>

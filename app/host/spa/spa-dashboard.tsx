@@ -39,9 +39,11 @@ interface Appt {
 }
 
 export default function SpaDashboard({
+  strutturaId,
   kpi,
   prossimi5,
 }: {
+  strutturaId: string | null
   kpi: {
     appuntamentiOggi: number
     appuntamentiMese: number
@@ -59,10 +61,20 @@ export default function SpaDashboard({
         <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center">
           <Waves className="w-5 h-5 text-violet-600" />
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Spa & Benessere</h1>
           <p className="text-sm text-gray-500">Gestisci trattamenti, terapisti e appuntamenti</p>
         </div>
+        {strutturaId && (
+          <a
+            href={`/reception/spa-concierge/${strutturaId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 bg-violet-900 text-white rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors"
+          >
+            <Sparkles className="w-4 h-4" /> SPA Concierge
+          </a>
+        )}
       </div>
 
       {/* KPI Grid */}

@@ -54,8 +54,12 @@ export default async function SpaPage() {
     }),
   ])
 
+  // Get struttura for QR setup
+  const struttura = await prisma.struttura.findFirst({ where: { hostId }, select: { id: true } })
+
   return (
     <SpaDashboard
+      strutturaId={struttura?.id ?? null}
       kpi={{
         appuntamentiOggi,
         appuntamentiMese,
