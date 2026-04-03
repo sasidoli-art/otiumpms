@@ -170,3 +170,90 @@ export function calcolaTassaSuggerita(
 
   return baseRate
 }
+
+// ─── Esenzioni tassa di soggiorno ──────────────────────────────────────────
+
+/**
+ * Esenzioni dalla tassa di soggiorno previste dalla normativa italiana.
+ * Fonte: Art. 4 D.Lgs. 23/2011 + regolamenti comunali più diffusi.
+ *
+ * Nota: ogni comune può avere regole leggermente diverse.
+ * Queste sono le esenzioni più comuni e universalmente accettate.
+ */
+export const ESENZIONI_TASSA = [
+  { id: 'minore_14', label: 'Minore di 14 anni', descrizione: 'Bambini sotto i 14 anni' },
+  { id: 'minore_10', label: 'Minore di 10 anni', descrizione: 'Bambini sotto i 10 anni (alcuni comuni)' },
+  { id: 'residente', label: 'Residente nel comune', descrizione: 'Residente nel comune della struttura' },
+  { id: 'disabile', label: 'Portatore di handicap (L.104)', descrizione: 'Persona con disabilità certificata + 1 accompagnatore' },
+  { id: 'accompagnatore_disabile', label: 'Accompagnatore disabile', descrizione: 'Accompagnatore di persona con disabilità certificata' },
+  { id: 'forze_ordine', label: 'Forze dell\'ordine in servizio', descrizione: 'Polizia, Carabinieri, GdF, VV.FF. in missione' },
+  { id: 'paziente_ospedaliero', label: 'Paziente/accompagnatore ospedaliero', descrizione: 'Ricoverato o accompagnatore presso struttura sanitaria' },
+  { id: 'autista_bus', label: 'Autista bus turistico', descrizione: 'Autisti di pullman turistici (1 ogni 25 pax)' },
+  { id: 'guida_turistica', label: 'Guida turistica', descrizione: 'Accompagnatore/guida del gruppo' },
+  { id: 'dipendente_struttura', label: 'Dipendente della struttura', descrizione: 'Lavoratore alloggiato nella struttura ricettiva' },
+  { id: 'emergenza', label: 'Emergenza/calamità', descrizione: 'Ospiti per emergenze, protezione civile' },
+] as const
+
+export type EsenzioneId = typeof ESENZIONI_TASSA[number]['id']
+
+/**
+ * Calcola il numero di persone soggette alla tassa di soggiorno.
+ * @param numOspiti — totale ospiti nella prenotazione
+ * @param esenzioni — lista di esenzioni applicate con conteggio
+ * @returns numero di persone tassabili
+ */
+export function calcolaOspitiTassabili(
+  numOspiti: number,
+  esenzioni: { tipo: EsenzioneId; count: number }[] = [],
+): number {
+  const totaleEsenti = esenzioni.reduce((sum, e) => sum + e.count, 0)
+  return Math.max(0, numOspiti - totaleEsenti)
+}
+
+/**
+ * Calcola il totale tassa di soggiorno per una prenotazione.
+ * @param params — parametri della prenotazione
+ * @returns oggetto con dettaglio calcolo
+ */
+export function calcolaTassaTotale(params: {
+  comuneNome?: string
+  dataArrivo: Date
+  dataPartenza?: Date | null
+  numOspiti: number
+  esenzioni?: { tipo: EsenzioneId; count: number }[]
+  tariffaManuale?: number | null // se l'host ha impostato una tariffa custom
+  maxNotti?: number | null // limite massimo notti tassabili (alcuni comuni: 5-7 notti max)
+}): {
+  tariffaPerNotte: number
+  notti: number
+  nottiTassabili: number
+  ospitiTassabili: number
+  totale: number
+  dettaglio: string
+} | null {
+  const { comuneNome, dataArrivo, dataPartenza, numOspiti, esenzioni = [], tariffaManuale, maxNotti } = params
+
+  if (!dataPartenza) return null
+
+  const tariffa = tariffaManuale ?? calcolaTassaSuggerita(comuneNome, dataArrivo, dataPartenza)
+  if (tariffa === null || tariffa <= 0) return null
+
+  const notti = Math.max(1, Math.round((dataPartenza.getTime() - dataArrivo.getTime()) / 86400000))
+  const nottiTassabili = maxNotti ? Math.min(notti, maxNotti) : notti
+  const ospitiTassabili = calcolaOspitiTassabili(numOspiti, esenzioni)
+
+  const totale = Math.round(tariffa * nottiTassabili * ospitiTassabili * 100) / 100
+
+  const dettaglioEsenzioni = esenzioni.length > 0
+    ? ` — ${esenzioni.reduce((s, e) => s + e.count, 0)} esenti`
+    : ''
+
+  return {
+    tariffaPerNotte: tariffa,
+    notti,
+    nottiTassabili,
+    ospitiTassabili,
+    totale,
+    dettaglio: `€${tariffa.toFixed(2)} × ${nottiTassabili}n × ${ospitiTassabili} ospiti${dettaglioEsenzioni} = €${totale.toFixed(2)}`,
+  }
+}

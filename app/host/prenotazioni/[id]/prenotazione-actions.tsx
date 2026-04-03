@@ -7,7 +7,7 @@ import {
   getEmailTemplate, LINGUE_DISPONIBILI, TIPI_TEMPLATE,
   type LinguaTemplate, type TipoTemplate, type TemplateData,
 } from '@/lib/email-templates'
-import { getTassaSoggiornoBase, getTassaSoggiornoAlta, calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
+import { calcolaTassaSuggerita, calcolaTassaTotale, ESENZIONI_TASSA, type EsenzioneId } from '@/lib/comuni-tassa-soggiorno'
 import { format } from 'date-fns'
 import { it as itLocale } from 'date-fns/locale'
 
@@ -60,6 +60,7 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
   const [inviaContoEmail, setInviaContoEmail] = useState(true)
   const [liberaCamera, setLiberaCamera] = useState(true)
   const [totaleExtra, setTotaleExtra] = useState(0)
+  const [esenzioni, setEsenzioni] = useState<{ tipo: EsenzioneId; count: number }[]>([])
   const router = useRouter()
 
   const tassaSuggerita = prenotazione.strutturaCitta
@@ -370,7 +371,16 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
         const notti = prenotazione.dataArrivo && prenotazione.dataPartenza
           ? Math.round((new Date(prenotazione.dataPartenza).getTime() - new Date(prenotazione.dataArrivo).getTime()) / 86400000)
           : 0
-        const tassaTotale = checkoutTassa ? Number(checkoutTassa) * notti : 0
+
+        const tassaCalc = calcolaTassaTotale({
+          comuneNome: prenotazione.strutturaCitta,
+          dataArrivo: prenotazione.dataArrivo ? new Date(prenotazione.dataArrivo) : new Date(),
+          dataPartenza: prenotazione.dataPartenza ? new Date(prenotazione.dataPartenza) : null,
+          numOspiti: prenotazione.numOspiti ?? 1,
+          esenzioni,
+          tariffaManuale: checkoutTassa ? Number(checkoutTassa) : null,
+        })
+        const tassaTotale = tassaCalc?.totale ?? (checkoutTassa ? Number(checkoutTassa) * notti : 0)
         const totale = (prenotazione.prezzoTotale ?? 0) + totaleExtra + tassaTotale
         const saldo = totale - (prenotazione.acconto ?? 0)
 
@@ -407,7 +417,7 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                   )}
                   {tassaTotale > 0 && (
                     <div className="flex justify-between text-gray-500">
-                      <span>Tassa soggiorno ({notti}n × €{Number(checkoutTassa).toFixed(2)})</span>
+                      <span>Tassa soggiorno {tassaCalc ? `(${tassaCalc.dettaglio.split('=')[0].trim()})` : `(${notti}n × €${Number(checkoutTassa).toFixed(2)})`}</span>
                       <span>€{tassaTotale.toFixed(2)}</span>
                     </div>
                   )}
@@ -442,6 +452,50 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                   className="input"
                 />
               </div>
+
+              {/* Esenzioni tassa soggiorno */}
+              {(checkoutTassa || tassaSuggerita) && (
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-2">Esenzioni tassa di soggiorno</p>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                    {ESENZIONI_TASSA.map(es => {
+                      const attiva = esenzioni.find(e => e.tipo === es.id)
+                      return (
+                        <div key={es.id} className="flex items-center justify-between text-xs">
+                          <label className="flex items-center gap-2 cursor-pointer flex-1">
+                            <input
+                              type="checkbox"
+                              checked={!!attiva}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setEsenzioni(prev => [...prev, { tipo: es.id, count: 1 }])
+                                } else {
+                                  setEsenzioni(prev => prev.filter(x => x.tipo !== es.id))
+                                }
+                              }}
+                              className="w-3.5 h-3.5 rounded border-gray-300 text-brand-600"
+                            />
+                            <span className="text-gray-600">{es.label}</span>
+                          </label>
+                          {attiva && (
+                            <input
+                              type="number" min={1} max={prenotazione.numOspiti ?? 10}
+                              value={attiva.count}
+                              onChange={e => setEsenzioni(prev => prev.map(x => x.tipo === es.id ? { ...x, count: Math.max(1, Number(e.target.value)) } : x))}
+                              className="w-12 px-1.5 py-0.5 border border-gray-200 rounded text-xs text-center"
+                            />
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {tassaCalc && (
+                    <p className="text-[10px] text-gray-400 mt-1.5">
+                      {tassaCalc.ospitiTassabili} di {prenotazione.numOspiti} ospiti tassabili · {tassaCalc.dettaglio}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Toggle opzioni */}
               <div className="space-y-3">
