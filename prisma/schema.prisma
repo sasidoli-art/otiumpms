@@ -1723,6 +1723,10 @@ model CabinaSpa {
   capacita    Int     @default(1) // n. persone simultanee
   attiva      Boolean @default(true)
 
+  // Display tablet
+  fotoSfondo          String?   // URL immagine sfondo per tablet cabina
+  minutiPreAttivazione Int      @default(10) // minuti prima dell'appuntamento per attivare il display
+
   // Housekeeping cabina SPA
   statoHK             String    @default("PULITA") // PULITA, OCCUPATA, IN_PULIZIA, NON_DISPONIBILE
   ultimaPulizia       DateTime?
