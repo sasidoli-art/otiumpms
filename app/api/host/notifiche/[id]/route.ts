@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 
 export async function PATCH(
   _req: NextRequest,
   { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user.hostId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
 
   const { id } = await paramsPromise
 
   const notifica = await prisma.notifica.findFirst({
-    where: { id, hostId: session.user.hostId },
+    where: { id, hostId: auth.user.hostId },
   })
   if (!notifica) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 

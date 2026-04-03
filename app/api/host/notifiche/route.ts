@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 
 // ─── GET: elenco notifiche con paginazione e filtri ───────────────────────────
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user.hostId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const hostId = session.user.hostId
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
+  const hostId = auth.user.hostId
 
   const sp = req.nextUrl.searchParams
   const limit = Math.min(Number(sp.get('limit') ?? '30'), 100)
@@ -35,13 +34,13 @@ export async function GET(req: NextRequest) {
 
 // ─── DELETE: segna tutte come lette o pulizia archivio ────────────────────────
 export async function DELETE(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user.hostId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
 
   const { searchParams } = req.nextUrl
   if (searchParams.get('leggiTutte') === 'true') {
     await prisma.notifica.updateMany({
-      where: { hostId: session.user.hostId, letta: false },
+      where: { hostId: auth.user.hostId, letta: false },
       data: { letta: true },
     })
     return NextResponse.json({ ok: true })
@@ -49,7 +48,7 @@ export async function DELETE(req: NextRequest) {
 
   // Elimina tutte le lette (pulizia archivio)
   const result = await prisma.notifica.deleteMany({
-    where: { hostId: session.user.hostId, letta: true },
+    where: { hostId: auth.user.hostId, letta: true },
   })
   return NextResponse.json({ ok: true, eliminate: result.count })
 }
