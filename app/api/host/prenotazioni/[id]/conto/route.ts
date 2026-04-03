@@ -64,10 +64,10 @@ export async function GET(
       regole: regole.map(r => ({
         id: r.id,
         nome: r.nome,
-        tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
+        tipo: (['WEEKEND', 'STAGIONE', 'FESTIVO', 'DURATA'].includes(r.tipo) ? r.tipo : 'DURATA') as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
         attiva: r.attiva,
         priorita: r.priorita,
-        modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',
+        modificatore: (['PERCENTUALE', 'FISSO'].includes(r.modificatore) ? r.modificatore : 'PERCENTUALE') as 'PERCENTUALE' | 'FISSO',
         valore: r.valore,
         unitaId: r.unitaId,
         meseInizio: r.meseInizio,

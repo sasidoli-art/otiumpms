@@ -72,29 +72,19 @@ export async function PUT(req: NextRequest, { params: p }: { params: Promise<{ i
   const emailOspite = updated.guestEmail
   if (stato && stato !== existing.stato && emailOspite) {
     const servizioNome = updated.trattamento?.nome ?? updated.percorso?.nome ?? 'Trattamento SPA'
+    const host = await prisma.host.findUnique({ where: { id: auth.user.hostId }, select: { nomeAzienda: true } })
+    const hostNome = host?.nomeAzienda ?? 'SPA'
 
     if (stato === 'ANNULLATO') {
-      prisma.host.findUnique({ where: { id: auth.user.hostId }, select: { nomeAzienda: true } })
-        .then(host => sendEmailCancellazioneAppuntamentoSpa({
-          guestEmail: emailOspite,
-          guestNome: updated.guestNome,
-          hostNome: host?.nomeAzienda ?? 'SPA',
-          servizioNome,
-          dataOra: new Date(updated.dataOra),
-        }))
-        .catch(err => logger.error('Email cancellazione SPA fallita', 'host/spa/appuntamenti/[id]', { error: String(err) }))
+      sendEmailCancellazioneAppuntamentoSpa({
+        guestEmail: emailOspite, guestNome: updated.guestNome, hostNome, servizioNome,
+        dataOra: new Date(updated.dataOra),
+      }).catch(err => logger.error('Email cancellazione SPA fallita', 'host/spa/appuntamenti/[id]', { error: String(err) }))
     } else if (stato === 'CONFERMATO' && existing.stato === 'PRENOTATO') {
-      prisma.host.findUnique({ where: { id: auth.user.hostId }, select: { nomeAzienda: true } })
-        .then(host => sendEmailConfermaAppuntamentoSpa({
-          guestEmail: emailOspite,
-          guestNome: updated.guestNome,
-          hostNome: host?.nomeAzienda ?? 'SPA',
-          servizioNome,
-          dataOra: new Date(updated.dataOra),
-          durata: updated.durata,
-          prezzoTotale: updated.prezzoTotale,
-        }))
-        .catch(err => logger.error('Email conferma SPA fallita', 'host/spa/appuntamenti/[id]', { error: String(err) }))
+      sendEmailConfermaAppuntamentoSpa({
+        guestEmail: emailOspite, guestNome: updated.guestNome, hostNome, servizioNome,
+        dataOra: new Date(updated.dataOra), durata: updated.durata, prezzoTotale: updated.prezzoTotale,
+      }).catch(err => logger.error('Email conferma SPA fallita', 'host/spa/appuntamenti/[id]', { error: String(err) }))
     }
   }
 

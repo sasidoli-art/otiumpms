@@ -42,7 +42,7 @@ export async function PATCH(
 
   const prenotazione = await prisma.prenotazione.findFirst({
     where: { id: params.id, hostId: auth.user.hostId },
-    include: { struttura: true },
+    include: { struttura: { select: { id: true, nome: true, citta: true } } },
   })
   if (!prenotazione) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 

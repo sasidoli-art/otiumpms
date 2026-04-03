@@ -15,7 +15,7 @@ export async function GET(
   const chat = await prisma.chat.findUnique({
     where: { id: params.id },
     include: {
-      messaggi: { orderBy: { createdAt: 'asc' } },
+      messaggi: { orderBy: { createdAt: 'asc' }, take: 100 },
       prenotazione: {
         select: {
           guestNome: true,

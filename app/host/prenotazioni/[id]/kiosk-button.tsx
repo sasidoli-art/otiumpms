@@ -10,16 +10,26 @@ export function KioskButton({ prenotazioneId }: { prenotazioneId: string }) {
   const [copied, setCopied] = useState(false)
   const [tipo, setTipo] = useState<'checkin' | 'checkout' | 'documenti'>('checkout')
 
+  const [errore, setErrore] = useState<string | null>(null)
+
   async function generateKiosk() {
     setLoading(true)
-    const res = await fetch('/api/host/kiosk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prenotazioneId, tipo }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setUrl(data.url)
+    setErrore(null)
+    try {
+      const res = await fetch('/api/host/kiosk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prenotazioneId, tipo }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setUrl(data.url)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        setErrore(d.error || 'Errore generazione link')
+      }
+    } catch {
+      setErrore('Errore di connessione')
     }
     setLoading(false)
   }
@@ -33,6 +43,7 @@ export function KioskButton({ prenotazioneId }: { prenotazioneId: string }) {
 
   return (
     <div className="space-y-2">
+      {errore && <p className="text-xs text-red-600">{errore}</p>}
       {!url ? (
         <div className="flex items-center gap-2">
           <select

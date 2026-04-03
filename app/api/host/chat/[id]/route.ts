@@ -17,7 +17,7 @@ export async function GET(_: NextRequest, { params: paramsPromise }: { params: P
   const chat = await prisma.chat.findFirst({
     where: { id: params.id, hostId: auth.user.hostId },
     include: {
-      messaggi: { orderBy: { createdAt: 'asc' } },
+      messaggi: { orderBy: { createdAt: 'asc' }, take: 100 },
       prenotazione: {
         select: {
           id: true, guestNome: true, guestCognome: true, guestEmail: true,
