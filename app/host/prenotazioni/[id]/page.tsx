@@ -90,10 +90,13 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
         </div>
       </div>
 
-      {/* Kiosk + Registration Card */}
+      {/* Kiosk + Registration Card + Display Firma */}
       <div className="flex items-center gap-4 flex-wrap">
         <KioskButton prenotazioneId={prenotazione.id} />
         <RegCardDownload prenotazioneId={prenotazione.id} firmata={prenotazione.regCardFirmata} />
+        {prenotazione.strutturaId && (
+          <FirmaDisplayButton prenotazioneId={prenotazione.id} strutturaId={prenotazione.strutturaId} />
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -293,4 +296,5 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
 
 // Client components
 import AprChat from './apri-chat'
+import FirmaDisplayButton from './firma-display-button'
 import ChatCollapsible from './chat-collapsible'
