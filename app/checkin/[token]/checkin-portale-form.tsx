@@ -155,15 +155,16 @@ export default function CheckInPortaleForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          accettaTermini,
-          accettaPrivacy,
+          accettazioneTermini: accettaTermini,
+          accettazionePrivacy: accettaPrivacy,
           consensoMarketing,
           firmaBase64,
         }),
       })
       if (!res2.ok) {
-        const j = await res2.json()
-        setErrore(j.error ?? 'Errore registration card')
+        const j = await res2.json().catch(() => ({}))
+        console.error('[checkin] reg card error:', j)
+        setErrore(j.error ?? 'Errore salvataggio firma')
         setLoading(false)
         return
       }

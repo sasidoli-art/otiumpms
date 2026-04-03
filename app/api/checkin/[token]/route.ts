@@ -91,6 +91,7 @@ export async function POST(
   }
 
   if (!guestTipoDocumento || !guestNumeroDocumento) {
+    console.log('[checkin] Validation failed — tipo:', guestTipoDocumento, 'numero:', guestNumeroDocumento, 'body keys:', Object.keys(body))
     return NextResponse.json({ error: 'Tipo e numero documento obbligatori' }, { status: 400 })
   }
 
