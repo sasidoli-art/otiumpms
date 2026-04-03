@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { CheckCircle2, Loader2, ChevronRight, ChevronLeft, AlertCircle, Camera, X } from 'lucide-react'
+import { useState } from 'react'
+import { CheckCircle2, Loader2, AlertCircle, Plus, Trash2, User, FileText } from 'lucide-react'
 import DocumentOCR from './document-ocr'
 import { SignaturePad } from '@/components/spa/signature-pad'
 import { DEFAULT_REGCARD_IT, compileRegCardText } from '@/lib/regcard-defaults'
+import { STATI, PROVINCE_ITALIANE, isItaliano } from '@/lib/nazionalita'
 
 type Prenotazione = {
   id: string
@@ -23,8 +24,8 @@ type Prenotazione = {
 
 type AccForm = {
   nome: string; cognome: string; sesso: string; dataNascita: string
-  luogoNascita: string; provinciaNascita: string; nazionalita: string
-  tipoDocumento: string; numeroDocumento: string; isMinore: boolean
+  luogoNascita: string; nazionalita: string
+  tipoDocumento: string; numeroDocumento: string
 }
 
 const TIPI_DOC = [
@@ -34,235 +35,123 @@ const TIPI_DOC = [
   { value: 'PERMSOS', label: 'Permesso di soggiorno' },
 ]
 
-const inp = 'w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 focus:bg-white transition-colors'
-
-const STEPS = [
-  { num: 1, label: 'Dati' },
-  { num: 2, label: 'Accompagnatori' },
-  { num: 3, label: 'Firma' },
-] as const
-
-function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
-  return (
-    <div className="flex items-center justify-center gap-2 mb-6">
-      {STEPS.map((s, i) => (
-        <div key={s.num} className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                s.num === current
-                  ? 'bg-indigo-600 text-white'
-                  : s.num < current
-                    ? 'bg-indigo-100 text-indigo-600'
-                    : 'bg-gray-100 text-gray-400'
-              }`}
-            >
-              {s.num < current ? '✓' : s.num}
-            </div>
-            <span
-              className={`text-xs font-medium ${
-                s.num === current ? 'text-indigo-600' : s.num < current ? 'text-indigo-400' : 'text-gray-400'
-              }`}
-            >
-              {s.label}
-            </span>
-          </div>
-          {i < STEPS.length - 1 && (
-            <div className={`w-8 h-0.5 ${s.num < current ? 'bg-indigo-300' : 'bg-gray-200'}`} />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function PhotoCapture({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string | null
-  onChange: (base64: string | null) => void
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      onChange(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-    // Reset so the same file can be re-selected
-    e.target.value = ''
-  }
-
-  return (
-    <div className="flex-1">
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFile}
-      />
-      {value ? (
-        <div className="relative">
-          <img
-            src={value}
-            alt={label}
-            className="w-full h-24 object-cover rounded-xl border border-gray-200"
-          />
-          <button
-            type="button"
-            onClick={() => onChange(null)}
-            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-sm hover:bg-red-600"
-          >
-            <X className="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            className="absolute bottom-1 right-1 bg-white/80 backdrop-blur-sm text-xs px-2 py-1 rounded-lg text-gray-600 hover:bg-white"
-          >
-            Cambia
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="w-full h-24 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-1 text-gray-400 hover:border-indigo-400 hover:text-indigo-500 transition-colors"
-        >
-          <Camera className="w-5 h-5" />
-          <span className="text-xs font-medium">{label}</span>
-        </button>
-      )}
-    </div>
-  )
-}
+const inp = 'w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 focus:bg-white transition-colors'
+const inpErr = 'border-red-400 bg-red-50 focus:ring-red-400'
+const inpOk = 'border-gray-200'
+const errLabel = 'text-[10px] text-red-500 mt-0.5'
 
 export default function CheckInPortaleForm({
   token,
   prenotazione: p,
-  modalitaCheckin = 'completo',
+  hostNome,
+  strutturaNome,
+  regCardText: customRegCard,
+  modalitaCheckin,
 }: {
   token: string
   prenotazione: Prenotazione
+  hostNome: string
+  strutturaNome: string
+  regCardText?: string
   modalitaCheckin?: string
 }) {
-  const [completato, setCompletato] = useState(p.checkInCompletato)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
-  const [loading, setLoading] = useState(false)
-  const [errore, setErrore] = useState('')
-  const [accompagnatori, setAccompagnatori] = useState<AccForm[]>([])
-
-  // Document photos
-  const [fotoFronte, setFotoFronte] = useState<string | null>(null)
-  const [fotoRetro, setFotoRetro] = useState<string | null>(null)
-
-  // Registration card state
-  const [accettaTermini, setAccettaTermini] = useState(false)
-  const [accettaPrivacy, setAccettaPrivacy] = useState(false)
-  const [consensoMarketing, setConsensoMarketing] = useState(false)
-  const [firmaBase64, setFirmaBase64] = useState<string | null>(null)
-
-  const emptyAcc = (): AccForm => ({
-    nome: '', cognome: '', sesso: 'M', dataNascita: '', luogoNascita: '',
-    provinciaNascita: '', nazionalita: 'Italiana', tipoDocumento: 'IDENTE',
-    numeroDocumento: '', isMinore: false,
-  })
-
-  function addAcc() { setAccompagnatori(a => [...a, emptyAcc()]) }
-  function removeAcc(i: number) { setAccompagnatori(a => a.filter((_, idx) => idx !== i)) }
-  function setAcc(i: number, field: string, value: string | boolean) {
-    setAccompagnatori(a => a.map((acc, idx) => idx === i ? { ...acc, [field]: value } : acc))
-  }
-
+  // Form state
   const [form, setForm] = useState({
     guestSesso: p.guestSesso ?? 'M',
-    guestDataNascita: p.guestDataNascita ? p.guestDataNascita.split('T')[0] : '',
+    guestDataNascita: p.guestDataNascita ?? '',
     guestLuogoNascita: p.guestLuogoNascita ?? '',
     guestProvinciaNascita: p.guestProvinciaNascita ?? '',
-    guestStatoNascitaIstat: '100000100',
     guestCittadinanzaIstat: '100000100',
+    guestStatoNascitaIstat: '100000100',
     guestTipoDocumento: p.guestTipoDocumento ?? 'IDENTE',
     guestNumeroDocumento: p.guestNumeroDocumento ?? '',
     guestLuogoRilascio: p.guestLuogoRilascio ?? '',
     guestProvinciaRilascio: p.guestProvinciaRilascio ?? '',
-    guestStatoRilascioIstat: '100000100',
     guestTelefono: p.guestTelefono ?? '',
+    guestCodiceFiscale: '',
   })
 
-  function set(k: string, v: string) {
-    setForm(f => ({ ...f, [k]: v }))
+  const [accompagnatori, setAccompagnatori] = useState<AccForm[]>([])
+  const [accettaTermini, setAccettaTermini] = useState(false)
+  const [accettaPrivacy, setAccettaPrivacy] = useState(false)
+  const [consensoMarketing, setConsensoMarketing] = useState(false)
+  const [firmaBase64, setFirmaBase64] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [completato, setCompletato] = useState(p.checkInCompletato)
+  const [errore, setErrore] = useState('')
+  const [erroriCampi, setErroriCampi] = useState<Record<string, string>>({})
+
+  const italiano = isItaliano(form.guestCittadinanzaIstat)
+  const maxAcc = Math.max(0, p.numOspiti - 1)
+  const regCard = customRegCard || compileRegCardText(DEFAULT_REGCARD_IT, { nomeHotel: strutturaNome })
+
+  function set(campo: string, valore: string) {
+    setForm(f => ({ ...f, [campo]: valore }))
+    // Clear field error on change
+    if (erroriCampi[campo]) setErroriCampi(e => { const n = { ...e }; delete n[campo]; return n })
   }
 
-  function handleOCRExtract(data: { guestTipoDocumento?: string; guestNumeroDocumento?: string; guestDataNascita?: string; guestLuogoNascita?: string }) {
-    if (data.guestTipoDocumento) set('guestTipoDocumento', data.guestTipoDocumento)
-    if (data.guestNumeroDocumento) set('guestNumeroDocumento', data.guestNumeroDocumento)
-    if (data.guestDataNascita) set('guestDataNascita', data.guestDataNascita)
-    if (data.guestLuogoNascita) set('guestLuogoNascita', data.guestLuogoNascita)
+  function fieldClass(campo: string) {
+    return `${inp} ${erroriCampi[campo] ? inpErr : inpOk}`
   }
 
-  function goToStep(target: 1 | 2 | 3) {
-    setErrore('')
-    if (target > step) {
-      // Validate current step before advancing
-      if (step === 1) {
-        if (!form.guestTipoDocumento || !form.guestNumeroDocumento.trim()) {
-          setErrore('Tipo e numero documento sono obbligatori')
-          return
-        }
-      }
+  function validate(): boolean {
+    const errs: Record<string, string> = {}
+    if (!form.guestDataNascita) errs.guestDataNascita = 'Obbligatorio'
+    if (!form.guestLuogoNascita.trim()) errs.guestLuogoNascita = 'Obbligatorio'
+    if (!form.guestNumeroDocumento.trim()) errs.guestNumeroDocumento = 'Obbligatorio'
+    if (italiano && form.guestCodiceFiscale && form.guestCodiceFiscale.length !== 16) {
+      errs.guestCodiceFiscale = 'Deve essere 16 caratteri'
     }
-    setStep(target)
-  }
+    if (!accettaTermini) errs.accettaTermini = 'Obbligatorio'
+    if (!accettaPrivacy) errs.accettaPrivacy = 'Obbligatorio'
+    if (!firmaBase64) errs.firma = 'Firma obbligatoria'
 
-  // Compiled registration card text
-  const regCardText = compileRegCardText(DEFAULT_REGCARD_IT, {
-    nomeHotel: 'La Struttura', // TODO: pass actual hotel name from prenotazione
-  })
+    // Validate accompagnatori
+    accompagnatori.forEach((a, i) => {
+      if (!a.nome.trim()) errs[`acc_${i}_nome`] = 'Obbligatorio'
+      if (!a.cognome.trim()) errs[`acc_${i}_cognome`] = 'Obbligatorio'
+    })
+
+    setErroriCampi(errs)
+    if (Object.keys(errs).length > 0) {
+      setErrore(`Ci sono ${Object.keys(errs).length} campi da compilare`)
+      // Scroll to first error
+      setTimeout(() => {
+        document.querySelector('.border-red-400')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 100)
+      return false
+    }
+    return true
+  }
 
   async function handleSubmit() {
-    // Validate step 3
-    if (!accettaTermini || !accettaPrivacy) {
-      setErrore('Devi accettare i Termini e Condizioni e l\'Informativa Privacy per completare il check-in') // TODO: i18n
-      return
-    }
-    if (!firmaBase64) {
-      setErrore('La firma digitale è obbligatoria per completare il check-in') // TODO: i18n
-      return
-    }
+    if (!validate()) return
 
     setLoading(true)
     setErrore('')
 
     try {
-      // Step 1: POST personal data + accompagnatori + document photos
-      const checkinRes = await fetch(`/api/checkin/${token}`, {
+      // Request 1: dati personali + documenti + accompagnatori
+      const res1 = await fetch(`/api/checkin/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          fotoDocumentoFronte: fotoFronte,
-          fotoDocumentoRetro: fotoRetro,
+          fotoDocumentoFronte: null,
+          fotoDocumentoRetro: null,
           accompagnatori: accompagnatori.filter(a => a.nome && a.cognome),
         }),
       })
-
-      if (!checkinRes.ok) {
-        const j = await checkinRes.json()
+      if (!res1.ok) {
+        const j = await res1.json()
         setErrore(j.error ?? 'Errore invio dati')
         setLoading(false)
         return
       }
 
-      // Step 2: POST registration card acceptance + signature
-      const regcardRes = await fetch(`/api/checkin/${token}/registration-card`, {
+      // Request 2: registration card + firma → completa check-in
+      const res2 = await fetch(`/api/checkin/${token}/registration-card`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -272,20 +161,24 @@ export default function CheckInPortaleForm({
           firmaBase64,
         }),
       })
-
-      if (!regcardRes.ok) {
-        const j = await regcardRes.json()
-        setErrore(j.error ?? 'Errore invio registration card')
+      if (!res2.ok) {
+        const j = await res2.json()
+        setErrore(j.error ?? 'Errore registration card')
         setLoading(false)
         return
       }
 
       setCompletato(true)
     } catch {
-      setErrore('Errore di connessione. Riprova.') // TODO: i18n
+      setErrore('Errore di connessione. Riprova.')
     } finally {
       setLoading(false)
     }
+  }
+
+  function addAccompagnatore() {
+    if (accompagnatori.length >= maxAcc) return
+    setAccompagnatori(prev => [...prev, { nome: '', cognome: '', sesso: 'M', dataNascita: '', luogoNascita: '', nazionalita: 'Italiana', tipoDocumento: 'IDENTE', numeroDocumento: '' }])
   }
 
   if (completato) {
@@ -296,347 +189,260 @@ export default function CheckInPortaleForm({
         </div>
         <h2 className="text-xl font-bold text-gray-900">Check-in completato!</h2>
         <p className="text-sm text-gray-500">
-          I tuoi dati sono stati inviati correttamente alla struttura.<br />
-          Ci vediamo al tuo arrivo. Buon soggiorno!
+          I tuoi dati sono stati inviati correttamente.<br />
+          Ti aspettiamo presso <strong>{strutturaNome}</strong>!
         </p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-1">Completa il tuo check-in</h2>
-      <p className="text-sm text-gray-400 mb-5">
-        Inserisci i tuoi dati prima dell&apos;arrivo per velocizzare l&apos;ingresso.
-      </p>
-
-      <StepIndicator current={step} />
-
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Errore globale */}
       {errore && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl p-3 mb-4">
+        <div className="mx-5 mt-5 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
           <AlertCircle className="w-4 h-4 shrink-0" /> {errore}
         </div>
       )}
 
-      {/* ────────────────────────── STEP 1: Dati personali + Documento ────────────────────────── */}
-      {step === 1 && (
-        <div className="space-y-4">
-          {/* Telefono */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Telefono</label>
-            <input type="tel" value={form.guestTelefono} onChange={e => set('guestTelefono', e.target.value)} className={inp} placeholder="+39 333 1234567" />
+      <div className="p-5 space-y-6">
+        {/* ─── SEZIONE 1: Dati Personali ───────────────────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">1</div>
+            <h2 className="font-bold text-gray-900">Dati personali</h2>
           </div>
 
-          {/* Sesso */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Sesso</label>
-            <div className="flex gap-3">
-              {[{ v: 'M', l: 'Maschio' }, { v: 'F', l: 'Femmina' }].map(({ v, l }) => (
-                <button
-                  key={v} type="button"
-                  onClick={() => set('guestSesso', v)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${form.guestSesso === v ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 text-gray-600 hover:bg-indigo-50'}`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Data nascita + luogo */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-3">
+            {/* Nazionalità */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Data di nascita</label>
-              <input type="date" value={form.guestDataNascita} onChange={e => set('guestDataNascita', e.target.value)} className={inp} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Provincia nascita</label>
-              <input type="text" value={form.guestProvinciaNascita} onChange={e => set('guestProvinciaNascita', e.target.value.toUpperCase())} maxLength={2} className={inp} placeholder="RM" />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Comune di nascita</label>
-            <input type="text" value={form.guestLuogoNascita} onChange={e => set('guestLuogoNascita', e.target.value)} className={inp} placeholder="Roma" />
-          </div>
-
-          {/* Documento */}
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-500 mb-3">Documento di identit&agrave; *</p>
-
-            {/* OCR Scanner */}
-            <div className="mb-4 p-4 bg-indigo-50 rounded-xl">
-              <p className="text-xs font-medium text-indigo-700 mb-3">Estrai dati automaticamente</p>
-              <DocumentOCR onExtract={handleOCRExtract} />
+              <label className="text-xs font-medium text-gray-500 block mb-1">Nazionalità <span className="text-red-500">*</span></label>
+              <select value={form.guestCittadinanzaIstat} onChange={e => { set('guestCittadinanzaIstat', e.target.value); set('guestStatoNascitaIstat', e.target.value) }} className={fieldClass('guestCittadinanzaIstat')}>
+                {STATI.map(s => <option key={s.codice} value={s.codice}>{s.nome}</option>)}
+              </select>
             </div>
 
-            {/* Tipo documento */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {TIPI_DOC.map(({ value, label }) => (
-                <button
-                  key={value} type="button"
-                  onClick={() => set('guestTipoDocumento', value)}
-                  className={`py-2 px-3 rounded-xl text-xs font-medium border transition-colors text-left ${form.guestTipoDocumento === value ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-200 text-gray-600 hover:bg-indigo-50'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Numero documento *</label>
-              <input type="text" value={form.guestNumeroDocumento} onChange={e => set('guestNumeroDocumento', e.target.value.toUpperCase())} className={inp} placeholder="AB1234567" />
-            </div>
-          </div>
+            {/* CF solo italiani */}
+            {italiano && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Codice Fiscale</label>
+                <input value={form.guestCodiceFiscale} onChange={e => set('guestCodiceFiscale', e.target.value.toUpperCase())} maxLength={16} placeholder="RSSMRA85M01H501Z" className={`${fieldClass('guestCodiceFiscale')} font-mono tracking-wide`} />
+                {erroriCampi.guestCodiceFiscale && <p className={errLabel}>{erroriCampi.guestCodiceFiscale}</p>}
+              </div>
+            )}
 
-          {/* Luogo rilascio */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Rilasciato a</label>
-              <input type="text" value={form.guestLuogoRilascio} onChange={e => set('guestLuogoRilascio', e.target.value)} className={inp} placeholder="Roma" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">Provincia rilascio</label>
-              <input type="text" value={form.guestProvinciaRilascio} onChange={e => set('guestProvinciaRilascio', e.target.value.toUpperCase())} maxLength={2} className={inp} placeholder="RM" />
-            </div>
-          </div>
-
-          {/* Document photos */}
-          {modalitaCheckin === 'leggero' ? (
-            <div className="pt-2 border-t border-gray-100">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 leading-relaxed">
-                <p className="font-semibold mb-1">Foto documento</p>
-                <p>Le foto del documento verranno acquisite alla reception al momento dell&apos;arrivo.</p>
+            {/* Sesso + Data nascita */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Sesso <span className="text-red-500">*</span></label>
+                <select value={form.guestSesso} onChange={e => set('guestSesso', e.target.value)} className={fieldClass('guestSesso')}>
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-xs font-medium text-gray-500 block mb-1">Data di nascita <span className="text-red-500">*</span></label>
+                <input type="date" value={form.guestDataNascita} onChange={e => set('guestDataNascita', e.target.value)} className={fieldClass('guestDataNascita')} />
+                {erroriCampi.guestDataNascita && <p className={errLabel}>{erroriCampi.guestDataNascita}</p>}
               </div>
             </div>
-          ) : (
-            <div className="pt-2 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">
-                Foto documento <span className="font-normal text-gray-400">(facoltativo)</span>
-              </p>
-              <p className="text-xs text-gray-400 mb-3">
-                Scatta una foto del fronte e del retro del documento per velocizzare la verifica in reception.
-              </p>
-              <div className="flex gap-3">
-                <PhotoCapture
-                  label="Foto fronte"
-                  value={fotoFronte}
-                  onChange={setFotoFronte}
-                />
-                <PhotoCapture
-                  label="Foto retro"
-                  value={fotoRetro}
-                  onChange={setFotoRetro}
-                />
+
+            {/* Luogo nascita */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3">
+                <label className="text-xs font-medium text-gray-500 block mb-1">Luogo di nascita <span className="text-red-500">*</span></label>
+                <input value={form.guestLuogoNascita} onChange={e => set('guestLuogoNascita', e.target.value)} placeholder={italiano ? 'es. Roma' : 'es. London'} className={fieldClass('guestLuogoNascita')} />
+                {erroriCampi.guestLuogoNascita && <p className={errLabel}>{erroriCampi.guestLuogoNascita}</p>}
               </div>
-            </div>
-          )}
-
-          {/* Avviso obbligo legale */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 leading-relaxed">
-            <p className="font-semibold mb-1">Obbligo di identificazione</p>
-            <p>
-              Ai sensi dell&apos;art. 109 del T.U.L.P.S. (R.D. 773/1931), tutti gli ospiti sono tenuti
-              a presentare un documento di identit&agrave; valido al momento dell&apos;arrivo in struttura.
-              Il check-in online non sostituisce l&apos;identificazione in reception.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => goToStep(2)}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm mt-2"
-          >
-            Avanti <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* ────────────────────────── STEP 2: Accompagnatori ────────────────────────── */}
-      {step === 2 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-semibold text-gray-700">
-              Accompagnatori{accompagnatori.length > 0 ? ` (${accompagnatori.length})` : ''}
-            </p>
-            <button type="button" onClick={addAcc} className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
-              + Aggiungi persona
-            </button>
-          </div>
-
-          {accompagnatori.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-400 italic mb-2">
-                Viaggi con qualcuno? Aggiungi i dati degli accompagnatori per velocizzare il check-in di tutto il gruppo.
-              </p>
-              <p className="text-xs text-gray-300">
-                Se viaggi da solo, puoi procedere direttamente al prossimo passaggio.
-              </p>
-            </div>
-          )}
-
-          {accompagnatori.map((acc, i) => (
-            <div key={i} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-gray-700">Accompagnatore {i + 1}</p>
-                <button type="button" onClick={() => removeAcc(i)} className="text-xs text-red-400 hover:text-red-600">Rimuovi</button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+              {italiano && (
                 <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Nome *</label>
-                  <input type="text" value={acc.nome} onChange={e => setAcc(i, 'nome', e.target.value)} className={inp} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Cognome *</label>
-                  <input type="text" value={acc.cognome} onChange={e => setAcc(i, 'cognome', e.target.value)} className={inp} />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Sesso</label>
-                  <select value={acc.sesso} onChange={e => setAcc(i, 'sesso', e.target.value)} className={inp}>
-                    <option value="M">M</option><option value="F">F</option>
+                  <label className="text-xs font-medium text-gray-500 block mb-1">Prov.</label>
+                  <select value={form.guestProvinciaNascita} onChange={e => set('guestProvinciaNascita', e.target.value)} className={fieldClass('guestProvinciaNascita')}>
+                    <option value="">—</option>
+                    {PROVINCE_ITALIANE.map(pr => <option key={pr} value={pr}>{pr}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Data nascita</label>
-                  <input type="date" value={acc.dataNascita} onChange={e => setAcc(i, 'dataNascita', e.target.value)} className={inp} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Nazionalit&agrave;</label>
-                  <input type="text" value={acc.nazionalita} onChange={e => setAcc(i, 'nazionalita', e.target.value)} className={inp} />
-                </div>
+              )}
+            </div>
+
+            {/* Telefono */}
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1">Telefono</label>
+              <input type="tel" value={form.guestTelefono} onChange={e => set('guestTelefono', e.target.value)} placeholder="+39 333 1234567" className={fieldClass('guestTelefono')} />
+            </div>
+          </div>
+        </section>
+
+        {/* ─── SEZIONE 2: Documento ──────────────────────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">2</div>
+            <h2 className="font-bold text-gray-900">Documento d&apos;identità</h2>
+          </div>
+
+          {/* OCR Scanner */}
+          <div className="mb-4">
+            <DocumentOCR
+              onExtract={(data) => {
+                if (data.guestTipoDocumento) set('guestTipoDocumento', data.guestTipoDocumento)
+                if (data.guestNumeroDocumento) set('guestNumeroDocumento', data.guestNumeroDocumento)
+                if (data.guestDataNascita) set('guestDataNascita', data.guestDataNascita)
+                if (data.guestLuogoNascita) set('guestLuogoNascita', data.guestLuogoNascita)
+              }}
+            />
+          </div>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Tipo <span className="text-red-500">*</span></label>
+                <select value={form.guestTipoDocumento} onChange={e => set('guestTipoDocumento', e.target.value)} className={fieldClass('guestTipoDocumento')}>
+                  {TIPI_DOC.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Numero <span className="text-red-500">*</span></label>
+                <input value={form.guestNumeroDocumento} onChange={e => set('guestNumeroDocumento', e.target.value.toUpperCase())} placeholder="AX1234567" className={`${fieldClass('guestNumeroDocumento')} font-mono`} />
+                {erroriCampi.guestNumeroDocumento && <p className={errLabel}>{erroriCampi.guestNumeroDocumento}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-3">
+              <div className="col-span-3">
+                <label className="text-xs font-medium text-gray-500 block mb-1">Luogo di rilascio</label>
+                <input value={form.guestLuogoRilascio} onChange={e => set('guestLuogoRilascio', e.target.value)} className={fieldClass('guestLuogoRilascio')} />
+              </div>
+              {italiano && (
                 <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Documento</label>
-                  <select value={acc.tipoDocumento} onChange={e => setAcc(i, 'tipoDocumento', e.target.value)} className={inp}>
-                    {TIPI_DOC.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  <label className="text-xs font-medium text-gray-500 block mb-1">Prov.</label>
+                  <select value={form.guestProvinciaRilascio} onChange={e => set('guestProvinciaRilascio', e.target.value)} className={fieldClass('guestProvinciaRilascio')}>
+                    <option value="">—</option>
+                    {PROVINCE_ITALIANE.map(pr => <option key={pr} value={pr}>{pr}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-medium text-gray-500 mb-1">Numero doc.</label>
-                  <input type="text" value={acc.numeroDocumento} onChange={e => setAcc(i, 'numeroDocumento', e.target.value.toUpperCase())} className={inp} />
-                </div>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={acc.isMinore} onChange={e => setAcc(i, 'isMinore', e.target.checked)} className="w-4 h-4 rounded accent-indigo-500" />
-                <span className="text-xs text-gray-600">Minore di 18 anni</span>
-              </label>
+              )}
             </div>
-          ))}
-
-          <div className="flex gap-3 mt-2">
-            <button
-              type="button"
-              onClick={() => goToStep(1)}
-              className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm"
-            >
-              <ChevronLeft className="w-4 h-4" /> Indietro
-            </button>
-            <button
-              type="button"
-              onClick={() => goToStep(3)}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm"
-            >
-              Avanti <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
-        </div>
-      )}
+        </section>
 
-      {/* ────────────────────────── STEP 3: Registration Card + Firma ────────────────────────── */}
-      {step === 3 && (
-        <div className="space-y-4">
+        {/* ─── SEZIONE 3: Accompagnatori ─────────────────────────── */}
+        {maxAcc > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">3</div>
+                <h2 className="font-bold text-gray-900">Accompagnatori</h2>
+                <span className="text-xs text-gray-400">{accompagnatori.length} di {maxAcc}</span>
+              </div>
+              {accompagnatori.length < maxAcc && (
+                <button type="button" onClick={addAccompagnatore} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 px-2 py-1 rounded-lg hover:bg-indigo-50">
+                  <Plus className="w-3.5 h-3.5" /> Aggiungi
+                </button>
+              )}
+            </div>
+
+            {accompagnatori.length === 0 && (
+              <p className="text-xs text-gray-400 italic">Nessun accompagnatore aggiunto. Clicca &quot;Aggiungi&quot; se viaggi con altre persone.</p>
+            )}
+
+            <div className="space-y-4">
+              {accompagnatori.map((acc, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-3 relative">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-gray-500 flex items-center gap-1"><User className="w-3 h-3" /> Accompagnatore {i + 1}</p>
+                    <button type="button" onClick={() => setAccompagnatori(prev => prev.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 p-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <input value={acc.nome} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, nome: e.target.value } : a))} placeholder="Nome *" className={`${inp} ${erroriCampi[`acc_${i}_nome`] ? inpErr : inpOk}`} />
+                      {erroriCampi[`acc_${i}_nome`] && <p className={errLabel}>Obbligatorio</p>}
+                    </div>
+                    <div>
+                      <input value={acc.cognome} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, cognome: e.target.value } : a))} placeholder="Cognome *" className={`${inp} ${erroriCampi[`acc_${i}_cognome`] ? inpErr : inpOk}`} />
+                      {erroriCampi[`acc_${i}_cognome`] && <p className={errLabel}>Obbligatorio</p>}
+                    </div>
+                    <div>
+                      <select value={acc.sesso} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, sesso: e.target.value } : a))} className={inp}>
+                        <option value="M">M</option>
+                        <option value="F">F</option>
+                      </select>
+                    </div>
+                    <div>
+                      <input type="date" value={acc.dataNascita} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, dataNascita: e.target.value } : a))} className={inp} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select value={acc.tipoDocumento} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, tipoDocumento: e.target.value } : a))} className={inp}>
+                      {TIPI_DOC.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <input value={acc.numeroDocumento} onChange={e => setAccompagnatori(prev => prev.map((a, j) => j === i ? { ...a, numeroDocumento: e.target.value.toUpperCase() } : a))} placeholder="N° documento" className={`${inp} font-mono`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ─── SEZIONE 4: Registration Card + Firma ──────────────── */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">{maxAcc > 0 ? '4' : '3'}</div>
+            <h2 className="font-bold text-gray-900 flex items-center gap-2"><FileText className="w-4 h-4" /> Condizioni e firma</h2>
+          </div>
+
           {/* T&C text */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Termini e Condizioni della struttura</p>
-            <div
-              className="max-h-[200px] overflow-y-auto border border-gray-200 rounded-xl p-4 bg-gray-50 text-xs text-gray-600 leading-relaxed whitespace-pre-line"
-            >
-              {regCardText}
-            </div>
+          <div className="bg-gray-50 rounded-xl p-4 max-h-48 overflow-y-auto text-xs text-gray-600 leading-relaxed mb-4 whitespace-pre-wrap">
+            {regCard}
           </div>
 
           {/* Checkboxes */}
-          <div className="space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={accettaTermini}
-                onChange={e => setAccettaTermini(e.target.checked)}
-                className="w-5 h-5 mt-0.5 rounded accent-indigo-500 shrink-0"
-              />
-              <span className="text-sm text-gray-700">
-                Ho letto e accetto i <strong>Termini e Condizioni</strong> *
-              </span>
+          <div className="space-y-3 mb-4">
+            <label className={`flex items-start gap-3 cursor-pointer ${erroriCampi.accettaTermini ? 'text-red-600' : ''}`}>
+              <input type="checkbox" checked={accettaTermini} onChange={e => { setAccettaTermini(e.target.checked); if (erroriCampi.accettaTermini) setErroriCampi(er => { const n = { ...er }; delete n.accettaTermini; return n }) }}
+                className={`mt-0.5 w-4 h-4 rounded ${erroriCampi.accettaTermini ? 'border-red-400 text-red-500' : 'border-gray-300 text-indigo-600'}`} />
+              <span className="text-sm">Accetto i <strong>Termini e Condizioni</strong> della struttura <span className="text-red-500">*</span></span>
             </label>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={accettaPrivacy}
-                onChange={e => setAccettaPrivacy(e.target.checked)}
-                className="w-5 h-5 mt-0.5 rounded accent-indigo-500 shrink-0"
-              />
-              <span className="text-sm text-gray-700">
-                Ho letto e accetto l&apos;<strong>Informativa Privacy GDPR</strong> *
-              </span>
+            {erroriCampi.accettaTermini && <p className={`${errLabel} ml-7`}>Devi accettare per proseguire</p>}
+
+            <label className={`flex items-start gap-3 cursor-pointer ${erroriCampi.accettaPrivacy ? 'text-red-600' : ''}`}>
+              <input type="checkbox" checked={accettaPrivacy} onChange={e => { setAccettaPrivacy(e.target.checked); if (erroriCampi.accettaPrivacy) setErroriCampi(er => { const n = { ...er }; delete n.accettaPrivacy; return n }) }}
+                className={`mt-0.5 w-4 h-4 rounded ${erroriCampi.accettaPrivacy ? 'border-red-400 text-red-500' : 'border-gray-300 text-indigo-600'}`} />
+              <span className="text-sm">Accetto l&apos;<strong>Informativa Privacy</strong> (GDPR) <span className="text-red-500">*</span></span>
             </label>
+            {erroriCampi.accettaPrivacy && <p className={`${errLabel} ml-7`}>Devi accettare per proseguire</p>}
+
             <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consensoMarketing}
-                onChange={e => setConsensoMarketing(e.target.checked)}
-                className="w-5 h-5 mt-0.5 rounded accent-indigo-500 shrink-0"
-              />
-              <span className="text-sm text-gray-600">
-                Acconsento al trattamento dei miei dati per finalit&agrave; di marketing <span className="text-gray-400">(facoltativo)</span>
-              </span>
+              <input type="checkbox" checked={consensoMarketing} onChange={e => setConsensoMarketing(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-indigo-600" />
+              <span className="text-sm text-gray-500">Acconsento a ricevere comunicazioni promozionali <span className="text-xs">(opzionale)</span></span>
             </label>
           </div>
 
-          {/* Signature */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 mb-2">Firma digitale *</p>
-            {firmaBase64 ? (
-              <div className="space-y-2">
-                <div className="border-2 border-green-200 rounded-xl p-2 bg-green-50">
-                  <img src={firmaBase64} alt="Firma" className="w-full h-auto rounded-lg" />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFirmaBase64(null)}
-                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  Firma di nuovo
-                </button>
-              </div>
-            ) : (
-              <SignaturePad
-                onSave={(base64) => setFirmaBase64(base64)}
-                onClear={() => setFirmaBase64(null)}
-              />
-            )}
+          {/* Firma */}
+          <div className={erroriCampi.firma ? 'ring-2 ring-red-400 rounded-xl' : ''}>
+            <p className="text-xs font-medium text-gray-500 mb-2">Firma digitale <span className="text-red-500">*</span></p>
+            <SignaturePad
+              onSave={(b64) => { setFirmaBase64(b64); if (erroriCampi.firma) setErroriCampi(er => { const n = { ...er }; delete n.firma; return n }) }}
+              onClear={() => setFirmaBase64(null)}
+            />
           </div>
+          {erroriCampi.firma && <p className={errLabel}>Firma obbligatoria — disegna la tua firma e clicca &quot;Salva Firma&quot;</p>}
+        </section>
+      </div>
 
-          <div className="flex gap-3 mt-2">
-            <button
-              type="button"
-              onClick={() => goToStep(2)}
-              className="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm"
-            >
-              <ChevronLeft className="w-4 h-4" /> Indietro
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all text-sm"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              {loading ? 'Invio in corso...' : 'Conferma e firma'}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Submit */}
+      <div className="p-5 bg-gray-50 border-t">
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-base transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+          {loading ? 'Invio in corso...' : 'Completa check-in'}
+        </button>
+      </div>
     </div>
   )
 }

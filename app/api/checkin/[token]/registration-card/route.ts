@@ -56,6 +56,7 @@ export async function POST(
       regCardAccPrivacy: d.accettazionePrivacy,
       regCardAccMarketing: d.consensoMarketing,
       regCardDataFirma: new Date(),
+      checkInCompletato: true, // Check-in completato solo dopo firma
     },
   })
 

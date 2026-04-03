@@ -113,7 +113,7 @@ export async function POST(
       guestTelefono: guestTelefono || undefined,
       fotoDocumentoFronte: fotoDocumentoFronte || null,
       fotoDocumentoRetro: fotoDocumentoRetro || null,
-      checkInCompletato: true,
+      // Non segnare completato qui — serve la firma sulla registration card
     },
     select: { id: true, checkInCompletato: true },
   })

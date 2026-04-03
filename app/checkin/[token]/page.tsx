@@ -129,7 +129,13 @@ export default async function CheckInPortalePage({ params: paramsPromise }: { pa
         </div>
 
         {/* Form */}
-        <CheckInPortaleForm token={token} prenotazione={serialized} modalitaCheckin={prenotazione.host?.modalitaCheckin ?? 'completo'} />
+        <CheckInPortaleForm
+          token={token}
+          prenotazione={serialized}
+          hostNome={prenotazione.host?.nomeAzienda ?? ''}
+          strutturaNome={prenotazione.struttura?.nome ?? ''}
+          modalitaCheckin={prenotazione.host?.modalitaCheckin ?? 'completo'}
+        />
       </div>
     </div>
   )
