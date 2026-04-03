@@ -110,7 +110,7 @@ export function OnboardingWizard({ userName, currentCompanyName }: Props) {
 
       router.push('/host/dashboard')
       router.refresh()
-    } catch {
+    } catch (err) { console.error(err) 
       setError(tc('networkError'))
       setSaving(false)
     }

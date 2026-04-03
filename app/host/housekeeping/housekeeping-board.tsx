@@ -150,7 +150,7 @@ export default function HousekeepingBoard({
           ? { ...u, statoHK: aggiornata.statoHK, ultimaPulizia: aggiornata.ultimaPulizia }
           : u
       ))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
     setLoadingId(null)
@@ -175,7 +175,7 @@ export default function HousekeepingBoard({
           ? { ...u, taskHK: u.taskHK.filter(t => t.id !== taskId) }
           : u
       ))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }

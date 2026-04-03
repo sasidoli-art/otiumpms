@@ -140,7 +140,7 @@ export default function FattureEmesseManager() {
         const data = await res.json()
         setFatture(Array.isArray(data) ? data : data.fatture || [])
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silent
     } finally {
       setLoading(false)
@@ -154,7 +154,7 @@ export default function FattureEmesseManager() {
         const data = await res.json()
         setPrenotazioni(Array.isArray(data) ? data : data.prenotazioni || [])
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silent
     }
   }, [])
@@ -207,7 +207,7 @@ export default function FattureEmesseManager() {
         const data = await res.json()
         alert(data.error || 'Errore invio SDI')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     } finally {
       setActionLoading(null)
@@ -221,7 +221,7 @@ export default function FattureEmesseManager() {
       if (res.ok) {
         await loadFatture()
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silent
     } finally {
       setActionLoading(null)
@@ -240,7 +240,7 @@ export default function FattureEmesseManager() {
         const data = await res.json()
         alert(data.error || 'Errore eliminazione')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     } finally {
       setActionLoading(null)
@@ -262,7 +262,7 @@ export default function FattureEmesseManager() {
         const data = await res.json()
         alert(data.error || 'Errore creazione nota di credito')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     } finally {
       setActionLoading(null)
@@ -888,7 +888,7 @@ function NuovaFatturaModal({
         const data = await res.json()
         alert(data.error || 'Errore nella creazione della fattura')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     } finally {
       setSaving(false)

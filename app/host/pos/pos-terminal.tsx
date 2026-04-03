@@ -179,7 +179,7 @@ export default function POSTerminal() {
         const err = await res.json()
         alert(err.error || 'Errore nel completare la transazione')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     }
     setProcessing(false)

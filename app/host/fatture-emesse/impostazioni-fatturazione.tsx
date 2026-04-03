@@ -120,7 +120,7 @@ export default function ImpostazioniFatturazione() {
             setDatiFiscali(prev => ({ ...prev, ...data.datiFiscali }))
           }
         }
-      } catch {
+      } catch (err) { console.error(err) 
         // silent
       } finally {
         setLoading(false)
@@ -145,7 +145,7 @@ export default function ImpostazioniFatturazione() {
         const data = await res.json()
         alert(data.error || 'Errore nel salvataggio')
       }
-    } catch {
+    } catch (err) { console.error(err) 
       alert('Errore di rete')
     } finally {
       setSaving(false)
@@ -166,7 +166,7 @@ export default function ImpostazioniFatturazione() {
         ok: res.ok,
         message: data.message || (res.ok ? 'Connessione riuscita' : 'Connessione fallita'),
       })
-    } catch {
+    } catch (err) { console.error(err) 
       setTestResult({ ok: false, message: 'Errore di rete' })
     } finally {
       setTesting(false)

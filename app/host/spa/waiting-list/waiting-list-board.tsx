@@ -78,7 +78,7 @@ export default function WaitingListBoard() {
       const res = await fetch(`/api/host/spa/waiting-list?${params}`)
       const data = await res.json()
       setEntries(Array.isArray(data) ? data : [])
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setLoading(false)
   }, [filtroStato])
 
@@ -99,7 +99,7 @@ export default function WaitingListBoard() {
         setForm({ guestNome: '', guestEmail: '', guestTelefono: '', trattamentoId: '', dataDesiderata: '', fasceOrarie: 'qualsiasi', note: '' })
         await loadEntries()
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 
@@ -113,7 +113,7 @@ export default function WaitingListBoard() {
         body: JSON.stringify({ id, stato }),
       })
       await loadEntries()
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 
@@ -144,7 +144,7 @@ export default function WaitingListBoard() {
       setTurnawayMotivo('PIENO')
       setTurnawayNote('')
       await loadEntries()
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 

@@ -505,7 +505,7 @@ function ReportExtraSection({ titolo, url, render }: {
     try {
       const res = await fetch(url)
       if (res.ok) setDati(await res.json())
-    } catch {}
+    } catch (err) { console.error(err) }
     setLoading(false)
   }
 

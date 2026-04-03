@@ -67,7 +67,7 @@ export default function AlloggiatiClient({ strutture }: { strutture: Struttura[]
         return
       }
       setRisultato(await res.json())
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di connessione')
     } finally {
       setLoading(false)
@@ -95,7 +95,7 @@ export default function AlloggiatiClient({ strutture }: { strutture: Struttura[]
       link.download = `alloggiati_${da}_${a}.txt`
       link.click()
       URL.revokeObjectURL(url)
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore nel download')
     } finally {
       setDownloading(false)

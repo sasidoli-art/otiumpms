@@ -76,7 +76,7 @@ export default function StaffBoard({
         return
       }
       setComunicazioni(p => p.map(c => c.id === id ? { ...c, fissato: !c.fissato } : c))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -95,7 +95,7 @@ export default function StaffBoard({
         return
       }
       setComunicazioni(p => p.filter(c => c.id !== id))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -111,7 +111,7 @@ export default function StaffBoard({
       }
       setComunicazioni(p => p.filter(c => c.id !== id))
       setArchiviate(p => p.filter(c => c.id !== id))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -135,7 +135,7 @@ export default function StaffBoard({
       }
       setComunicazioni(p => p.map(c => c.id === id ? { ...c, letti: nuoviLetti } : c))
       setLettoModal(null); setNomeLettura('')
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -154,7 +154,7 @@ export default function StaffBoard({
       const data = await res.json()
       setArchiviate(data)
       setMostraArchivio(true)
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
     setLoadingArchivio(false)

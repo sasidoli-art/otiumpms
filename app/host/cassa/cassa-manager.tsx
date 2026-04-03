@@ -149,7 +149,7 @@ export default function CassaManager({ nomeOperatore }: { nomeOperatore: string 
         const data = await res.json()
         setIncassi(Array.isArray(data) ? data : data.incassi ?? [])
       }
-    } catch { /* ignore */ } finally { setLoadingIncassi(false) }
+    } catch (err) { console.error(err) } finally { setLoadingIncassi(false) }
   }, [dataIncassi])
 
   // ── Fetch chiusure ──
@@ -163,7 +163,7 @@ export default function CassaManager({ nomeOperatore }: { nomeOperatore: string 
         setChiusure(list)
         setChiusuraGiaFatta(list.some((c: ChiusuraCassa) => c.data === dataChiusura))
       }
-    } catch { /* ignore */ } finally { setLoadingChiusure(false) }
+    } catch (err) { console.error(err) } finally { setLoadingChiusure(false) }
   }, [dataChiusura])
 
   // ── Fetch report ──
@@ -172,7 +172,7 @@ export default function CassaManager({ nomeOperatore }: { nomeOperatore: string 
     try {
       const res = await fetch(`/api/host/cassa/report?da=${reportDa}&a=${reportA}`)
       if (res.ok) setReport(await res.json())
-    } catch { /* ignore */ } finally { setLoadingReport(false) }
+    } catch (err) { console.error(err) } finally { setLoadingReport(false) }
   }, [reportDa, reportA])
 
   useEffect(() => { if (tab === 'incassi') fetchIncassi() }, [tab, fetchIncassi])
@@ -444,7 +444,7 @@ function TabChiusura({
         setNoteChiusura('')
         onRefresh()
       }
-    } catch { /* ignore */ } finally { setSubmitting(false) }
+    } catch (err) { console.error(err) } finally { setSubmitting(false) }
   }
 
   return (
@@ -935,7 +935,7 @@ function ModalRegistraIncasso({
         })
       }
       onCreated()
-    } catch { /* ignore */ } finally { setSubmitting(false) }
+    } catch (err) { console.error(err) } finally { setSubmitting(false) }
   }
 
   const splitTotal = Object.values(splitAmounts).reduce((s, v) => s + (parseFloat(v) || 0), 0)

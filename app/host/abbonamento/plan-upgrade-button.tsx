@@ -39,7 +39,7 @@ export default function PlanUpgradeButton({ targetPlan, targetLabel, targetPrice
       // Success — refresh the page to show updated data
       router.refresh()
       setShowConfirm(false)
-    } catch {
+    } catch (err) { console.error(err) 
       setError('Errore di rete')
     } finally {
       setLoading(false)

@@ -109,7 +109,7 @@ export default function ManutenzioneBoard({
         ...s, stato: ag.stato,
         dataRisoluzione: ag.dataRisoluzione?.toString() ?? null,
       } : s))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -124,7 +124,7 @@ export default function ManutenzioneBoard({
         return
       }
       setSegnalazioni(prev => prev.filter(s => s.id !== id))
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Controlla la connessione e riprova.')
     }
   }
@@ -489,7 +489,7 @@ function DettaglioPanel({
         dataRisoluzione: ag.dataRisoluzione?.toString() ?? null,
         createdAt: ag.createdAt?.toString() ?? seg.createdAt,
       })
-    } catch {
+    } catch (err) { console.error(err) 
       setSaveError('Errore di rete. Controlla la connessione e riprova.')
     }
     setSaving(false)

@@ -217,7 +217,7 @@ function RetentionSection() {
         const data = await res.json()
         setResults(data.results)
       }
-    } catch {}
+    } catch (err) { console.error(err) }
     setRunning(false)
   }
 

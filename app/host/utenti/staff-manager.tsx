@@ -115,7 +115,7 @@ export function StaffManager() {
         setMembers(data.members ?? [])
         setInviti(data.inviti ?? [])
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setLoading(false)
@@ -139,7 +139,7 @@ export function StaffManager() {
       if (res.ok) {
         setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ruolo } : m)))
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setActionLoading(null)
@@ -157,7 +157,7 @@ export function StaffManager() {
       if (res.ok) {
         setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, attivo } : m)))
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setActionLoading(null)
@@ -172,7 +172,7 @@ export function StaffManager() {
       if (res.ok) {
         setMembers((prev) => prev.filter((m) => m.id !== id))
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setActionLoading(null)
@@ -189,7 +189,7 @@ export function StaffManager() {
         setTimeout(() => setSuccessMsg(null), 3000)
         loadData()
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setActionLoading(null)
@@ -204,7 +204,7 @@ export function StaffManager() {
       if (res.ok) {
         setInviti((prev) => prev.filter((i) => i.id !== id))
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // silenzioso
     } finally {
       setActionLoading(null)
@@ -587,7 +587,7 @@ function InviteModal({
         const data = await res.json().catch(() => ({}))
         setErrore(data.error ?? 'Errore durante l\'invio dell\'invito') // TODO: i18n
       }
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di rete. Riprova.') // TODO: i18n
     } finally {
       setLoading(false)

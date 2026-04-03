@@ -49,7 +49,7 @@ export function CheckinSettingsForm({ modalitaCheckin }: { modalitaCheckin: stri
       setSaved(true)
       router.refresh()
       setTimeout(() => setSaved(false), 3000)
-    } catch {
+    } catch (err) { console.error(err) 
       setError('Errore di connessione. Riprova.')
     } finally {
       setLoading(false)

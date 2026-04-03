@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import {
   CheckCircle2, Calendar, ArrowRight, ArrowLeft, Users, Tag, Bed,
   ChevronLeft, ChevronRight, MapPin, Package,
@@ -58,7 +57,6 @@ function MiniCalendar({
   partenza: Date | null
   onSelect: (date: Date) => void
 }) {
-  const t = useTranslations('booking.form')
   const [viewMonth, setViewMonth] = useState(() => startOfMonth(new Date()))
   const oggi = startOfDay(new Date())
 
@@ -81,7 +79,7 @@ function MiniCalendar({
     return isBefore(d, oggi)
   }
 
-  const DOW = [t('weekDays.mon'), t('weekDays.tue'), t('weekDays.wed'), t('weekDays.thu'), t('weekDays.fri'), t('weekDays.sat'), t('weekDays.sun')]
+  const DOW = ['Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa', 'Do']
 
   return (
     <div>
@@ -171,10 +169,10 @@ function MiniCalendar({
       {/* Legenda */}
       <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-indigo-600" /> {t('checkinOut')}
+          <span className="w-3 h-3 rounded-full bg-indigo-600" /> Check-in/out
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-indigo-100" /> {t('stay')}
+          <span className="w-3 h-3 rounded bg-indigo-100" /> Soggiorno
         </span>
       </div>
     </div>
@@ -184,8 +182,6 @@ function MiniCalendar({
 // ─── Main Booking Form ────────────────────────────────────────────────────────
 
 export default function BookingForm({ struttura }: { struttura: Struttura }) {
-  const t = useTranslations('booking.form')
-  const tc = useTranslations('common')
   const searchParams = useSearchParams()
 
   // Pre-fill da pacchetto (opzionale)
@@ -246,11 +242,11 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
 
   async function cercaDisponibilita() {
     if (!arrivo || !partenza || partenza <= arrivo) {
-      setErrStanze(t('selectDates')); return
+      setErrStanze('Seleziona check-in e check-out sul calendario'); return
     }
     setLoadingStanze(true); setErrStanze(''); setStanze([])
     const r = await fetch(`/api/book/${struttura.id}/disponibili?arrivo=${arrivo}&partenza=${partenza}`)
-    if (!r.ok) { setErrStanze(t('loadError')); setLoadingStanze(false); return }
+    if (!r.ok) { setErrStanze('Errore nel caricamento. Riprova.'); setLoadingStanze(false); return }
     const d = await r.json()
     setStanze(d.stanze ?? []); setLoadingStanze(false); setStep(2)
   }
@@ -258,7 +254,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
   // Step 3 → Step 4 (riepilogo)
   function goToRiepilogo() {
     if (!formData.guestNome || !formData.guestCognome || !formData.guestEmail) {
-      setErrForm(t('fillRequired'))
+      setErrForm('Compila tutti i campi obbligatori')
       return
     }
     setErrForm('')
@@ -283,7 +279,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
     })
     if (!r.ok) {
       const j = await r.json()
-      setErrForm(j.error || tc('unexpectedError')); setSubmitting(false); return
+      setErrForm(j.error || 'Errore. Riprova.'); setSubmitting(false); return
     }
     const result = await r.json()
     setSuccesso(result); setSubmitting(false)
@@ -294,15 +290,15 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
     return (
       <div className="text-center py-6">
         <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-gray-900 mb-2">{t('requestSent')}</h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Richiesta inviata!</h3>
         <p className="text-gray-600 text-sm mb-6">
-          {t('requestReceived')}
+          La tua richiesta è stata ricevuta. Verrai ricontattato al più presto.
         </p>
         <a
           href={`/book/chat/${successo.chatId}`}
           className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors"
         >
-          {t('openChat')}
+          Apri chat con l&apos;organizzatore →
         </a>
       </div>
     )
@@ -310,10 +306,10 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
 
   // ── Step indicator ────────────────────────────────────────────────────────
   const allSteps = [
-    { n: 1, label: t('dates') },
-    { n: 2, label: t('room') },
-    { n: 3, label: t('data') },
-    { n: 4, label: t('confirm') },
+    { n: 1, label: 'Date' },
+    { n: 2, label: 'Stanza' },
+    { n: 3, label: 'Dati' },
+    { n: 4, label: 'Conferma' },
   ] as const
 
   return (
@@ -323,9 +319,9 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
         <div className="mb-5 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl">
           <Package className="w-5 h-5 text-indigo-500 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-indigo-800 truncate">{t('packageLabel')} {pacchettoNome}</p>
+            <p className="text-sm font-semibold text-indigo-800 truncate">Pacchetto: {pacchettoNome}</p>
             {pacchettoPrezzo && (
-              <p className="text-xs text-indigo-500">{t('packagePrice')}{Number(pacchettoPrezzo).toLocaleString('it-IT', { minimumFractionDigits: 2 })}</p>
+              <p className="text-xs text-indigo-500">Prezzo pacchetto: €{Number(pacchettoPrezzo).toLocaleString('it-IT', { minimumFractionDigits: 2 })}</p>
             )}
           </div>
         </div>
@@ -360,30 +356,30 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           {/* Date selezionate */}
           <div className="grid grid-cols-2 gap-3">
             <div className={`p-3 rounded-xl border-2 transition-colors ${arrivoDate ? 'border-indigo-200 bg-indigo-50/50' : 'border-dashed border-gray-200'}`}>
-              <p className="text-xs text-gray-400 mb-0.5">{t('checkin')}</p>
+              <p className="text-xs text-gray-400 mb-0.5">Check-in</p>
               {arrivoDate ? (
                 <p className="text-sm font-semibold text-gray-800">
                   {format(arrivoDate, 'EEE d MMM yyyy', { locale: it })}
                 </p>
               ) : (
-                <p className="text-sm text-gray-300">{t('selectOnCalendar')}</p>
+                <p className="text-sm text-gray-300">Seleziona sul calendario</p>
               )}
             </div>
             <div className={`p-3 rounded-xl border-2 transition-colors ${partenzaDate ? 'border-indigo-200 bg-indigo-50/50' : 'border-dashed border-gray-200'}`}>
-              <p className="text-xs text-gray-400 mb-0.5">{t('checkout')}</p>
+              <p className="text-xs text-gray-400 mb-0.5">Check-out</p>
               {partenzaDate ? (
                 <p className="text-sm font-semibold text-gray-800">
                   {format(partenzaDate, 'EEE d MMM yyyy', { locale: it })}
                 </p>
               ) : (
-                <p className="text-sm text-gray-300">{arrivoDate ? t('clickCheckout') : '—'}</p>
+                <p className="text-sm text-gray-300">{arrivoDate ? 'Clicca la data di uscita' : '—'}</p>
               )}
             </div>
           </div>
 
           {notti > 0 && (
             <p className="text-center text-sm text-indigo-600 font-medium">
-              {notti} {notti === 1 ? tc('night') : tc('nights')}
+              {notti} {notti === 1 ? 'notte' : 'notti'}
             </p>
           )}
 
@@ -395,7 +391,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
             disabled={!arrivoDate || !partenzaDate || loadingStanze}
             className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
           >
-            {loadingStanze ? t('searching') : <><Calendar className="w-4 h-4" /> {t('checkAvailability')}</>}
+            {loadingStanze ? 'Ricerca...' : <><Calendar className="w-4 h-4" /> Verifica disponibilità</>}
           </button>
         </div>
       )}
@@ -405,20 +401,20 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-400">{t('selectedDates')}</p>
+              <p className="text-xs text-gray-400">Date selezionate</p>
               <p className="text-sm font-semibold text-gray-800">
                 {format(new Date(arrivo), 'd MMM', { locale: it })} → {format(new Date(partenza), 'd MMM yyyy', { locale: it })}
               </p>
-              <p className="text-xs text-indigo-600">{notti} {notti === 1 ? tc('night') : tc('nights')}</p>
+              <p className="text-xs text-indigo-600">{notti} {notti === 1 ? 'notte' : 'notti'}</p>
             </div>
             <button type="button" onClick={() => setStep(1)} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
-              <ArrowLeft className="w-3 h-3" /> {t('changeDates')}
+              <ArrowLeft className="w-3 h-3" /> Cambia date
             </button>
           </div>
 
           {stanze.length === 0 ? (
             <p className="text-center py-6 text-gray-400 text-sm">
-              {t('noRoomsAvailable')}
+              Nessuna stanza disponibile per queste date. Prova date diverse.
             </p>
           ) : (
             <div className="space-y-3">
@@ -448,13 +444,13 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
                       )}
                       {s.tariffe.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {s.tariffe.map(tf => (
+                          {s.tariffe.map(t => (
                             <span
-                              key={tf.id}
+                              key={t.id}
                               className="text-xs px-2 py-0.5 rounded-full text-white font-medium"
-                              style={{ backgroundColor: tf.colore ?? '#6366f1' }}
+                              style={{ backgroundColor: t.colore ?? '#6366f1' }}
                             >
-                              <Tag className="w-2.5 h-2.5 inline mr-0.5" />{tf.nome} €{tf.prezzo}/n
+                              <Tag className="w-2.5 h-2.5 inline mr-0.5" />{t.nome} €{t.prezzo}/n
                             </span>
                           ))}
                         </div>
@@ -467,18 +463,18 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
                           {s.haRegoleDinamiche && s.prezzoNotte !== s.prezzoBase ? (
                             <div className="text-xs">
                               <span className="text-gray-400 line-through mr-1">€{s.prezzoBase}</span>
-                              <span className="text-indigo-500 font-medium">€{s.prezzoNotte}{t('perNight')}</span>
+                              <span className="text-indigo-500 font-medium">€{s.prezzoNotte}/notte</span>
                             </div>
                           ) : (
-                            <div className="text-xs text-gray-400">€{s.prezzoNotte}{t('perNight')} × {s.notti}n</div>
+                            <div className="text-xs text-gray-400">€{s.prezzoNotte}/notte × {s.notti}n</div>
                           )}
                           {s.haRegoleDinamiche && (
-                            <div className="text-[10px] text-amber-600 font-medium mt-0.5">{t('dynamicPrice')}</div>
+                            <div className="text-[10px] text-amber-600 font-medium mt-0.5">Prezzo dinamico</div>
                           )}
-                          <div className="text-xs text-indigo-500 mt-1 font-medium">{t('selectArrow')}</div>
+                          <div className="text-xs text-indigo-500 mt-1 font-medium">Seleziona →</div>
                         </>
                       ) : (
-                        <span className="text-xs text-red-400 font-medium">{t('notAvailable')}</span>
+                        <span className="text-xs text-red-400 font-medium">Non disponibile</span>
                       )}
                     </div>
                   </div>
@@ -502,7 +498,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               </span>
             </div>
             <button type="button" onClick={() => setStep(2)} className="text-xs text-indigo-500 hover:text-indigo-700">
-              {t('change')}
+              Cambia
             </button>
           </div>
 
@@ -514,7 +510,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('nameRequired')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
               <input
                 value={formData.guestNome}
                 onChange={e => setFormData(f => ({ ...f, guestNome: e.target.value }))}
@@ -523,7 +519,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('surnameRequired')}</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Cognome *</label>
               <input
                 value={formData.guestCognome}
                 onChange={e => setFormData(f => ({ ...f, guestCognome: e.target.value }))}
@@ -534,7 +530,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('emailRequired')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
             <input
               value={formData.guestEmail}
               onChange={e => setFormData(f => ({ ...f, guestEmail: e.target.value }))}
@@ -545,7 +541,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('phone')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Telefono</label>
             <input
               value={formData.guestTelefono}
               onChange={e => setFormData(f => ({ ...f, guestTelefono: e.target.value }))}
@@ -556,7 +552,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('guestsField')} <span className="text-gray-400">{t('maxGuests')} {selectedStanza.capacita})</span>
+              Ospiti <span className="text-gray-400">(max {selectedStanza.capacita})</span>
             </label>
             <input
               value={formData.numOspiti}
@@ -569,13 +565,13 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('specialRequests')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Note / richieste particolari</label>
             <textarea
               value={formData.guestNote}
               onChange={e => setFormData(f => ({ ...f, guestNote: e.target.value }))}
               rows={3}
               className={`${inp} resize-none`}
-              placeholder={t('specialRequestsPlaceholder')}
+              placeholder="Esigenze specifiche, domande, informazioni aggiuntive..."
             />
           </div>
 
@@ -585,14 +581,14 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               onClick={() => setStep(2)}
               className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
-              <ArrowLeft className="w-4 h-4" /> {tc('back')}
+              <ArrowLeft className="w-4 h-4" /> Indietro
             </button>
             <button
               type="button"
               onClick={goToRiepilogo}
               className="flex-[2] bg-indigo-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
             >
-              {t('summary')} <ArrowRight className="w-4 h-4" />
+              Riepilogo <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -604,7 +600,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-5 space-y-4">
             <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-indigo-600" />
-              {t('bookingSummary')}
+              Riepilogo prenotazione
             </h3>
 
             {/* Struttura */}
@@ -629,7 +625,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
                 {format(new Date(partenza), 'EEE d MMMM yyyy', { locale: it })}
               </span>
             </div>
-            <p className="text-xs text-indigo-600 ml-6">{notti} {notti === 1 ? tc('night') : tc('nights')}</p>
+            <p className="text-xs text-indigo-600 ml-6">{notti} {notti === 1 ? 'notte' : 'notti'}</p>
 
             {/* Ospite */}
             <div className="border-t border-indigo-100 pt-3 space-y-1">
@@ -640,7 +636,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               {formData.guestTelefono && (
                 <p className="text-xs text-gray-500">{formData.guestTelefono}</p>
               )}
-              <p className="text-xs text-gray-500">{formData.numOspiti} {Number(formData.numOspiti) === 1 ? tc('guest') : tc('guests')}</p>
+              <p className="text-xs text-gray-500">{formData.numOspiti} {Number(formData.numOspiti) === 1 ? 'ospite' : 'ospiti'}</p>
               {formData.guestNote && (
                 <p className="text-xs text-gray-400 italic mt-1">&quot;{formData.guestNote}&quot;</p>
               )}
@@ -650,7 +646,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
             <div className="border-t border-indigo-100 pt-3">
               {selectedStanza.haRegoleDinamiche && selectedStanza.dettaglioNotti && selectedStanza.dettaglioNotti.length <= 14 ? (
                 <div className="space-y-2 mb-3">
-                  <p className="text-xs font-semibold text-gray-500 uppercase">{t('nightsDetail')}</p>
+                  <p className="text-xs font-semibold text-gray-500 uppercase">Dettaglio notti</p>
                   <div className="space-y-1">
                     {selectedStanza.dettaglioNotti.map(n => (
                       <div key={n.data} className="flex items-center justify-between text-xs">
@@ -678,10 +674,10 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 mb-2">€{selectedStanza.prezzoNotte}{t('perNight')} × {notti} {notti === 1 ? tc('night') : tc('nights')}</p>
+                <p className="text-xs text-gray-400 mb-2">€{selectedStanza.prezzoNotte}/notte × {notti} notti</p>
               )}
               <div className="flex items-end justify-between">
-                <p className="text-xs text-gray-400">{t('estimatedTotal')}</p>
+                <p className="text-xs text-gray-400">Prezzo totale stimato</p>
                 <p className="text-2xl font-extrabold text-indigo-700">
                   €{selectedStanza.prezzoTotale}
                 </p>
@@ -689,21 +685,21 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               {tassaPerNotte !== null && tassaPerNotte > 0 && notti > 0 && (
                 <div className="mt-2 pt-2 border-t border-dashed border-gray-200">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">{t('touristTax')}</span>
+                    <span className="text-gray-500">Tassa di soggiorno (stimata)</span>
                     <span className="font-medium text-gray-700">
-                      €{tassaPerNotte.toFixed(2)}{t('perNightPerson')}
+                      €{tassaPerNotte.toFixed(2)}/notte/persona
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs mt-0.5">
                     <span className="text-gray-400">
-                      {notti} {notti === 1 ? tc('night') : tc('nights')} × {formData.numOspiti} {Number(formData.numOspiti) === 1 ? tc('guest') : tc('guests')}
+                      {notti} {notti === 1 ? 'notte' : 'notti'} × {formData.numOspiti} {Number(formData.numOspiti) === 1 ? 'ospite' : 'ospiti'}
                     </span>
                     <span className="font-semibold text-gray-700">
                       €{(tassaPerNotte * notti * Number(formData.numOspiti)).toFixed(2)}
                     </span>
                   </div>
                   <p className="text-[10px] text-gray-400 mt-1">
-                    {t('touristTaxNote')}
+                    La tassa di soggiorno è un tributo comunale da corrispondere alla struttura.
                   </p>
                 </div>
               )}
@@ -717,8 +713,8 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
           )}
 
           <p className="text-xs text-gray-400 text-center">
-            {t('confirmNote')}
-            {' '}{t('hostContact')}
+            Cliccando &quot;Conferma&quot; invii una richiesta di prenotazione. Non è un pagamento.
+            L&apos;host ti contatterà per confermare la disponibilità.
           </p>
 
           <div className="flex gap-2">
@@ -727,7 +723,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               onClick={() => setStep(3)}
               className="flex-1 border border-gray-300 text-gray-600 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
-              <ArrowLeft className="w-4 h-4" /> {t('edit')}
+              <ArrowLeft className="w-4 h-4" /> Modifica
             </button>
             <button
               type="button"
@@ -735,7 +731,7 @@ export default function BookingForm({ struttura }: { struttura: Struttura }) {
               disabled={submitting}
               className="flex-[2] bg-green-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-green-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
             >
-              {submitting ? t('sending') : <><CheckCircle2 className="w-4 h-4" /> {t('confirmBooking')}</>}
+              {submitting ? 'Invio in corso...' : <><CheckCircle2 className="w-4 h-4" /> Conferma prenotazione</>}
             </button>
           </div>
         </div>

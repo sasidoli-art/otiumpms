@@ -201,7 +201,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
       setResult(data)
       setStep('result')
       router.refresh()
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di connessione')
     }
     setLoading(false)

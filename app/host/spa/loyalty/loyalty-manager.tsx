@@ -103,7 +103,7 @@ export default function LoyaltyManager() {
           setFormLivelli(data.programma.livelli)
         }
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setLoading(false)
   }, [])
 
@@ -115,7 +115,7 @@ export default function LoyaltyManager() {
       const data = await res.json()
       setMembri(data.membri ?? [])
       setMembriTotale(data.totale ?? 0)
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
   }, [search])
 
   useEffect(() => { loadProgramma() }, [loadProgramma])
@@ -148,7 +148,7 @@ export default function LoyaltyManager() {
         }
         await loadProgramma()
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 
@@ -171,7 +171,7 @@ export default function LoyaltyManager() {
       setPointsAmount(0)
       setPointsDescrizione('')
       await loadMembri()
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 
@@ -191,7 +191,7 @@ export default function LoyaltyManager() {
         await loadMembri()
         await loadProgramma()
       }
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err) }
     setSaving(false)
   }
 

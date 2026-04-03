@@ -20,7 +20,7 @@ export default function EmailTriggerButton() {
         setRisultato(data)
         router.refresh()
       }
-    } catch {
+    } catch (err) { console.error(err) 
       // ignore
     }
     setLoading(false)

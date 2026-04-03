@@ -31,7 +31,7 @@ export default function NuovoEventoHostPage() {
       const json = await res.json()
       if (!res.ok) setErrore(json.error || 'Errore durante la creazione')
       else router.push('/host/eventi')
-    } catch {
+    } catch (err) { console.error(err) 
       setErrore('Errore di connessione')
     } finally {
       setLoading(false)
