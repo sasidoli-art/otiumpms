@@ -285,6 +285,28 @@ export async function cleanRegCardSignatures(hostId: string): Promise<RetentionR
     if (updated.count > 0) {
       result.details.push(`${updated.count} firme registration card rimosse (> 40 giorni)`)
     }
+
+    // Cancella foto documenti — non servono dopo il check-in (dati già estratti via OCR)
+    // Le foto vengono rimosse 7 giorni dopo la partenza (tempo per eventuali contestazioni)
+    const fotoDeleteCutoff = new Date(Date.now() - 7 * 86400000)
+    const fotoDeleted = await prisma.prenotazione.updateMany({
+      where: {
+        hostId,
+        dataPartenza: { lt: fotoDeleteCutoff },
+        OR: [
+          { fotoDocumentoFronte: { not: null } },
+          { fotoDocumentoRetro: { not: null } },
+        ],
+      },
+      data: {
+        fotoDocumentoFronte: null,
+        fotoDocumentoRetro: null,
+      },
+    })
+    if (fotoDeleted.count > 0) {
+      result.processed += fotoDeleted.count
+      result.details.push(`${fotoDeleted.count} foto documenti rimosse (> 7 giorni dalla partenza)`)
+    }
   } catch (err) {
     result.errors++
     result.details.push(`Errore: ${err instanceof Error ? err.message : String(err)}`)
