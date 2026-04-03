@@ -13,7 +13,7 @@ export default async function GuestChatPage({ params: paramsPromise }: { params:
       messaggi: { orderBy: { createdAt: 'asc' } },
       prenotazione: {
         select: {
-          guestNome: true, guestCognome: true,
+          guestNome: true, guestCognome: true, stato: true,
           struttura: { select: { nome: true } },
         },
       },
@@ -22,6 +22,8 @@ export default async function GuestChatPage({ params: paramsPromise }: { params:
   })
 
   if (!chat) notFound()
+
+  const chatChiusa = ['COMPLETATA', 'ANNULLATA', 'NO_SHOW'].includes(chat.prenotazione.stato)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -47,7 +49,26 @@ export default async function GuestChatPage({ params: paramsPromise }: { params:
             </p>
           </div>
 
-          <GuestChatBox chatId={params.id} messaggiIniziali={chat.messaggi} hostNome={chat.host.nomeAzienda} />
+          {chatChiusa ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-400 text-sm">Questa conversazione è stata chiusa.</p>
+              <p className="text-gray-300 text-xs mt-1">Il soggiorno è terminato. Grazie per averci scelto!</p>
+              {/* Mostra storico in sola lettura */}
+              <div className="mt-4 max-h-[400px] overflow-y-auto text-left space-y-2">
+                {chat.messaggi.map(m => (
+                  <div key={m.id} className={`flex ${m.mittente === 'GUEST' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-3 py-2 rounded-xl text-xs opacity-60 ${
+                      m.mittente === 'GUEST' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {m.testo}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <GuestChatBox chatId={params.id} messaggiIniziali={chat.messaggi} hostNome={chat.host.nomeAzienda} />
+          )}
         </div>
       </div>
     </div>

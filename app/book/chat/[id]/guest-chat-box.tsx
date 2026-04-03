@@ -45,6 +45,7 @@ export default function GuestChatBox({
     fetchUrl: `/api/book/chat/${chatId}`,
     sendUrl: `/api/book/chat/${chatId}`,
     initialMessages: messaggiIniziali,
+    pollInterval: 5000, // 5s per guest — SSE non disponibile su Vercel Hobby
   })
 
   useEffect(() => {
