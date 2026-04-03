@@ -531,6 +531,16 @@ model Struttura {
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
 
+  // ─── Branding (white-label per comunicazioni ospite) ──────────────────────
+  logo              String?  // URL logo struttura
+  colorePrimario    String?  @default("#4f46e5") // hex
+  coloreSecondario  String?  @default("#6366f1") // hex
+  fotoHero          String?  // URL foto principale (per email + landing)
+  messaggioChiusura String?  // es. "Un caro saluto dalla Romagna"
+  linkFacebook      String?
+  linkInstagram     String?
+  linkSitoWeb       String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

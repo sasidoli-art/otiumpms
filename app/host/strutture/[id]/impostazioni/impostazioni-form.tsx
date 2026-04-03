@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Save, Loader2, FileText, Users, Info } from 'lucide-react'
+import { Save, Loader2, FileText, Users, Info, Palette } from 'lucide-react'
 
 interface StrutturaProp {
   id: string
@@ -12,6 +12,14 @@ interface StrutturaProp {
   alloggiatiCodiceStruttura: string | null
   alloggiatiComuneIstat: string | null
   alloggiatiDenominazioneComune: string | null
+  logo: string | null
+  colorePrimario: string | null
+  coloreSecondario: string | null
+  fotoHero: string | null
+  messaggioChiusura: string | null
+  linkFacebook: string | null
+  linkInstagram: string | null
+  linkSitoWeb: string | null
 }
 
 interface HostProp {
@@ -60,7 +68,7 @@ export default function ImpostazioniForm({
   strutturaId: string
 }) {
   const router = useRouter()
-  const [tab, setTab] = useState<'alloggiati' | 'fiscale'>('alloggiati')
+  const [tab, setTab] = useState<'alloggiati' | 'fiscale' | 'branding'>('alloggiati')
   const [loading, setLoading] = useState(false)
   const [successo, setSuccesso] = useState('')
   const [errore, setErrore] = useState('')
@@ -134,6 +142,17 @@ export default function ImpostazioniForm({
         >
           <FileText className="w-4 h-4" />
           Dati Fiscali / FatturaPA
+        </button>
+        <button
+          onClick={() => setTab('branding')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+            tab === 'branding'
+              ? 'border-brand-500 text-brand-500'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          Branding & Email
         </button>
       </div>
 
@@ -366,6 +385,134 @@ export default function ImpostazioniForm({
             <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Salva dati fiscali
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* ─── TAB BRANDING ─── */}
+      {tab === 'branding' && (
+        <form onSubmit={async (e) => {
+          e.preventDefault()
+          setLoading(true); setErrore(''); setSuccesso('')
+          const fd = new FormData(e.currentTarget)
+          const data = {
+            logo: (fd.get('logo') as string).trim() || null,
+            colorePrimario: (fd.get('colorePrimario') as string).trim() || '#4f46e5',
+            coloreSecondario: (fd.get('coloreSecondario') as string).trim() || '#6366f1',
+            fotoHero: (fd.get('fotoHero') as string).trim() || null,
+            messaggioChiusura: (fd.get('messaggioChiusura') as string).trim() || null,
+            linkFacebook: (fd.get('linkFacebook') as string).trim() || null,
+            linkInstagram: (fd.get('linkInstagram') as string).trim() || null,
+            linkSitoWeb: (fd.get('linkSitoWeb') as string).trim() || null,
+          }
+          try {
+            const res = await fetch(`/api/host/strutture/${strutturaId}/impostazioni`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data),
+            })
+            const json = await res.json()
+            if (!res.ok) setErrore(json.error || 'Errore')
+            else { setSuccesso('Branding salvato'); router.refresh() }
+          } catch { setErrore('Errore di connessione') }
+          finally { setLoading(false) }
+        }} className="space-y-6">
+          <div className="card">
+            <div className="flex items-start gap-3 p-4 bg-indigo-50 rounded border border-indigo-100 mb-6">
+              <Info className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-indigo-700">
+                Personalizza l&apos;aspetto delle <strong>email e comunicazioni</strong> verso gli ospiti.
+                Logo, colori e immagini appariranno nelle conferme prenotazione, reminder e nella landing page ospite.
+              </p>
+            </div>
+
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Logo e colori</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="label">URL logo struttura</label>
+                <input name="logo" className="input" defaultValue={struttura.logo ?? ''} placeholder="https://..." />
+                <p className="text-xs text-gray-400 mt-1">Immagine PNG/SVG trasparente, massimo 200px di altezza</p>
+              </div>
+              <div>
+                <label className="label">Colore primario</label>
+                <div className="flex items-center gap-2">
+                  <input name="colorePrimario" type="color" defaultValue={struttura.colorePrimario ?? '#4f46e5'} className="w-10 h-10 rounded border border-gray-200 cursor-pointer" />
+                  <input type="text" defaultValue={struttura.colorePrimario ?? '#4f46e5'} className="input flex-1 font-mono text-xs" readOnly tabIndex={-1} />
+                </div>
+              </div>
+              <div>
+                <label className="label">Colore secondario</label>
+                <div className="flex items-center gap-2">
+                  <input name="coloreSecondario" type="color" defaultValue={struttura.coloreSecondario ?? '#6366f1'} className="w-10 h-10 rounded border border-gray-200 cursor-pointer" />
+                  <input type="text" defaultValue={struttura.coloreSecondario ?? '#6366f1'} className="input flex-1 font-mono text-xs" readOnly tabIndex={-1} />
+                </div>
+              </div>
+            </div>
+
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mt-8 mb-4">Immagine e messaggio</h2>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="label">Foto hero (immagine principale struttura)</label>
+                <input name="fotoHero" className="input" defaultValue={struttura.fotoHero ?? ''} placeholder="https://..." />
+                <p className="text-xs text-gray-400 mt-1">Immagine panoramica — apparirà nelle email e nella landing page conferma</p>
+              </div>
+              <div>
+                <label className="label">Messaggio di chiusura</label>
+                <input name="messaggioChiusura" className="input" defaultValue={struttura.messaggioChiusura ?? ''} placeholder="es. Un caro saluto dalla Romagna" />
+                <p className="text-xs text-gray-400 mt-1">Apparirà in fondo alle email prima della firma</p>
+              </div>
+            </div>
+
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mt-8 mb-4">Link social</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Sito web</label>
+                <input name="linkSitoWeb" type="url" className="input" defaultValue={struttura.linkSitoWeb ?? ''} placeholder="https://www.hotel.it" />
+              </div>
+              <div>
+                <label className="label">Facebook</label>
+                <input name="linkFacebook" type="url" className="input" defaultValue={struttura.linkFacebook ?? ''} placeholder="https://facebook.com/..." />
+              </div>
+              <div>
+                <label className="label">Instagram</label>
+                <input name="linkInstagram" type="url" className="input" defaultValue={struttura.linkInstagram ?? ''} placeholder="https://instagram.com/..." />
+              </div>
+            </div>
+
+            {/* Anteprima */}
+            <div className="mt-8 p-4 bg-gray-50 rounded-xl">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Anteprima email</p>
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden max-w-sm mx-auto">
+                <div className="p-4 text-center" style={{ background: struttura.colorePrimario ?? '#4f46e5' }}>
+                  {struttura.logo ? (
+                    <img src={struttura.logo} alt="Logo" className="h-12 mx-auto" />
+                  ) : (
+                    <p className="text-white font-bold text-lg">{struttura.nome}</p>
+                  )}
+                </div>
+                <div className="p-4 text-sm text-gray-600">
+                  <p>Gentile <strong>Ospite</strong>,</p>
+                  <p className="mt-1">Il tuo soggiorno è confermato...</p>
+                </div>
+                {struttura.fotoHero && (
+                  <img src={struttura.fotoHero} alt="Hero" className="w-full h-24 object-cover" />
+                )}
+                <div className="p-3 text-center text-[10px] text-gray-400">
+                  {struttura.messaggioChiusura && <p className="italic mb-1">{struttura.messaggioChiusura}</p>}
+                  <p>Powered by OtiumPMS</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              Salva branding
             </button>
           </div>
         </form>

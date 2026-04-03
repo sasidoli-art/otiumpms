@@ -342,6 +342,7 @@ export function HostSidebar({
               <span className="text-[9px] font-medium text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">v1.0</span>
             </div>
             <p className="text-xs font-semibold text-white truncate mt-0.5">{nomeUtente}</p>
+            <p className="text-[9px] text-slate-600 mt-2">Powered by <span className="text-slate-500">OtiumPMS</span></p>
           </div>
         )}
 

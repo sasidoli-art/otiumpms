@@ -24,6 +24,14 @@ export default async function ImpostazioniPage({ params: paramsPromise }: { para
       alloggiatiCodiceStruttura: true,
       alloggiatiComuneIstat: true,
       alloggiatiDenominazioneComune: true,
+      logo: true,
+      colorePrimario: true,
+      coloreSecondario: true,
+      fotoHero: true,
+      messaggioChiusura: true,
+      linkFacebook: true,
+      linkInstagram: true,
+      linkSitoWeb: true,
     },
   })
 

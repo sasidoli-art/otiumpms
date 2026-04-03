@@ -21,17 +21,20 @@ export async function PATCH(req: NextRequest, { params: paramsPromise }: { param
   const struttura = await prisma.struttura.update({
     where: { id: params.id },
     data: {
-      alloggiatiAbilitato:         body.alloggiatiAbilitato         ?? existing.alloggiatiAbilitato,
-      alloggiatiCodiceStruttura:   body.alloggiatiCodiceStruttura   ?? existing.alloggiatiCodiceStruttura,
-      alloggiatiComuneIstat:       body.alloggiatiComuneIstat       ?? existing.alloggiatiComuneIstat,
-      alloggiatiDenominazioneComune: body.alloggiatiDenominazioneComune ?? existing.alloggiatiDenominazioneComune,
-    },
-    select: {
-      id: true,
-      alloggiatiAbilitato: true,
-      alloggiatiCodiceStruttura: true,
-      alloggiatiComuneIstat: true,
-      alloggiatiDenominazioneComune: true,
+      // Alloggiati Web
+      ...(body.alloggiatiAbilitato !== undefined && { alloggiatiAbilitato: body.alloggiatiAbilitato }),
+      ...(body.alloggiatiCodiceStruttura !== undefined && { alloggiatiCodiceStruttura: body.alloggiatiCodiceStruttura }),
+      ...(body.alloggiatiComuneIstat !== undefined && { alloggiatiComuneIstat: body.alloggiatiComuneIstat }),
+      ...(body.alloggiatiDenominazioneComune !== undefined && { alloggiatiDenominazioneComune: body.alloggiatiDenominazioneComune }),
+      // Branding
+      ...(body.logo !== undefined && { logo: body.logo }),
+      ...(body.colorePrimario !== undefined && { colorePrimario: body.colorePrimario }),
+      ...(body.coloreSecondario !== undefined && { coloreSecondario: body.coloreSecondario }),
+      ...(body.fotoHero !== undefined && { fotoHero: body.fotoHero }),
+      ...(body.messaggioChiusura !== undefined && { messaggioChiusura: body.messaggioChiusura }),
+      ...(body.linkFacebook !== undefined && { linkFacebook: body.linkFacebook }),
+      ...(body.linkInstagram !== undefined && { linkInstagram: body.linkInstagram }),
+      ...(body.linkSitoWeb !== undefined && { linkSitoWeb: body.linkSitoWeb }),
     },
   })
 
