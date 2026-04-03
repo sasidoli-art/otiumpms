@@ -283,7 +283,7 @@ export function WaiverSpaForm({
                       type="text"
                       value={form.condizioneAltro}
                       onChange={e => setForm(f => ({ ...f, condizioneAltro: e.target.value }))}
-                      placeholder="Specifica la condizione..." // TODO: i18n
+                      placeholder="Specifica la condizione..."
                       className={`${inp} mt-2`}
                     />
                   )}
@@ -348,7 +348,7 @@ export function WaiverSpaForm({
                       type="text"
                       value={form.allergieAltro}
                       onChange={e => setForm(f => ({ ...f, allergieAltro: e.target.value }))}
-                      placeholder="Altre allergie..." // TODO: i18n
+                      placeholder="Altre allergie..."
                       className={`${inp} flex-1 min-w-[150px]`}
                     />
                   </div>
@@ -362,7 +362,7 @@ export function WaiverSpaForm({
                     type="text"
                     value={form.farmaci}
                     onChange={e => setForm(f => ({ ...f, farmaci: e.target.value }))}
-                    placeholder="Es. anticoagulanti, cortisone... (opzionale)" // TODO: i18n
+                    placeholder="Es. anticoagulanti, cortisone... (opzionale)"
                     className={inp}
                   />
                 </div>
@@ -485,7 +485,7 @@ export function WaiverSpaForm({
                   type="text"
                   value={form.notePreferenze}
                   onChange={e => setForm(f => ({ ...f, notePreferenze: e.target.value }))}
-                  placeholder="Es. mi rilasso meglio in silenzio, preferisco olio di cocco..." // TODO: i18n
+                  placeholder="Es. mi rilasso meglio in silenzio, preferisco olio di cocco..."
                   className={inp}
                 />
               </div>

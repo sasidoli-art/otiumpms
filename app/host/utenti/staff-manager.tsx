@@ -25,7 +25,7 @@ import { cn } from '@/lib/utils'
 import { StatCard } from '@/components/ui/stat-card'
 import { Badge, BadgeVariant } from '@/components/ui/badge'
 
-// TODO: i18n — tutte le stringhe sono hardcoded in italiano
+
 
 // ── Tipi ──────────────────────────────────────────────────────────────
 
@@ -165,7 +165,7 @@ export function StaffManager() {
   }
 
   async function eliminaMembro(id: string) {
-    if (!confirm('Sei sicuro di voler rimuovere questo utente?')) return // TODO: i18n
+    if (!confirm('Sei sicuro di voler rimuovere questo utente?')) return
     setActionLoading(id)
     try {
       const res = await fetch(`/api/host/utenti/${id}`, { method: 'DELETE' })
@@ -185,7 +185,7 @@ export function StaffManager() {
     try {
       const res = await fetch(`/api/host/utenti/inviti/${id}`, { method: 'POST' })
       if (res.ok) {
-        setSuccessMsg('Invito reinviato con successo') // TODO: i18n
+        setSuccessMsg('Invito reinviato con successo')
         setTimeout(() => setSuccessMsg(null), 3000)
         loadData()
       }
@@ -197,7 +197,7 @@ export function StaffManager() {
   }
 
   async function revocaInvito(id: string) {
-    if (!confirm('Sei sicuro di voler revocare questo invito?')) return // TODO: i18n
+    if (!confirm('Sei sicuro di voler revocare questo invito?')) return
     setActionLoading(`inv-${id}`)
     try {
       const res = await fetch(`/api/host/utenti/inviti/${id}`, { method: 'DELETE' })
@@ -246,19 +246,19 @@ export function StaffManager() {
       {/* ── Stats ───────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard
-          titolo="Totale utenti" // TODO: i18n
+          titolo="Totale utenti"
           valore={totale}
           icona={<Users size={28} />}
           colorIcona="text-blue-500"
         />
         <StatCard
-          titolo="Attivi" // TODO: i18n
+          titolo="Attivi"
           valore={attivi}
           icona={<UserCheck size={28} />}
           colorIcona="text-green-500"
         />
         <StatCard
-          titolo="Inviti pendenti" // TODO: i18n
+          titolo="Inviti pendenti"
           valore={pendenti}
           icona={<Mail size={28} />}
           colorIcona="text-orange-500"
@@ -332,7 +332,7 @@ export function StaffManager() {
           onClose={() => setShowInviteModal(false)}
           onSuccess={(email) => {
             setShowInviteModal(false)
-            setSuccessMsg(`Link invito inviato a ${email}`) // TODO: i18n
+            setSuccessMsg(`Link invito inviato a ${email}`)
             setTimeout(() => setSuccessMsg(null), 5000)
             loadData()
           }}
@@ -452,7 +452,7 @@ function TeamTable({
                     onClick={() => onElimina(m.id)}
                     disabled={actionLoading === m.id}
                     className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded"
-                    title="Rimuovi utente" // TODO: i18n
+                    title="Rimuovi utente"
                   >
                     {actionLoading === m.id ? (
                       <Loader2 size={15} className="animate-spin" />
@@ -536,7 +536,7 @@ function InvitiList({
                 onClick={() => onRevoca(inv.id)}
                 disabled={isLoading}
                 className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded"
-                title="Revoca invito" // TODO: i18n
+                title="Revoca invito"
               >
                 <XCircle size={16} />
               </button>
@@ -585,10 +585,10 @@ function InviteModal({
         onSuccess(email.trim().toLowerCase())
       } else {
         const data = await res.json().catch(() => ({}))
-        setErrore(data.error ?? 'Errore durante l\'invio dell\'invito') // TODO: i18n
+        setErrore(data.error ?? 'Errore durante l\'invio dell\'invito')
       }
     } catch (err) { console.error(err) 
-      setErrore('Errore di rete. Riprova.') // TODO: i18n
+      setErrore('Errore di rete. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -624,7 +624,7 @@ function InviteModal({
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 className="input"
-                placeholder="Mario" // TODO: i18n
+                placeholder="Mario"
                 required
               />
             </div>
@@ -635,7 +635,7 @@ function InviteModal({
                 value={cognome}
                 onChange={(e) => setCognome(e.target.value)}
                 className="input"
-                placeholder="Rossi" // TODO: i18n
+                placeholder="Rossi"
                 required
               />
             </div>
@@ -648,7 +648,7 @@ function InviteModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input"
-              placeholder="mario.rossi@esempio.it" // TODO: i18n
+              placeholder="mario.rossi@esempio.it"
               required
             />
           </div>

@@ -1,4 +1,4 @@
-// TODO: i18n
+
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import SceltaPastiForm from './scelta-pasti-form'
 
-// TODO: i18n
+
 
 export const metadata = { title: 'Scelta pasti — Otium' }
 

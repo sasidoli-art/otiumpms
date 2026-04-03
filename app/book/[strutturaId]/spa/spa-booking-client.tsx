@@ -189,7 +189,7 @@ export default function SpaBookingClient({
     .filter(g => g.items.length > 0)
 
   // ── Step labels ─────────────────────────────────────────────────
-  // TODO: i18n - step labels
+
   const stepLabels = ['Servizio', 'Data e ora', 'I tuoi dati', 'Dichiarazione', 'Fine']
 
   // ── Render ──────────────────────────────────────────────────────
@@ -564,7 +564,7 @@ export default function SpaBookingClient({
                   rows={3} value={guest.note}
                   onChange={e => setGuest(g => ({ ...g, note: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none resize-none"
-                  placeholder="Allergie, preferenze, esigenze particolari..." // TODO: i18n
+                  placeholder="Allergie, preferenze, esigenze particolari..."
                 />
               </div>
 

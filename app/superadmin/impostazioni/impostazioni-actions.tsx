@@ -15,7 +15,7 @@ export default function ImpostazioniActions() {
     try {
       const res = await fetch('/api/superadmin/system/clear-cache', { method: 'POST' })
       if (res.ok) {
-        setMessage('Cache pulita con successo') // TODO: i18n
+        setMessage('Cache pulita con successo')
       } else {
         setMessage('Errore durante la pulizia della cache')
       }
@@ -32,7 +32,7 @@ export default function ImpostazioniActions() {
     try {
       const res = await fetch('/api/superadmin/system/regen-prisma', { method: 'POST' })
       if (res.ok) {
-        setMessage('Prisma client rigenerato con successo') // TODO: i18n
+        setMessage('Prisma client rigenerato con successo')
       } else {
         setMessage('Errore durante la rigenerazione')
       }

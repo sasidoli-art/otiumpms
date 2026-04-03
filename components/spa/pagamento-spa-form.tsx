@@ -90,7 +90,7 @@ export function PagamentoSpaForm({
 
   const handleSubmit = async () => {
     if (!metodoPagamento) {
-      // TODO: i18n
+
       onError?.('Seleziona un metodo di pagamento')
       return
     }
@@ -104,7 +104,7 @@ export function PagamentoSpaForm({
 
     if (metodoPagamento === 'CAMERA_CREDIT') {
       if (!unitaId) {
-        // TODO: i18n
+
         onError?.('Seleziona la camera')
         return
       }

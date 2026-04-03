@@ -1,6 +1,6 @@
 'use client'
 
-// TODO: i18n — tutte le stringhe sono hardcoded in italiano
+
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -39,12 +39,12 @@ export function RegistrationForm({ token, nome, cognome, email, ruolo, hostName 
     setErrore('')
 
     if (password.length < 8) {
-      setErrore('La password deve avere almeno 8 caratteri') // TODO: i18n
+      setErrore('La password deve avere almeno 8 caratteri')
       return
     }
 
     if (password !== confermaPassword) {
-      setErrore('Le password non corrispondono') // TODO: i18n
+      setErrore('Le password non corrispondono')
       return
     }
 
@@ -60,10 +60,10 @@ export function RegistrationForm({ token, nome, cognome, email, ruolo, hostName 
         setCompletato(true)
       } else {
         const data = await res.json().catch(() => ({}))
-        setErrore(data.error ?? 'Errore durante la registrazione. Riprova.') // TODO: i18n
+        setErrore(data.error ?? 'Errore durante la registrazione. Riprova.')
       }
     } catch {
-      setErrore('Errore di rete. Riprova.') // TODO: i18n
+      setErrore('Errore di rete. Riprova.')
     } finally {
       setLoading(false)
     }
@@ -173,7 +173,7 @@ export function RegistrationForm({ token, nome, cognome, email, ruolo, hostName 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input pr-10"
-                placeholder="Minimo 8 caratteri" // TODO: i18n
+                placeholder="Minimo 8 caratteri"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -195,7 +195,7 @@ export function RegistrationForm({ token, nome, cognome, email, ruolo, hostName 
               value={confermaPassword}
               onChange={(e) => setConfermaPassword(e.target.value)}
               className="input"
-              placeholder="Ripeti la password" // TODO: i18n
+              placeholder="Ripeti la password"
               required
               minLength={8}
               autoComplete="new-password"

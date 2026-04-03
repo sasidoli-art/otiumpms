@@ -1,4 +1,4 @@
-// TODO: i18n — tutte le stringhe sono hardcoded in italiano
+
 
 import { RegistrationForm } from './registration-form'
 

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// TODO: i18n
+
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
 
-// TODO: i18n
+
 
 const enrollSchema = z.object({
   ospiteId: z.string().min(1, 'ID ospite obbligatorio'),

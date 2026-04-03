@@ -6,7 +6,7 @@ import {
   Building2, Calendar, Users, TrendingUp,
 } from 'lucide-react'
 
-// TODO: i18n
+
 
 type Struttura = { id: string; nome: string }
 

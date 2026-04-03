@@ -44,7 +44,7 @@ export default async function SuperAdminFatturePage() {
     { label: 'Totale emesso', value: fmtEur(totaleEmesse._sum.totale), icon: Euro, color: 'text-purple-600', bg: 'bg-purple-50' },
     { label: 'Totale incassato', value: fmtEur(totalePagato._sum.totale), icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Da incassare', value: fmtEur(totaleDaIncassare._sum.totale), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-  ] // TODO: i18n
+  ]
 
   return (
     <div className="space-y-6">

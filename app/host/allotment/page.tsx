@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import AllotmentBoard from './allotment-board'
 import { isHostAuthorized } from '@/lib/permissions'
 
-// TODO: i18n
+
 export default async function AllotmentPage() {
   const session = await getServerSession(authOptions)
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')

@@ -15,7 +15,7 @@ export default async function SuperAdminImpostazioniPage() {
   try {
     await prisma.$queryRaw`SELECT 1`
     dbConnected = true
-    dbInfo = 'PostgreSQL (Neon)' // TODO: i18n
+    dbInfo = 'PostgreSQL (Neon)'
   } catch {
     dbInfo = 'Connessione fallita'
   }

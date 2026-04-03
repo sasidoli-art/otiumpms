@@ -80,7 +80,7 @@ export default async function SuperAdminAnalyticsPage() {
     { label: 'Strutture', value: totaleStrutture, icon: Building2, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Prenotazioni (all-time)', value: totalePrenotazioni, icon: CalendarCheck, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Revenue totale', value: fmtEur(revenueAll._sum.prezzoTotale), icon: Euro, color: 'text-purple-600', bg: 'bg-purple-50' },
-  ] // TODO: i18n
+  ]
 
   return (
     <div className="space-y-6">

@@ -10,7 +10,7 @@ import {
   ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
 
-// TODO: i18n
+
 
 type BIData = {
   forecast: { forecast30: number; forecast60: number; forecast90: number }

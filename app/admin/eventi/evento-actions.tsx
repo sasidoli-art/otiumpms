@@ -32,7 +32,7 @@ export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; st
           onClick={() => aggiornaStato('APPROVATO')}
           disabled={loading}
           className="p-1.5 rounded hover:bg-green-50 text-gray-400 hover:text-green-600 disabled:opacity-50"
-          title="Approva" // TODO: i18n
+          title="Approva"
         >
           <CheckCircle size={15} />
         </button>
@@ -42,7 +42,7 @@ export function EventoActions({ eventoId, statoAttuale }: { eventoId: string; st
           onClick={() => aggiornaStato('RIFIUTATO')}
           disabled={loading}
           className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 disabled:opacity-50"
-          title="Rifiuta" // TODO: i18n
+          title="Rifiuta"
         >
           <XCircle size={15} />
         </button>

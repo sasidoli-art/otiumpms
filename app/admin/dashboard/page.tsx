@@ -142,31 +142,31 @@ export default async function AdminDashboardPage() {
       {/* Stat Cards — row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
         <StatCard
-          titolo="Clienti totali" // TODO: i18n
+          titolo="Clienti totali"
           valore={totaleClienti}
-          sotto={`${clientiAttivi} abbonamenti attivi`} // TODO: i18n
+          sotto={`${clientiAttivi} abbonamenti attivi`}
           icona={<Users size={24} />}
           colorIcona="text-brand-500"
         />
         <StatCard
-          titolo="Fatturato totale" // TODO: i18n
+          titolo="Fatturato totale"
           valore={formatValuta(fatturato)}
-          sotto="Fatture pagate" // TODO: i18n
+          sotto="Fatture pagate"
           icona={<TrendingUp size={24} />}
           colorIcona="text-[#0acf97]"
           trend={trendFatturato !== 0 ? { valore: trendFatturato, etichetta: 'vs mese prec.' } : undefined}
         />
         <StatCard
-          titolo="Fatture in sospeso" // TODO: i18n
+          titolo="Fatture in sospeso"
           valore={fattureInAttesa}
-          sotto="Da inviare o in attesa" // TODO: i18n
+          sotto="Da inviare o in attesa"
           icona={<FileText size={24} />}
           colorIcona="text-[#ffbc00]"
         />
         <StatCard
-          titolo="Eventi da approvare" // TODO: i18n
+          titolo="Eventi da approvare"
           valore={eventiInAttesa}
-          sotto="In attesa di revisione" // TODO: i18n
+          sotto="In attesa di revisione"
           icona={<Clock size={24} />}
           colorIcona="text-[#fa5c7c]"
         />
@@ -175,31 +175,31 @@ export default async function AdminDashboardPage() {
       {/* Stat Cards — row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
         <StatCard
-          titolo="Prenotazioni totali" // TODO: i18n
+          titolo="Prenotazioni totali"
           valore={totalePrenotazioni}
-          sotto={`${prenotazioniMeseCorrente} questo mese`} // TODO: i18n
+          sotto={`${prenotazioniMeseCorrente} questo mese`}
           icona={<CalendarDays size={24} />}
           colorIcona="text-brand-500"
           trend={trendPrenotazioni !== 0 ? { valore: trendPrenotazioni, etichetta: 'vs mese prec.' } : undefined}
         />
         <StatCard
-          titolo="Strutture attive" // TODO: i18n
+          titolo="Strutture attive"
           valore={totaleStrutture}
-          sotto={`${totaleUnita} unità prenotabili`} // TODO: i18n
+          sotto={`${totaleUnita} unità prenotabili`}
           icona={<Building2 size={24} />}
           colorIcona="text-[#6366f1]"
         />
         <StatCard
-          titolo="Tasso occupazione" // TODO: i18n
+          titolo="Tasso occupazione"
           valore={totalePrenotazioni > 0 && totaleUnita > 0
             ? `${Math.round((prenotazioniMeseCorrente / (totaleUnita * 30)) * 100)}%`
             : '—'}
-          sotto="Stima mese corrente" // TODO: i18n
+          sotto="Stima mese corrente"
           icona={<BedDouble size={24} />}
           colorIcona="text-[#0acf97]"
         />
         <StatCard
-          titolo="Fatturato mese" // TODO: i18n
+          titolo="Fatturato mese"
           valore={formatValuta(meseCorrente)}
           sotto={MESI[now.getMonth()] + ' ' + now.getFullYear()}
           icona={<CreditCard size={24} />}

@@ -8,7 +8,7 @@ import {
   UtensilsCrossed, AlertCircle,
 } from 'lucide-react'
 
-// TODO: i18n
+
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 

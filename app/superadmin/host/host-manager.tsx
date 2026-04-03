@@ -43,7 +43,7 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
 
   const upsellLabels: Record<string, string> = {
     off: tc('inactive'),
-    manual: 'Manuale', // TODO: i18n
+    manual: 'Manuale',
     ai: 'AI',
   }
 

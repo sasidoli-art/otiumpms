@@ -27,7 +27,7 @@ import {
 } from 'recharts'
 import { cn, formatValuta } from '@/lib/utils'
 
-// TODO: i18n
+
 
 // ── Types ──────────────────────────────────────────────────────
 type MetodoPagamento = 'CONTANTI' | 'CARTA' | 'BONIFICO' | 'GIFT_CARD' | 'CAMERA'

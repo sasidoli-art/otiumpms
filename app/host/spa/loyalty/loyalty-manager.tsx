@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { formatValuta, cn } from '@/lib/utils'
 
-// TODO: i18n
+
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

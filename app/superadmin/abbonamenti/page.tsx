@@ -52,7 +52,7 @@ export default async function SuperAdminAbbonamentiPage() {
     { label: 'In prova', value: inProva, icon: Clock, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'Scaduti', value: scaduti, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
     { label: 'MRR', value: `€${Math.round(mrr._sum.prezzoMensile || 0).toLocaleString('it-IT')}`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-  ] // TODO: i18n
+  ]
 
   return (
     <div className="space-y-6">

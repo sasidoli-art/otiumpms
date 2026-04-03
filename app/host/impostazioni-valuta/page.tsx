@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Coins, Save, Loader2, Check, Info } from 'lucide-react'
 
-// TODO: i18n
+
 
 const VALUTE = [
   { code: 'EUR', label: 'Euro (EUR)', symbol: '\u20ac' },

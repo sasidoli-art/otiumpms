@@ -127,7 +127,7 @@ export function AdminCanaliForm({ hostId, initialData }: Props) {
               name="smtpPass"
               type="password"
               className="input"
-              placeholder={initialData.smtpPass ? 'Lascia vuoto per non modificare' : '••••••••'} // TODO: i18n
+              placeholder={initialData.smtpPass ? 'Lascia vuoto per non modificare' : '••••••••'}
               autoComplete="new-password"
             />
           </div>

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 
-// TODO: i18n
+
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
