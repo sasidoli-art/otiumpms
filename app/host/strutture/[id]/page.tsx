@@ -4,7 +4,7 @@ import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, CalendarDays, Tag, LayoutGrid, ExternalLink, Settings, Calendar, MapPin, Monitor } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Tag, LayoutGrid, ExternalLink, Settings, Calendar, MapPin } from 'lucide-react'
 import { formatValuta } from '@/lib/utils'
 import { generateIcalToken } from '@/lib/ical'
 import IcalCopyButton from './ical-copy-button'
@@ -142,15 +142,7 @@ export default async function StrutturaDetailPage({
           <Settings className="w-4 h-4" />
           Impostazioni
         </Link>
-        <a
-          href={`/reception/display/${struttura.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
-        >
-          <Monitor className="w-4 h-4" />
-          Display firma reception
-        </a>
+        <DisplaySetupButton strutturaId={struttura.id} strutturaNome={struttura.nome} />
       </div>
 
       {/* ─── Channel Manager iCal ─────────────────────────────────────────── */}
@@ -249,3 +241,4 @@ export default async function StrutturaDetailPage({
 import NuovaUnitaButton from './nuova-unita-button'
 import UnitaRowActions from './unita-row-actions'
 import DeleteStrutturaButton from './delete-struttura-button'
+import DisplaySetupButton from './display-setup-button'
