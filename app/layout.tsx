@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
+const montserrat = Montserrat({ subsets: ['latin'], variable: '--font-montserrat', weight: ['600', '700', '800'], display: 'swap' })
 import { Providers } from './providers'
 import { PwaProvider } from '@/components/pwa-provider'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -39,7 +43,7 @@ export default async function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="antialiased">
+      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
           <PwaProvider />
