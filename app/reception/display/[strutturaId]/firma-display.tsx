@@ -50,7 +50,7 @@ export default function FirmaDisplay({
   // Poll every 2 seconds
   const poll = useCallback(async () => {
     try {
-      const res = await fetch(`/api/host/firma-display?strutturaId=${strutturaId}`)
+      const res = await fetch(`/api/reception/display/${strutturaId}`)
       if (res.ok) {
         const d: DisplayData = await res.json()
         setData(d)
@@ -95,11 +95,7 @@ export default function FirmaDisplay({
         if (c <= 1) {
           clearInterval(timer)
           // Reset display
-          fetch(`/api/host/firma-display`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ strutturaId, reset: true }),
-          })
+          fetch(`/api/reception/display/${strutturaId}/reset`, { method: 'POST' })
           return 0
         }
         return c - 1
