@@ -1853,6 +1853,7 @@ model AppuntamentoSpa {
   note               String?
   reminderInviato    Boolean              @default(false) // reminder giorno prima
   waiverObbligatorio Boolean              @default(true)
+  checkInSpa         Boolean              @default(false) // ospite arrivato alla SPA
 
   // Relazioni waiver e pagamento
   waiver            WaiverSpa?
