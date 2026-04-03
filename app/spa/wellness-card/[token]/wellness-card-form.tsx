@@ -72,7 +72,7 @@ export default function WellnessCardForm({ appuntamentoId, guestNome, guestCogno
 
     setLoading(true); setErrore('')
     try {
-      const res = await fetch('/api/spa/waiver', {
+      const res = await fetch('/api/spa/wellness-card', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -80,7 +80,6 @@ export default function WellnessCardForm({ appuntamentoId, guestNome, guestCogno
           incinta, incintaMesi: incintaMesi ? Number(incintaMesi) : null,
           condizioni, condizioneAltro: condizioneAltro || null,
           allergieSelezionate: allergie, allergieAltro: allergieAltro || null,
-          allergie: patologie || null,
           patologie: patologie || null,
           farmaci: farmaci || null,
           zoneTrattate, zoneEvitare,

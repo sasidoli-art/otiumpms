@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { CheckCircle2, Clock, Euro, Users, BedDouble, Receipt } from 'lucide-react'
+import { CheckCircle2, BedDouble, Receipt } from 'lucide-react'
 import { SignaturePad } from '@/components/spa/signature-pad'
 import QRCode from 'qrcode'
 

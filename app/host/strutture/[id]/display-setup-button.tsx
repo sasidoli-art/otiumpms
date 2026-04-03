@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Monitor, X, ExternalLink, Copy, CheckCircle2, QrCode } from 'lucide-react'
+import { Monitor, X, ExternalLink, Copy, CheckCircle2 } from 'lucide-react'
 import QRCode from 'qrcode'
 
 export default function DisplaySetupButton({ strutturaId, strutturaNome }: { strutturaId: string; strutturaNome: string }) {

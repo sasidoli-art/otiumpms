@@ -40,13 +40,14 @@ export default function SpaConciergeDesk({ strutturaId, strutturaNome, logo, col
         setAppuntamenti(d.appuntamenti)
         setStruttura(d.struttura)
         // Aggiorna selezionato se attivo
-        if (selezionato) {
-          const aggiornato = d.appuntamenti.find((a: Appuntamento) => a.id === selezionato.id)
-          if (aggiornato) setSelezionato(aggiornato)
-        }
+        setSelezionato(prev => {
+          if (!prev) return null
+          const aggiornato = d.appuntamenti.find((a: Appuntamento) => a.id === prev.id)
+          return aggiornato ?? prev
+        })
       }
-    } catch { /* retry */ }
-  }, [strutturaId, selezionato])
+    } catch (err) { console.error('[spa-concierge poll]', err) }
+  }, [strutturaId])
 
   useEffect(() => {
     poll()
@@ -63,13 +64,21 @@ export default function SpaConciergeDesk({ strutturaId, strutturaNome, logo, col
 
   async function checkinSpa(appId: string) {
     setLoading(true)
-    await fetch(`/api/reception/spa-concierge/${strutturaId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appuntamentoId: appId }),
-    })
-    await poll()
-    setSelezionato(null)
+    try {
+      const res = await fetch(`/api/reception/spa-concierge/${strutturaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appuntamentoId: appId }),
+      })
+      if (res.ok) {
+        await poll()
+        setSelezionato(null)
+      } else {
+        console.error('[spa-concierge checkin] failed:', res.status)
+      }
+    } catch (err) {
+      console.error('[spa-concierge checkin]', err)
+    }
     setLoading(false)
   }
 
