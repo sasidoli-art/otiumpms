@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 
 // ─── GET: elenco notifiche con paginazione e filtri ───────────────────────────

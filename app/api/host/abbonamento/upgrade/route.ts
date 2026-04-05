@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { parseBody, abbonamentoUpgradeSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import {

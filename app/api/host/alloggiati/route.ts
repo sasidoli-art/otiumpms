@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { generateAlloggiatiFile, validateGuest, type AlloggiatiGuestWithAcc } from '@/lib/alloggiati'
 
 // GET /api/host/alloggiati?strutturaId=xxx&da=2026-03-01&a=2026-03-31

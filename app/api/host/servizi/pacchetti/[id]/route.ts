@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 
 export async function PATCH(req: NextRequest, { params: pp }: { params: Promise<{ id: string }> }) {

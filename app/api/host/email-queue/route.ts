@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { emailQueue } from '@/lib/email-queue'
 
 /** GET /api/host/email-queue — email queue stats + dead letters */
