@@ -1644,6 +1644,28 @@ model AuditLog {
   @@map("audit_log")
 }
 
+// ─── Consent Tracking (Art. 7 GDPR) ────────────────────────────────────────────
+
+model UserConsent {
+  id        String @id @default(cuid())
+  userId    String? // utente autenticato (staff/host)
+  guestEmail String? // ospite non autenticato
+  hostId    String?
+
+  tipo       String // "tos", "privacy", "marketing", "cookie_all", "cookie_necessary", "spa_art9"
+  accettato  Boolean @default(true)
+  versione   String? // versione del documento accettato
+  ip         String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([guestEmail])
+  @@index([tipo, createdAt])
+  @@map("user_consents")
+}
+
 // ─── SPA Module ────────────────────────────────────────────────────────────────
 
 enum CategoriaSpa {
@@ -1929,6 +1951,7 @@ model WaiverSpa {
   accettazionePrivacy  Boolean @default(false)
   consensoFoto         Boolean @default(false)
   dichiarazioneNessuna Boolean @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
+  consensoArt9At       DateTime? // timestamp esplicito consenso trattamento dati sanitari Art. 9 GDPR
 
   // Status firma
   confermato        Boolean   @default(false)
