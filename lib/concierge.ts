@@ -276,15 +276,16 @@ ${hotelInfo}
 
 REGOLE:
 1. Rispondi nella lingua dell'ospite (attualmente: ${guest.lingua})
-2. Sii cordiale ma professionale — tono da concierge di hotel
-3. Risposte brevi e WhatsApp-friendly — niente markdown pesante, niente asterischi, usa emoji con moderazione
-4. Per richieste HK (asciugamani, turndown, biancheria) usa create_housekeeping_task
-5. Per la SPA: prima verifica disponibilità con check_spa_availability, poi proponi slot, prenota SOLO se l'ospite conferma
-6. Per problemi tecnici (rubinetto, AC, serratura) usa report_maintenance_issue
-7. Per late checkout usa request_late_checkout — informa che è soggetto a disponibilità
-8. Se non puoi risolvere qualcosa, usa escalate_to_human
-9. Non inventare informazioni — se non sai qualcosa, dì che verifichi con la reception
-10. Non condividere dati di altri ospiti o informazioni interne dell'hotel`
+2. Sei un assistente VIRTUALE (AI) — se l'ospite chiede se sei una persona, rispondi onestamente che sei un'intelligenza artificiale al servizio dell'hotel. Obbligo AI Act EU Art. 50.
+3. Sii cordiale ma professionale — tono da concierge di hotel
+4. Risposte brevi e WhatsApp-friendly — niente markdown pesante, niente asterischi, usa emoji con moderazione
+5. Per richieste HK (asciugamani, turndown, biancheria) usa create_housekeeping_task
+6. Per la SPA: prima verifica disponibilità con check_spa_availability, poi proponi slot, prenota SOLO se l'ospite conferma
+7. Per problemi tecnici (rubinetto, AC, serratura) usa report_maintenance_issue
+8. Per late checkout usa request_late_checkout — informa che è soggetto a disponibilità
+9. Se non puoi risolvere qualcosa, usa escalate_to_human
+10. Non inventare informazioni — se non sai qualcosa, dì che verifichi con la reception
+11. Non condividere dati di altri ospiti o informazioni interne dell'hotel`
 }
 
 // ─── Tool Executor ────────────────────────────────────────────────────────────
@@ -655,6 +656,23 @@ export async function processGuestMessage(params: {
         nomeOspite: nomeWhatsApp || `${guest.guestNome} ${guest.guestCognome}`.trim() || null,
         prenotazioneId: guest.prenotazioneId,
         lingua: guest.lingua,
+      },
+    })
+
+    // AI Act Art. 50 — Disclosure obbligatoria: informare l'ospite che sta interagendo con un AI
+    const disclosureMessages: Record<string, string> = {
+      it: `Ciao! Sono l'assistente virtuale di ${host.nomeAzienda}. Sono un sistema di intelligenza artificiale e posso aiutarti con informazioni, prenotazioni e servizi. Per parlare con il personale, scrivi "operatore" in qualsiasi momento.`,
+      en: `Hi! I'm the virtual assistant of ${host.nomeAzienda}. I'm an artificial intelligence system and I can help you with information, bookings and services. To speak with staff, type "operator" at any time.`,
+      fr: `Bonjour! Je suis l'assistant virtuel de ${host.nomeAzienda}. Je suis un systeme d'intelligence artificielle et je peux vous aider avec des informations, reservations et services. Pour parler au personnel, ecrivez "operateur" a tout moment.`,
+      de: `Hallo! Ich bin der virtuelle Assistent von ${host.nomeAzienda}. Ich bin ein System der kunstlichen Intelligenz und kann Ihnen bei Informationen, Buchungen und Dienstleistungen helfen. Um mit dem Personal zu sprechen, schreiben Sie jederzeit "Mitarbeiter".`,
+    }
+    const disclosure = disclosureMessages[guest.lingua] || disclosureMessages.en
+
+    await prisma.messaggioWhatsApp.create({
+      data: {
+        conversazioneId: conversazione.id,
+        mittente: 'AI_CONCIERGE',
+        testo: disclosure,
       },
     })
   } else if (conversazione.stato === 'CHIUSA') {
