@@ -67,11 +67,11 @@ export default function CompliancePage() {
       { id: 'doc_dpia', label: 'DPIA dati sanitari completata', status: 'ok', detail: 'Rischio residuo BASSO — no consultazione Garante', category: 'documents' },
       { id: 'doc_breach', label: 'Procedura breach documentata', status: 'ok', detail: '8 fasi, contatti emergenza, registro violazioni', category: 'documents' },
       { id: 'doc_sub', label: 'Lista sub-responsabili', status: 'ok', detail: '6 sub-responsabili con DPA e garanzie', category: 'documents' },
-      { id: 'doc_codice_condotta', label: 'Adesione Codice Condotta AssoSoftware', status: 'warning', detail: 'Codice in vigore dal 27/11/2024 — valutare adesione formale', category: 'documents' },
+      { id: 'doc_codice_condotta', label: 'Adesione Codice Condotta AssoSoftware', status: 'ok', detail: 'docs/legal/codice-condotta-assosoftware.md — autovalutazione completa, pronto per adesione OdM', category: 'documents' },
 
       // AI Act
       { id: 'ai_classification', label: 'Classificazione AI Concierge', status: 'ok', detail: 'Rischio limitato (Art. 50) — obblighi trasparenza', category: 'ai' },
-      { id: 'ai_disclosure', label: 'Disclosure AI in chat', status: 'warning', detail: 'Da implementare: messaggio automatico "stai parlando con AI"', category: 'ai' },
+      { id: 'ai_disclosure', label: 'Disclosure AI in chat', status: 'ok', detail: 'Messaggio automatico multi-lingua alla prima conversazione + regola system prompt', category: 'ai' },
       { id: 'ai_human_oversight', label: 'Supervisione umana AI', status: 'ok', detail: 'Escalation a operatore implementata', category: 'ai' },
       { id: 'ai_documentation', label: 'Documentazione AI Act', status: 'ok', detail: 'docs/legal/AI-Act-compliance.md', category: 'ai' },
       { id: 'ai_no_prohibited', label: 'Nessun sistema AI vietato', status: 'ok', detail: 'No social scoring, no manipolazione, no biometrico', category: 'ai' },
