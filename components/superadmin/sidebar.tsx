@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Building2, Users, CreditCard, BarChart3,
-  Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle,
+  Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -26,6 +26,7 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
     { href: '/superadmin/moduli',     label: t('planModules'),    icon: Puzzle },
     { href: '/superadmin/analytics',  label: t('analytics'),      icon: BarChart3 },
     { href: '/superadmin/monitoring', label: t('monitoring'),     icon: Activity },
+    { href: '/superadmin/audit',      label: 'Audit Log',         icon: ScrollText },
     { href: '/superadmin/impostazioni', label: t('settings'),     icon: Settings },
   ], [t])
 
