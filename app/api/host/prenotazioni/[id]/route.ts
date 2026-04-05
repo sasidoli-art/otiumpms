@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db'
 import { sendEmailConfermaPrenotazione, sendEmailCancellazionePrenotazione } from '@/lib/email'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { parseBody, prenotazioneUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
@@ -170,6 +171,13 @@ export async function PATCH(
   logger.info('Prenotazione aggiornata', 'host/prenotazioni/[id]', {
     prenotazioneId: params.id,
     nuovoStato: stato,
+  })
+
+  await auditFromAuth(auth, {
+    azione: stato ? `prenotazione.${stato.toLowerCase()}` : 'prenotazione.aggiornata',
+    entita: 'prenotazione',
+    entitaId: params.id,
+    dettagli: `${guestFull} — ${strutturaNome}${stato ? ' → ' + stato : ''}`,
   })
 
   return NextResponse.json(updated)

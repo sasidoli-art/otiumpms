@@ -75,3 +75,25 @@ export async function logAuditAction(params: {
     userAgent: params.userAgent,
   })
 }
+
+/**
+ * Helper per audit da API route autenticata.
+ * Estrae userId/email/hostId dalla sessione auth.
+ */
+export async function auditFromAuth(
+  auth: { user: { id: string; email: string; hostId: string | null } },
+  params: {
+    azione: string
+    entita: string
+    entitaId?: string | null
+    dettagli?: string | null
+    datiJson?: Record<string, unknown> | null
+  }
+): Promise<void> {
+  await audit({
+    hostId: auth.user.hostId,
+    userId: auth.user.id,
+    userEmail: auth.user.email,
+    ...params,
+  })
+}

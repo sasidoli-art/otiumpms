@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { sendEmailGeneric } from '@/lib/email'
 import { format } from 'date-fns'
@@ -86,6 +87,8 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
       })
       await prisma.chat.update({ where: { id: chat.id }, data: { updatedAt: new Date() } })
     }
+
+    await auditFromAuth(auth, { azione: 'conto.email.inviato', entita: 'prenotazione', entitaId: p.id, dettagli: `Conto inviato a ${p.guestEmail}` })
 
     return NextResponse.json({ ok: true })
   } catch (err) {

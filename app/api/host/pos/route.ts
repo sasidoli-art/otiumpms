@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
@@ -155,5 +156,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json(transazione, { status: 201 })
+    await auditFromAuth(auth, { azione: 'pos.transazione', entita: 'transazione_pos', dettagli: 'Transazione POS' })
+
+return NextResponse.json(transazione, { status: 201 })
 }

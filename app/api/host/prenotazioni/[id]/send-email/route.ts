@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { sendEmailGeneric } from '@/lib/email'
 
@@ -52,6 +53,8 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
     })
 
     await prisma.chat.update({ where: { id: chatId }, data: { updatedAt: new Date() } })
+
+    await auditFromAuth(auth, { azione: 'email.inviata', entita: 'prenotazione', entitaId: params.id, dettagli: `Email a ${to}: ${subject}` })
 
     return NextResponse.json({ ok: true })
   } catch (err) {

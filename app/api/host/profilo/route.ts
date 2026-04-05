@@ -1,6 +1,7 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 
@@ -77,5 +78,7 @@ export async function PATCH(req: NextRequest) {
 
   logger.info('Profilo host aggiornato', 'host/profilo', { hostId: auth.user.hostId })
 
-  return NextResponse.json(updated)
+    await auditFromAuth(auth, { azione: 'profilo.aggiornato', entita: 'host', dettagli: 'Profilo aggiornato' })
+
+return NextResponse.json(updated)
 }

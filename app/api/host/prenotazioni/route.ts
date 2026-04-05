@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db'
 import { sendEmailNuovaPrenotazione } from '@/lib/email'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { parseBody, prenotazioneHostSchema, isStatoPrenotazione } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'

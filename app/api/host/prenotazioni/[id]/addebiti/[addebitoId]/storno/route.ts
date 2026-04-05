@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 
 /**
@@ -36,6 +37,8 @@ export async function POST(
       addebitatoDa: 'Storno',
     },
   })
+
+  await auditFromAuth(auth, { azione: 'addebito.stornato', entita: 'addebito', entitaId: addebitoId, dettagli: `Storno: ${addebito.descrizione} -€${addebito.totale.toFixed(2)}` })
 
   return NextResponse.json(storno)
 }

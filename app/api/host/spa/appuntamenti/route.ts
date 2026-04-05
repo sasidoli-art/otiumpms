@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { sendEmailConfermaAppuntamentoSpa } from '@/lib/email'
 import { logger } from '@/lib/logger'
@@ -111,6 +112,8 @@ export async function POST(req: NextRequest) {
       .catch(err => logger.error('Email conferma SPA (backoffice) fallita', 'host/spa/appuntamenti', { error: String(err) }))
   }
 
-  return NextResponse.json(appuntamento, { status: 201 })
+    await auditFromAuth(auth, { azione: 'spa.appuntamento.creato', entita: 'appuntamento_spa', dettagli: 'Nuovo appuntamento SPA' })
+
+return NextResponse.json(appuntamento, { status: 201 })
 }
 
