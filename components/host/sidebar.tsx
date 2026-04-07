@@ -77,7 +77,6 @@ const allNavGroups = [
   {
     label: 'STRUTTURA',
     items: [
-      { href: '/host/strutture',   label: 'Le mie strutture', icon: Building2 },
       { href: '/host/pacchetti',   label: 'Pacchetti',        icon: Package },
       { href: '/host/canali',      label: 'Channel Manager',  icon: Globe },
     ],
@@ -157,6 +156,7 @@ const allNavGroups = [
     label: 'IMPOSTAZIONI',
     items: [
       { href: '/host/profilo',              label: 'Profilo azienda',    icon: UserCircle },
+      { href: '/host/strutture',            label: 'Impostazioni strutture', icon: Building2 },
       { href: '/host/utenti',               label: 'Gestione utenti',   icon: Users },
       { href: '/host/moduli',               label: 'Moduli attivi',     icon: Puzzle },
       { href: '/host/abbonamento',          label: 'Abbonamento',       icon: CreditCard },

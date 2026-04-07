@@ -8,18 +8,20 @@ import { Plus, Package, Calendar, MapPin, Users, Tag } from 'lucide-react'
 import { formatValuta, formatData } from '@/lib/utils'
 import { getTranslations } from 'next-intl/server'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 
 export default async function PacchettiPage() {
   const session = await getServerSession(authOptions)
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaId = await getStrutturaAttivaId(hostId)
 
   const t = await getTranslations('host.packages')
   const tc = await getTranslations('common')
 
   const pacchetti = await prisma.pacchetto.findMany({
-    where: { hostId: hostId },
+    where: { hostId: hostId, ...(strutturaId && { strutturaId }) },
     include: {
       struttura: { select: { nome: true, citta: true } },
       evento: { select: { titolo: true, dataInizio: true, citta: true } },
