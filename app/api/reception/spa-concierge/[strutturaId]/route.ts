@@ -16,6 +16,26 @@ export async function GET(_req: NextRequest, { params: paramsPromise }: { params
   if (!struttura) return NextResponse.json({ error: 'Non trovata' }, { status: 404 })
 
   const oggi = new Date()
+  const BUFFER_MIN = 15 // minuti di tolleranza dopo la fine prima di nascondere
+
+  // Auto-complete: appuntamenti IN_CORSO già scaduti (fine + buffer < now) → COMPLETATO
+  const scaduti = await prisma.appuntamentoSpa.findMany({
+    where: {
+      hostId: struttura.hostId,
+      stato: 'IN_CORSO',
+      dataOra: { gte: startOfDay(oggi), lte: endOfDay(oggi) },
+    },
+    select: { id: true, dataOra: true, durata: true },
+  })
+  const idsToComplete = scaduti
+    .filter(a => new Date(a.dataOra).getTime() + (a.durata + BUFFER_MIN) * 60_000 < oggi.getTime())
+    .map(a => a.id)
+  if (idsToComplete.length > 0) {
+    await prisma.appuntamentoSpa.updateMany({
+      where: { id: { in: idsToComplete } },
+      data: { stato: 'COMPLETATO' },
+    })
+  }
 
   const appuntamenti = await prisma.appuntamentoSpa.findMany({
     where: {
@@ -45,7 +65,13 @@ export async function GET(_req: NextRequest, { params: paramsPromise }: { params
 
   return NextResponse.json({
     struttura: { nome: struttura.nome, logo: struttura.logo, colorePrimario: struttura.colorePrimario },
-    appuntamenti: appuntamenti.map(a => ({
+    appuntamenti: appuntamenti
+      .filter(a => {
+        // Nascondi appuntamenti scaduti (fine + buffer < now)
+        const fineMs = new Date(a.dataOra).getTime() + (a.durata + BUFFER_MIN) * 60_000
+        return fineMs >= oggi.getTime()
+      })
+      .map(a => ({
       id: a.id,
       guestNome: `${a.guestNome} ${a.guestCognome ?? ''}`.trim(),
       guestEmail: a.guestEmail,
