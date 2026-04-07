@@ -72,10 +72,10 @@ export default async function HostDashboardPage() {
       },
     }),
     prisma.appuntamentoSpa.count({
-      where: { ...scope, dataOra: { gte: inizioGiorno, lte: fineGiorno }, stato: { notIn: ['ANNULLATO', 'NO_SHOW'] } },
+      where: { hostId, dataOra: { gte: inizioGiorno, lte: fineGiorno }, stato: { notIn: ['ANNULLATO', 'NO_SHOW'] } },
     }),
     prisma.appuntamentoSpa.aggregate({
-      where: { ...scope, dataOra: { gte: inizioMese, lte: fineMese }, stato: 'COMPLETATO' },
+      where: { hostId, dataOra: { gte: inizioMese, lte: fineMese }, stato: 'COMPLETATO' },
       _sum: { prezzoTotale: true },
     }),
   ])
