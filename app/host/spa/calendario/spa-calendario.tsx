@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { format, addDays, subDays, startOfWeek, endOfWeek } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, CalendarClock, Plus } from 'lucide-react'
@@ -48,6 +48,10 @@ export default function SpaCalendario() {
   const [disponibilitaDelGiorno, setDisponibilitaDelGiorno] = useState<Record<string, DispoSlot[]>>({})
   const [loading, setLoading] = useState(true)
   const [dettaglio, setDettaglio] = useState<Appt | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState<{ risorsaId: string; minutes: number } | null>(null)
+  const [savingMove, setSavingMove] = useState(false)
+  const dragOffsetRef = useRef<number>(0) // pixel offset all'interno dell'appt al drag start
 
   const dataStr = format(data, 'yyyy-MM-dd')
 
@@ -104,6 +108,109 @@ export default function SpaCalendario() {
   const apptPerRisorsa = (risorsaId: string) => appuntamenti.filter(a =>
     raggruppamento === 'cabine' ? a.cabina?.id === risorsaId : a.terapista?.id === risorsaId
   )
+
+  // ─── Drag & Drop ─────────────────────────────────────────────────────────
+  const SNAP_MIN = 15 // snap a 15 minuti
+  const PX_PER_MIN = ALTEZZA_ORA_PX / 60
+
+  function onDragStart(e: React.DragEvent, appt: Appt) {
+    if (savingMove) { e.preventDefault(); return }
+    setDraggingId(appt.id)
+    // calcola offset Y nel box appt per drag preciso
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    dragOffsetRef.current = e.clientY - rect.top
+    e.dataTransfer.effectAllowed = 'move'
+    // necessario su firefox
+    try { e.dataTransfer.setData('text/plain', appt.id) } catch {}
+  }
+
+  function onDragEnd() {
+    setDraggingId(null)
+    setDragOver(null)
+  }
+
+  function calcMinutesFromEvent(e: React.DragEvent, columnEl: HTMLElement): number {
+    const rect = columnEl.getBoundingClientRect()
+    const y = e.clientY - rect.top - dragOffsetRef.current
+    const totMin = Math.max(0, (y / PX_PER_MIN)) + ORA_INIZIO * 60
+    // snap
+    const snapped = Math.round(totMin / SNAP_MIN) * SNAP_MIN
+    // clamp dentro la giornata
+    const max = ORA_FINE * 60 - 15
+    return Math.min(Math.max(snapped, ORA_INIZIO * 60), max)
+  }
+
+  function onColumnDragOver(e: React.DragEvent, risorsaId: string) {
+    if (!draggingId) return
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    const columnEl = e.currentTarget as HTMLElement
+    const minutes = calcMinutesFromEvent(e, columnEl)
+    if (!dragOver || dragOver.risorsaId !== risorsaId || dragOver.minutes !== minutes) {
+      setDragOver({ risorsaId, minutes })
+    }
+  }
+
+  async function onColumnDrop(e: React.DragEvent, risorsaId: string) {
+    e.preventDefault()
+    if (!draggingId) return
+    const appt = appuntamenti.find(a => a.id === draggingId)
+    if (!appt) { onDragEnd(); return }
+
+    const columnEl = e.currentTarget as HTMLElement
+    const minutes = calcMinutesFromEvent(e, columnEl)
+
+    // Calcola nuova dataOra (preservando il giorno corrente dell'appt)
+    const oldDate = new Date(appt.dataOra)
+    const newDate = new Date(oldDate)
+    newDate.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0)
+
+    const oldRisorsaId = raggruppamento === 'cabine' ? appt.cabina?.id : appt.terapista?.id
+    const samePosition = oldRisorsaId === risorsaId && oldDate.getTime() === newDate.getTime()
+    if (samePosition) { onDragEnd(); return }
+
+    // Optimistic update
+    setSavingMove(true)
+    const prev = appuntamenti
+    setAppuntamenti(list => list.map(a => {
+      if (a.id !== appt.id) return a
+      const updated = { ...a, dataOra: newDate.toISOString() }
+      if (raggruppamento === 'cabine') {
+        const cab = cabine.find(c => c.id === risorsaId)
+        if (cab) updated.cabina = { id: cab.id, nome: cab.nome, colore: cab.colore }
+      } else {
+        const ter = terapisti.find(t => t.id === risorsaId)
+        if (ter) updated.terapista = { id: ter.id, nome: ter.nome, cognome: ter.cognome, colore: ter.colore }
+      }
+      return updated
+    }))
+    onDragEnd()
+
+    try {
+      const body: Record<string, unknown> = { dataOra: newDate.toISOString() }
+      if (raggruppamento === 'cabine') body.cabinaId = risorsaId
+      else body.terapistaId = risorsaId
+
+      const res = await fetch(`/api/host/spa/appuntamenti/${appt.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) {
+        // rollback
+        setAppuntamenti(prev)
+        alert('Spostamento non riuscito')
+      } else {
+        // refresh per essere sicuri
+        await load()
+      }
+    } catch {
+      setAppuntamenti(prev)
+      alert('Errore di rete')
+    } finally {
+      setSavingMove(false)
+    }
+  }
 
   const navPrev = () => setData(d => view === 'week' ? subDays(d, 7) : subDays(d, 1))
   const navNext = () => setData(d => view === 'week' ? addDays(d, 7) : addDays(d, 1))
@@ -192,7 +299,23 @@ export default function SpaCalendario() {
                 </div>
 
                 {/* Timeline */}
-                <div className="relative" style={{ height: `${TOTALE_ORE * ALTEZZA_ORA_PX}px` }}>
+                <div
+                  className="relative"
+                  style={{ height: `${TOTALE_ORE * ALTEZZA_ORA_PX}px` }}
+                  onDragOver={(e) => onColumnDragOver(e, r.id)}
+                  onDrop={(e) => onColumnDrop(e, r.id)}
+                  onDragLeave={() => { if (dragOver?.risorsaId === r.id) setDragOver(null) }}
+                >
+                  {/* Drop indicator */}
+                  {dragOver?.risorsaId === r.id && draggingId && (
+                    <div
+                      className="absolute left-0 right-0 border-t-2 border-dashed border-violet-500 bg-violet-100/40 pointer-events-none z-10"
+                      style={{
+                        top: `${((dragOver.minutes - ORA_INIZIO * 60) / 60) * ALTEZZA_ORA_PX}px`,
+                        height: `${(((appuntamenti.find(a => a.id === draggingId)?.durata) ?? 60) / 60) * ALTEZZA_ORA_PX}px`,
+                      }}
+                    />
+                  )}
                   {/* Grid lines ogni 30 min */}
                   {ore.map((o, i) => (
                     <div key={o} className={cn('absolute left-0 right-0 border-t', i % 2 === 0 ? 'border-gray-200' : 'border-gray-100')}
@@ -212,10 +335,14 @@ export default function SpaCalendario() {
                   {apptPerRisorsa(r.id).map(a => (
                     <div
                       key={a.id}
+                      draggable={!savingMove}
+                      onDragStart={(e) => onDragStart(e, a)}
+                      onDragEnd={onDragEnd}
                       onClick={() => setDettaglio(a)}
                       className={cn(
-                        'absolute left-1 right-1 rounded-md border-l-2 px-1.5 py-1 cursor-pointer overflow-hidden text-xs hover:brightness-95 transition-all',
-                        STATO_BG[a.stato]
+                        'absolute left-1 right-1 rounded-md border-l-2 px-1.5 py-1 cursor-grab active:cursor-grabbing overflow-hidden text-xs hover:brightness-95 transition-opacity select-none',
+                        STATO_BG[a.stato],
+                        draggingId === a.id && 'opacity-30'
                       )}
                       style={{
                         top: `${apptTop(a)}px`,
