@@ -12,10 +12,12 @@ interface Props {
   moduliAttivi: unknown
   logo?: string | null
   ruolo: string
+  strutture?: { id: string; nome: string }[]
+  strutturaAttivaId?: string | null
   children: React.ReactNode
 }
 
-export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, children }: Props) {
+export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, strutture, strutturaAttivaId, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
@@ -66,6 +68,8 @@ export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, 
           ruolo={ruolo}
           settingsHref="/host/profilo"
           onMenuClick={() => setMobileOpen(v => !v)}
+          strutture={strutture}
+          strutturaAttivaId={strutturaAttivaId}
         />
         <main className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-4 md:p-6">
           {children}

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { NotificheBell } from '@/components/layout/notifiche-bell'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
+import { StrutturaSwitcher } from '@/components/layout/struttura-switcher'
 import { useTheme } from '@/components/theme-provider'
 
 interface TopbarProps {
@@ -14,6 +15,8 @@ interface TopbarProps {
   ruolo: string
   settingsHref: string
   onMenuClick?: () => void
+  strutture?: { id: string; nome: string }[]
+  strutturaAttivaId?: string | null
 }
 
 type SearchResult = {
@@ -30,7 +33,7 @@ const TYPE_ICON: Record<string, React.ReactNode> = {
   struttura: <Building2 className="w-4 h-4 text-amber-500" />,
 }
 
-export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick }: TopbarProps) {
+export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick, strutture, strutturaAttivaId }: TopbarProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -93,6 +96,9 @@ export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick }: TopbarP
           >
             <Menu size={20} />
           </button>
+        )}
+        {strutture && strutture.length >= 2 && (
+          <StrutturaSwitcher strutture={strutture} attivaId={strutturaAttivaId ?? null} />
         )}
         {ruolo === 'HOST' && (
           <div className="relative flex-1" ref={searchRef}>

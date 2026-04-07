@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { headers } from 'next/headers'
 import { HostShell } from '@/components/host/host-shell'
+import { getStruttureHost } from '@/lib/struttura-attiva'
 
 export default async function HostLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -21,6 +22,7 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
   const isOnboardingPage = pathname.startsWith('/host/onboarding')
+  const isSelezionePage = pathname.startsWith('/host/seleziona-struttura')
 
   // Redirect HOST to onboarding if not completed (skip if already on onboarding page)
   if (session.user.role === 'HOST' && host && !host.onboardingCompletato && !isOnboardingPage) {
@@ -32,6 +34,15 @@ export default async function HostLayout({ children }: { children: React.ReactNo
     return <>{children}</>
   }
 
+  // Carica strutture e determina struttura attiva
+  const { strutture, attiva } = host ? await getStruttureHost(host.id) : { strutture: [], attiva: null }
+
+  // Se l'host ha 2+ strutture e nessuna è selezionata, forza la pagina di selezione
+  if (strutture.length >= 2 && !attiva && !isSelezionePage) {
+    redirect('/host/seleziona-struttura')
+  }
+
+  // La pagina di selezione si renderizza con la shell standard ma ignora la verifica
   return (
     <HostShell
       nomeUtente={session.user.name ?? ''}
@@ -39,6 +50,8 @@ export default async function HostLayout({ children }: { children: React.ReactNo
       moduliAttivi={host?.moduliAttivi ?? {}}
       logo={host?.logo}
       ruolo={session.user.role}
+      strutture={strutture}
+      strutturaAttivaId={attiva?.id ?? null}
     >
       {children}
     </HostShell>
