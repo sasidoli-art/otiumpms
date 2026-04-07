@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard, CalendarDays, BarChart3, CreditCard, FileText, UserCircle,
@@ -191,6 +191,8 @@ export function HostSidebar({
   logo,
   ruolo = 'HOST',
   onMobileClose,
+  struttureHost = [],
+  strutturaAttivaId = null,
 }: {
   nomeUtente: string
   nomeAzienda: string
@@ -198,11 +200,27 @@ export function HostSidebar({
   logo?: string | null
   ruolo?: string
   onMobileClose?: () => void
+  struttureHost?: { id: string; nome: string }[]
+  strutturaAttivaId?: string | null
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
   const [showLinks, setShowLinks] = useState(false)
   const [strutture, setStrutture] = useState<{ id: string; nome: string }[]>([])
+  const [strutturaDropdownOpen, setStrutturaDropdownOpen] = useState(false)
+  const strutturaAttiva = struttureHost.find(s => s.id === strutturaAttivaId) ?? null
+
+  async function cambiaStruttura(id: string) {
+    if (id === strutturaAttivaId) { setStrutturaDropdownOpen(false); return }
+    await fetch('/api/host/struttura-attiva', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strutturaId: id }),
+    })
+    setStrutturaDropdownOpen(false)
+    router.refresh()
+  }
 
   // Filtra i gruppi sidebar in base ai moduli attivi + permessi ruolo
   const moduli = useMemo(() => parseModuli(moduliAttivi), [moduliAttivi])
@@ -254,10 +272,59 @@ export function HostSidebar({
             </div>
           )}
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="font-bold text-white text-sm leading-tight">Otium Week</p>
-              <p className="text-slate-400 text-[11px] truncate max-w-[120px]">{nomeAzienda}</p>
-            </div>
+            struttureHost.length >= 2 ? (
+              <div className="relative min-w-0">
+                <button
+                  onClick={() => setStrutturaDropdownOpen(v => !v)}
+                  className="flex items-center gap-1 text-left min-w-0 hover:opacity-80 transition-opacity"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-white text-sm leading-tight truncate max-w-[140px]">
+                      {strutturaAttiva?.nome ?? 'Seleziona struttura'}
+                    </p>
+                    <p className="text-slate-400 text-[10px] truncate max-w-[140px]">
+                      {nomeAzienda} · cambia ▾
+                    </p>
+                  </div>
+                </button>
+                {strutturaDropdownOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setStrutturaDropdownOpen(false)}
+                    />
+                    <div className="absolute left-0 top-full mt-2 w-60 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 z-50">
+                      <div className="px-3 py-2 border-b border-slate-700">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+                          Le tue strutture ({struttureHost.length})
+                        </p>
+                      </div>
+                      {struttureHost.map(s => (
+                        <button
+                          key={s.id}
+                          onClick={() => cambiaStruttura(s.id)}
+                          className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between gap-2"
+                        >
+                          <span className="truncate">{s.nome}</span>
+                          {s.id === strutturaAttivaId && <span className="text-emerald-400 text-xs">✓</span>}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => { setStrutturaDropdownOpen(false); router.push('/host/seleziona-struttura') }}
+                        className="w-full text-left px-3 py-2 text-xs text-indigo-400 hover:bg-slate-700 border-t border-slate-700"
+                      >
+                        ⊞ Riepilogo generale
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="min-w-0">
+                <p className="font-bold text-white text-sm leading-tight">Otium Week</p>
+                <p className="text-slate-400 text-[11px] truncate max-w-[120px]">{nomeAzienda}</p>
+              </div>
+            )
           )}
         </div>
         {!collapsed && onMobileClose && (

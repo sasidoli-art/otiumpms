@@ -58,6 +58,8 @@ export function HostShell({ nomeUtente, nomeAzienda, moduliAttivi, logo, ruolo, 
           logo={logo}
           ruolo={ruolo}
           onMobileClose={() => setMobileOpen(false)}
+          struttureHost={strutture}
+          strutturaAttivaId={strutturaAttivaId}
         />
       </div>
 
