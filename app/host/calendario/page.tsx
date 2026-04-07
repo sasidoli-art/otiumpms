@@ -6,15 +6,17 @@ import { redirect } from 'next/navigation'
 import CalendarioTimeline from './calendario-timeline'
 import { getTranslations } from 'next-intl/server'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 
 export default async function CalendarioPage() {
   const session = await getServerSession(authOptions)
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaId = await getStrutturaAttivaId(hostId)
 
   const strutture = await prisma.struttura.findMany({
-    where: { hostId: hostId, attiva: true },
+    where: { hostId: hostId, attiva: true, ...(strutturaId && { id: strutturaId }) },
     select: {
       id: true,
       nome: true,

@@ -5,21 +5,26 @@ import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import HousekeepingBoard from './housekeeping-board'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 
 export default async function HousekeepingPage() {
   const session = await getServerSession(authOptions)
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaAttivaId = await getStrutturaAttivaId(hostId)
 
   const strutture = await prisma.struttura.findMany({
-    where: { hostId: hostId },
+    where: { hostId: hostId, ...(strutturaAttivaId && { id: strutturaAttivaId }) },
     select: { id: true, nome: true },
     orderBy: { nome: 'asc' },
   })
 
   const unita = await prisma.unitaPrenotabile.findMany({
-    where: { struttura: { hostId: hostId } },
+    where: {
+      struttura: { hostId: hostId },
+      ...(strutturaAttivaId && { strutturaId: strutturaAttivaId }),
+    },
     include: {
       struttura: { select: { id: true, nome: true } },
       taskHK: {

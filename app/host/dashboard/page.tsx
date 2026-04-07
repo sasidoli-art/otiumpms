@@ -13,12 +13,15 @@ import { format } from 'date-fns'
 import { it as itLocale } from 'date-fns/locale'
 import OccupancyChart from './occupancy-chart'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 
 export default async function HostDashboardPage() {
   const session = await getServerSession(authOptions)
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaId = await getStrutturaAttivaId(hostId)
+  const scope = strutturaId ? { hostId, strutturaId } : { hostId }
 
   const oggi = new Date()
   const inizioGiorno = startOfDay(oggi)
@@ -47,20 +50,20 @@ export default async function HostDashboardPage() {
       _count: true,
     }),
     prisma.prenotazione.count({
-      where: { hostId, dataArrivo: { gte: inizioGiorno, lte: fineGiorno }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
+      where: { ...scope, dataArrivo: { gte: inizioGiorno, lte: fineGiorno }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
     }),
     prisma.prenotazione.count({
-      where: { hostId, dataPartenza: { gte: inizioGiorno, lte: fineGiorno }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
+      where: { ...scope, dataPartenza: { gte: inizioGiorno, lte: fineGiorno }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
     }),
     prisma.prenotazione.count({
-      where: { hostId, dataArrivo: { lte: fineGiorno }, dataPartenza: { gte: inizioGiorno }, stato: { in: ['CONFERMATA'] } },
+      where: { ...scope, dataArrivo: { lte: fineGiorno }, dataPartenza: { gte: inizioGiorno }, stato: { in: ['CONFERMATA'] } },
     }),
     prisma.prenotazione.aggregate({
-      where: { hostId, dataArrivo: { gte: inizioMese, lte: fineMese }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
+      where: { ...scope, dataArrivo: { gte: inizioMese, lte: fineMese }, stato: { in: ['CONFERMATA', 'COMPLETATA'] } },
       _sum: { prezzoTotale: true },
     }),
     prisma.prenotazione.findMany({
-      where: { hostId },
+      where: scope,
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
@@ -69,10 +72,10 @@ export default async function HostDashboardPage() {
       },
     }),
     prisma.appuntamentoSpa.count({
-      where: { hostId, dataOra: { gte: inizioGiorno, lte: fineGiorno }, stato: { notIn: ['ANNULLATO', 'NO_SHOW'] } },
+      where: { ...scope, dataOra: { gte: inizioGiorno, lte: fineGiorno }, stato: { notIn: ['ANNULLATO', 'NO_SHOW'] } },
     }),
     prisma.appuntamentoSpa.aggregate({
-      where: { hostId, dataOra: { gte: inizioMese, lte: fineMese }, stato: 'COMPLETATO' },
+      where: { ...scope, dataOra: { gte: inizioMese, lte: fineMese }, stato: 'COMPLETATO' },
       _sum: { prezzoTotale: true },
     }),
   ])
@@ -81,14 +84,17 @@ export default async function HostDashboardPage() {
 
   // ─── Occupancy last 30 days ──────────────────────────────────────────────
   const totalUnita = await prisma.unitaPrenotabile.count({
-    where: { struttura: { hostId, attiva: true }, attiva: true },
+    where: {
+      struttura: { hostId, attiva: true, ...(strutturaId && { id: strutturaId }) },
+      attiva: true,
+    },
   })
 
   const last30 = eachDayOfInterval({ start: subDays(oggi, 29), end: oggi })
   const prenotazioniRange = totalUnita > 0
     ? await prisma.prenotazione.findMany({
         where: {
-          hostId,
+          ...scope,
           stato: { in: ['CONFERMATA', 'COMPLETATA'] },
           dataArrivo: { lte: oggi },
           OR: [

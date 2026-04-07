@@ -11,6 +11,7 @@ import { Badge, type BadgeVariant } from '@/components/ui/badge'
 import { isStatoPrenotazione } from '@/lib/validations'
 import { ExportButton, ImportButton } from './import-export'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 
 const STATI_PRENOTAZIONE = [
   { value: '', label: 'Tutte' },
@@ -52,12 +53,14 @@ export default async function PrenotazioniPage({
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaId = await getStrutturaAttivaId(hostId)
 
   const { stato = '', q = '' } = await searchParams
 
   const prenotazioni = await prisma.prenotazione.findMany({
     where: {
       hostId: hostId,
+      ...(strutturaId && { strutturaId }),
       ...(stato && isStatoPrenotazione(stato) ? { stato } : {}),
       ...(q
         ? {
@@ -79,7 +82,7 @@ export default async function PrenotazioniPage({
 
   const countByStato = await prisma.prenotazione.groupBy({
     by: ['stato'],
-    where: { hostId: hostId },
+    where: { hostId: hostId, ...(strutturaId && { strutturaId }) },
     _count: true,
   })
   const mapCount = Object.fromEntries(countByStato.map((c) => [c.stato, c._count]))

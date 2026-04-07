@@ -11,6 +11,7 @@ import {
   Calendar, AlertCircle, CheckCircle2, MessageSquare,
 } from 'lucide-react'
 import { isHostAuthorized } from '@/lib/permissions'
+import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 // Badge imported if needed for future use
 
 function notti(arrivo: Date, partenza: Date | null) {
@@ -23,6 +24,8 @@ export default async function OggiPage() {
   if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
+  const strutturaId = await getStrutturaAttivaId(hostId)
+  const scope = strutturaId ? { hostId, strutturaId } : { hostId }
 
   const oggi = new Date()
   const inizioGiorno = startOfDay(oggi)
@@ -31,7 +34,7 @@ export default async function OggiPage() {
   const [arrivi, partenze, inCasa] = await Promise.all([
     prisma.prenotazione.findMany({
       where: {
-        hostId,
+        ...scope,
         dataArrivo: { gte: inizioGiorno, lte: fineGiorno },
         stato: { in: ['RICHIESTA', 'CONFERMATA'] },
       },
@@ -45,7 +48,7 @@ export default async function OggiPage() {
     }),
     prisma.prenotazione.findMany({
       where: {
-        hostId,
+        ...scope,
         dataPartenza: { gte: inizioGiorno, lte: fineGiorno },
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
       },
@@ -58,7 +61,7 @@ export default async function OggiPage() {
     }),
     prisma.prenotazione.findMany({
       where: {
-        hostId,
+        ...scope,
         dataArrivo: { lt: inizioGiorno },
         dataPartenza: { gt: fineGiorno },
         stato: 'CONFERMATA',
