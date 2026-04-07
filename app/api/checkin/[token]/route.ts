@@ -66,6 +66,7 @@ export async function POST(
 
   const body = await req.json()
   const {
+    guestNome, guestCognome,
     guestSesso, guestDataNascita, guestLuogoNascita, guestComuneNascitaIstat,
     guestProvinciaNascita, guestStatoNascitaIstat, guestCittadinanzaIstat,
     guestTipoDocumento, guestNumeroDocumento, guestLuogoRilascio,
@@ -98,6 +99,8 @@ export async function POST(
   const updated = await prisma.prenotazione.update({
     where: { id: prenotazione.id },
     data: {
+      ...(guestNome && { guestNome: String(guestNome).trim() }),
+      ...(guestCognome && { guestCognome: String(guestCognome).trim() }),
       guestSesso: guestSesso || null,
       guestDataNascita: guestDataNascita ? new Date(guestDataNascita) : null,
       guestLuogoNascita: guestLuogoNascita || null,
@@ -154,8 +157,8 @@ export async function POST(
     data: {
       hostId: prenotazione.hostId,
       tipo: 'checkin',
-      titolo: 'Check-in online completato',
-      messaggio: `Un ospite ha completato il check-in online${numAcc > 0 ? ` con ${numAcc} accompagnator${numAcc === 1 ? 'e' : 'i'}` : ''}`,
+      titolo: 'Check-in online — da verificare in reception',
+      messaggio: `${guestNome ?? ''} ${guestCognome ?? ''} ha completato il check-in online${numAcc > 0 ? ` con ${numAcc} accompagnator${numAcc === 1 ? 'e' : 'i'}` : ''}. Verificare il documento all'arrivo.`,
       linkUrl: `/host/prenotazioni/${prenotazione.id}`,
     },
   })

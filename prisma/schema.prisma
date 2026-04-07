@@ -728,7 +728,10 @@ model Prenotazione {
 
   // Self check-in ospite
   checkInToken      String? @unique
-  checkInCompletato Boolean @default(false)
+  checkInCompletato Boolean @default(false) // legacy: true se ONLINE_COMPLETATO o VERIFICATO
+  statoCheckIn      StatoCheckIn @default(NON_INIZIATO)
+  verificatoAt      DateTime?
+  verificatoDa      String? // userId operatore reception
 
   chat              Chat?
   fattura           Fattura?                @relation(fields: [fatturaId], references: [id])
@@ -756,6 +759,12 @@ model Prenotazione {
   @@index([hostId, stato])
   @@index([guestEmail])
   @@map("prenotazioni")
+}
+
+enum StatoCheckIn {
+  NON_INIZIATO       // ospite non ha fatto nulla
+  ONLINE_COMPLETATO  // ospite ha firmato online, serve verifica reception (controllo documento)
+  VERIFICATO         // operatore in reception ha verificato il documento fisicamente
 }
 
 // ─── Piani Pasto & Ristorazione ───────────────────────────────────────────────

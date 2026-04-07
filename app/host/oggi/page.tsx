@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { isHostAuthorized } from '@/lib/permissions'
 import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
+import { VerificaCheckinButton } from './verifica-checkin-button'
 // Badge imported if needed for future use
 
 function notti(arrivo: Date, partenza: Date | null) {
@@ -124,6 +125,7 @@ export default async function OggiPage() {
                   <th className="text-center px-3 py-2.5 font-semibold">Pasto</th>
                   <th className="text-center px-3 py-2.5 font-semibold">Doc</th>
                   <th className="text-center px-3 py-2.5 font-semibold">Reg Card</th>
+                  <th className="text-center px-3 py-2.5 font-semibold">Check-in</th>
                   <th className="text-right px-3 py-2.5 font-semibold">Totale</th>
                   <th className="text-center px-3 py-2.5 font-semibold">Note</th>
                   <th className="text-right px-4 py-2.5 font-semibold">Azioni</th>
@@ -200,6 +202,11 @@ export default async function OggiPage() {
                         ) : (
                           <AlertCircle className="w-4 h-4 text-amber-500 mx-auto" />
                         )}
+                      </td>
+
+                      {/* Stato check-in */}
+                      <td className="px-3 py-3 text-center">
+                        <VerificaCheckinButton prenotazioneId={p.id} statoCheckIn={p.statoCheckIn} />
                       </td>
 
                       {/* Totale */}

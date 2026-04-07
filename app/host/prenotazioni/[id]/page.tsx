@@ -21,6 +21,7 @@ import AddebitiSection from './addebiti-section'
 import AssegnazioneSection from './assegnazione-section'
 import PagamentoSection from './pagamento-checkout-section'
 import { isHostAuthorized } from '@/lib/permissions'
+import { CheckinStatusBanner } from './checkin-status-banner'
 
 function statoColor(stato: string): BadgeVariant {
   switch (stato) {
@@ -89,6 +90,13 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
           </p>
         </div>
       </div>
+
+      {/* Banner stato check-in */}
+      <CheckinStatusBanner
+        prenotazioneId={prenotazione.id}
+        statoCheckIn={prenotazione.statoCheckIn}
+        verificatoAt={prenotazione.verificatoAt?.toISOString() ?? null}
+      />
 
       {/* Kiosk + Registration Card + Display Firma */}
       <div className="flex items-center gap-4 flex-wrap">

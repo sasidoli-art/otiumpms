@@ -24,7 +24,7 @@ export async function POST(
 
   const prenotazione = await prisma.prenotazione.findFirst({
     where: { checkInToken: token },
-    select: { id: true, regCardFirmata: true },
+    select: { id: true, regCardFirmata: true, stato: true },
   })
 
   if (!prenotazione) {
@@ -56,7 +56,10 @@ export async function POST(
       regCardAccPrivacy: d.accettazionePrivacy,
       regCardAccMarketing: d.consensoMarketing,
       regCardDataFirma: new Date(),
-      checkInCompletato: true, // Check-in completato solo dopo firma
+      checkInCompletato: true, // legacy
+      statoCheckIn: 'ONLINE_COMPLETATO', // serve verifica documento in reception
+      // Auto-conferma prenotazione se era ancora in richiesta
+      ...(prenotazione.stato === 'RICHIESTA' && { stato: 'CONFERMATA' }),
     },
   })
 

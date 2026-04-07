@@ -68,6 +68,8 @@ export async function POST(
           regCardAccPrivacy: d.accettazionePrivacy ?? true,
           regCardDataFirma: new Date(),
           checkInCompletato: true,
+          statoCheckIn: 'ONLINE_COMPLETATO',
+          ...(prenotazione.stato === 'RICHIESTA' && { stato: 'CONFERMATA' as const }),
         },
       })
       break

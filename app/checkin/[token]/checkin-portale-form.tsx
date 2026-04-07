@@ -11,6 +11,8 @@ type Prenotazione = {
   id: string
   checkInCompletato: boolean
   numOspiti: number
+  guestNome: string
+  guestCognome: string
   guestSesso: string | null
   guestDataNascita: string | null
   guestLuogoNascita: string | null
@@ -57,6 +59,8 @@ export default function CheckInPortaleForm({
 }) {
   // Form state
   const [form, setForm] = useState({
+    guestNome: p.guestNome ?? '',
+    guestCognome: p.guestCognome ?? '',
     guestSesso: p.guestSesso ?? 'M',
     guestDataNascita: p.guestDataNascita ?? '',
     guestLuogoNascita: p.guestLuogoNascita ?? '',
@@ -97,6 +101,8 @@ export default function CheckInPortaleForm({
 
   function validate(): boolean {
     const errs: Record<string, string> = {}
+    if (!form.guestNome.trim()) errs.guestNome = 'Obbligatorio'
+    if (!form.guestCognome.trim()) errs.guestCognome = 'Obbligatorio'
     if (!form.guestDataNascita) errs.guestDataNascita = 'Obbligatorio'
     if (!form.guestLuogoNascita.trim()) errs.guestLuogoNascita = 'Obbligatorio'
     if (!form.guestNumeroDocumento.trim()) errs.guestNumeroDocumento = 'Obbligatorio'
@@ -215,6 +221,20 @@ export default function CheckInPortaleForm({
           </div>
 
           <div className="space-y-3">
+            {/* Nome + Cognome */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Nome <span className="text-red-500">*</span></label>
+                <input value={form.guestNome} onChange={e => set('guestNome', e.target.value)} placeholder="Mario" className={fieldClass('guestNome')} autoComplete="given-name" />
+                {erroriCampi.guestNome && <p className={errLabel}>{erroriCampi.guestNome}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1">Cognome <span className="text-red-500">*</span></label>
+                <input value={form.guestCognome} onChange={e => set('guestCognome', e.target.value)} placeholder="Rossi" className={fieldClass('guestCognome')} autoComplete="family-name" />
+                {erroriCampi.guestCognome && <p className={errLabel}>{erroriCampi.guestCognome}</p>}
+              </div>
+            </div>
+
             {/* Nazionalità */}
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">Nazionalità <span className="text-red-500">*</span></label>
