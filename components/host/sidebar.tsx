@@ -155,17 +155,22 @@ const allNavGroups = [
   {
     label: 'IMPOSTAZIONI',
     items: [
-      { href: '/host/profilo',              label: 'Profilo azienda',    icon: UserCircle },
-      { href: '/host/strutture',            label: 'Impostazioni strutture', icon: Building2 },
-      { href: '/host/utenti',               label: 'Gestione utenti',   icon: Users },
-      { href: '/host/moduli',               label: 'Moduli attivi',     icon: Puzzle },
-      { href: '/host/abbonamento',          label: 'Abbonamento',       icon: CreditCard },
-      { href: '/host/impostazioni-regcard', label: 'Registration Card', icon: FileText },
-      { href: '/host/integrazione',         label: 'Widget sito',       icon: Code },
-      { href: '/host/gdpr',                 label: 'GDPR & Privacy',    icon: Shield },
-      { href: '/host/notifiche',            label: 'Notifiche',         icon: Bell },
-      { href: '/host/audit',                label: 'Registro attività', icon: Clock },
-      { href: '/host/help',                 label: 'Help Center',       icon: HelpCircle },
+      { href: '/host/profilo',     label: 'Profilo & Strutture', icon: UserCircle },
+      { href: '/host/moduli',      label: 'Moduli attivi',       icon: Puzzle },
+      { href: '/host/utenti',      label: 'Utenti & Ruoli',      icon: Users },
+      { href: '/host/abbonamento', label: 'Abbonamento',          icon: CreditCard },
+      { href: '/host/gdpr',        label: 'Privacy & GDPR',       icon: Shield },
+      { href: '/host/help',        label: 'Help Center',          icon: HelpCircle },
+    ],
+  },
+  {
+    label: 'AVANZATE',
+    items: [
+      { href: '/host/strutture',            label: 'Dettaglio strutture',  icon: Building2 },
+      { href: '/host/impostazioni-regcard', label: 'Registration Card',    icon: FileText },
+      { href: '/host/integrazione',         label: 'Widget & Integrazioni', icon: Code },
+      { href: '/host/notifiche',            label: 'Notifiche',            icon: Bell },
+      { href: '/host/audit',                label: 'Registro attività',    icon: Clock },
     ],
   },
 ]
@@ -182,6 +187,7 @@ const GROUP_DOT_COLOR: Record<string, string> = {
   'CASSA & VENDITE': 'bg-green-400',
   'REPORT & FINANZA': 'bg-sky-400',
   'IMPOSTAZIONI': 'bg-slate-400',
+  'AVANZATE': 'bg-slate-300',
 }
 
 export function HostSidebar({
