@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
 import {
-  Building2, ExternalLink, Bot, UserCheck, Power, Loader2,
+  Building2, ExternalLink, Bot, UserCheck, Power, Loader2, Plus, X,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -36,10 +36,40 @@ const UPSELL_MODES = [
   { value: 'ai', labelKey: 'ai' as const, icon: Bot, color: 'text-purple-600' },
 ]
 
+const PIANI = ['LIGHT', 'EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM']
+
 export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }) {
   const [hosts, setHosts] = useState(hostsIniziali)
   const [saving, setSaving] = useState<string | null>(null)
+  const [showNew, setShowNew] = useState(false)
+  const [newForm, setNewForm] = useState({ email: '', password: '', nome: '', cognome: '', nomeAzienda: '', citta: '', piano: 'LIGHT' })
+  const [newLoading, setNewLoading] = useState(false)
+  const [newError, setNewError] = useState('')
   const tc = useTranslations('common')
+
+  async function creaHost(e: React.FormEvent) {
+    e.preventDefault()
+    setNewLoading(true)
+    setNewError('')
+    try {
+      const res = await fetch('/api/superadmin/host', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newForm),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setNewError(j.error ?? 'Errore creazione')
+        setNewLoading(false)
+        return
+      }
+      // Ricarica pagina per aggiornare lista
+      window.location.reload()
+    } catch {
+      setNewError('Errore di rete')
+      setNewLoading(false)
+    }
+  }
 
   const upsellLabels: Record<string, string> = {
     off: tc('inactive'),
@@ -88,10 +118,80 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Host & Clienti</h1>{/* TODO: i18n */}
-          <p className="text-sm text-gray-500">{hosts.length} host registrati</p>{/* TODO: i18n */}
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Host & Clienti</h1>
+          <p className="text-sm text-gray-500">{hosts.length} host registrati</p>
         </div>
+        <button
+          onClick={() => { setShowNew(true); setNewError(''); setNewForm({ email: '', password: '', nome: '', cognome: '', nomeAzienda: '', citta: '', piano: 'LIGHT' }) }}
+          className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Nuovo Host
+        </button>
       </div>
+
+      {/* Modale Nuovo Host */}
+      {showNew && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowNew(false)} />
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg p-6">
+            <button onClick={() => setShowNew(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <X size={18} />
+            </button>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">Nuovo Host</h2>
+            <form onSubmit={creaHost} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Nome *</label>
+                  <input required value={newForm.nome} onChange={e => setNewForm(f => ({ ...f, nome: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Cognome *</label>
+                  <input required value={newForm.cognome} onChange={e => setNewForm(f => ({ ...f, cognome: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Nome azienda *</label>
+                <input required value={newForm.nomeAzienda} onChange={e => setNewForm(f => ({ ...f, nomeAzienda: e.target.value }))}
+                  placeholder="Hotel Bellavista" className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Email *</label>
+                  <input required type="email" value={newForm.email} onChange={e => setNewForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="host@email.com" className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Password *</label>
+                  <input required type="password" minLength={6} value={newForm.password} onChange={e => setNewForm(f => ({ ...f, password: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Città</label>
+                  <input value={newForm.citta} onChange={e => setNewForm(f => ({ ...f, citta: e.target.value }))}
+                    placeholder="Roma" className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Piano</label>
+                  <select value={newForm.piano} onChange={e => setNewForm(f => ({ ...f, piano: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200">
+                    {PIANI.map(p => <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>)}
+                  </select>
+                </div>
+              </div>
+              {newError && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{newError}</p>}
+              <button type="submit" disabled={newLoading}
+                className="w-full flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50">
+                {newLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {newLoading ? 'Creazione...' : 'Crea Host'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="overflow-x-auto">
