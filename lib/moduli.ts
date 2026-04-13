@@ -54,6 +54,7 @@ export const CATALOGO_MODULI: ModuloConfig[] = [
   { id: 'cassa',      nome: 'Cassa & Incassi',    descrizione: 'Chiusura cassa, report incassi per metodo, riconciliazione', icona: 'Banknote',     categoria: 'avanzato',     defaultAttivo: false },
 
   // Integrazioni
+  { id: 'wifi',          nome: 'Wi-Fi Guest & Captive Portal', descrizione: 'Gestione remota access point Comfast, utenti Wi-Fi ospiti, captive portal brandizzato', icona: 'Wifi', categoria: 'integrazioni', defaultAttivo: false },
   { id: 'concierge',     nome: 'AI Concierge',        descrizione: 'Assistente WhatsApp 24/7 con AI per ospiti',           icona: 'Bot',             categoria: 'integrazioni', defaultAttivo: false },
   { id: 'emailAuto',     nome: 'Email Automatiche',   descrizione: 'Conferme, reminder, follow-up automatici',             icona: 'Mail',            categoria: 'integrazioni', defaultAttivo: true },
   { id: 'ical',          nome: 'Calendario iCal',     descrizione: 'Export calendario per sync con altri sistemi',          icona: 'CalendarRange',   categoria: 'integrazioni', defaultAttivo: true },
@@ -83,6 +84,7 @@ export const PREZZI_ADDON: Record<string, number> = {
   catalogo: 10, upselling: 10, alloggiati: 10, manutenzione: 10,
   magazzino: 10, lostFound: 5, alertOspite: 5, tariffeDurata: 10,
   fatturazioneE: 20, allotment: 25, biPrevisionale: 30, multiValuta: 15,
+  wifi: 40,
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -207,6 +209,7 @@ export const MODULO_ROUTES: Record<string, string[]> = {
   allotment:     ['/host/allotment'],
   biPrevisionale: ['/host/business-intelligence'],
   multiValuta:   ['/host/impostazioni-valuta'],
+  wifi:          ['/host/wifi'],
 }
 
 /**

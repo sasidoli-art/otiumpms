@@ -36,3 +36,12 @@ Nuovo Documento di testo.txt
 https___coderthemes.com_hyper_saas_index.html/
 node_modules
 .vercel
+
+# segreti / credenziali / note locali (mai committare)
+# qualsiasi file che inizia con _LOCAL_ o finisce con .local.md
+_LOCAL_*
+*.local.md
+**/CREDENTIALS.md
+**/PASSWORDS.md
+**/secrets/
+**/credentials/

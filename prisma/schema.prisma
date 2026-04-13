@@ -320,6 +320,11 @@ model Host {
   valutaBase       String?  @default("EUR")
   valuteAccettate  String[] @default(["EUR"])
 
+  // Wi-Fi module
+  wifiDevices      WifiDevice[]
+  wifiGuestUsers   WifiGuestUser[]
+  wifiAccessLogs   WifiAccessLog[]
+
   @@map("hosts")
 }
 
@@ -527,6 +532,7 @@ model Struttura {
   regoleUpsell      RegolaUpsell[]
   menuGiornalieri   MenuGiornaliero[]
   contrattiAllotment ContrattoAllotment[]
+  wifiDevices       WifiDevice[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -2802,4 +2808,154 @@ model ContrattoAllotment {
 
   @@index([hostId, stato])
   @@map("contratti_allotment")
+}
+
+// ─── Modulo Wi-Fi ─────────────────────────────────────────────────────────────
+
+enum WifiDeviceStato {
+  PENDING      // registrato ma mai visto online
+  ONLINE       // heartbeat recente
+  OFFLINE      // nessun heartbeat > soglia
+  DISABLED     // disattivato manualmente
+}
+
+enum WifiCommandStato {
+  PENDING
+  SENT
+  DONE
+  FAILED
+  EXPIRED
+}
+
+enum WifiGuestStato {
+  ATTIVO
+  SCADUTO
+  REVOCATO
+}
+
+model WifiDevice {
+  id          String @id @default(cuid())
+  hostId      String
+  host        Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String?
+  struttura   Struttura? @relation(fields: [strutturaId], references: [id], onDelete: SetNull)
+
+  alias       String              // nome leggibile (es. "Reception ground floor")
+  mac         String  @unique     // MAC controller Comfast (identificativo univoco)
+  modello     String?             // es. "CF-AC300", "CF-AC100"
+  firmware    String?             // versione OrangeOS rilevata
+  apiTokenHash String             // hash del bearer token dell'agent (mai plaintext)
+  stato       WifiDeviceStato @default(PENDING)
+
+  // Ultimo heartbeat
+  ultimoHeartbeatAt DateTime?
+  ultimoIpPubblico  String?
+  ultimoAgentVersion String?
+
+  // Config splash (fonte di verità dal PMS, propagata al device)
+  splashConfig Json?  // { titolo, messaggio, testoBottone, linkRedirect, slideshowUrls[], logoUrl }
+
+  // Policy utenti guest di default
+  defaultUserDurationMin Int @default(1440) // 24h
+  defaultUserBandwidthKbps Int? // null = illimitato
+
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  commands    WifiDeviceCommand[]
+  guestUsers  WifiGuestUser[]
+  accessLogs  WifiAccessLog[]
+
+  @@index([hostId, stato])
+  @@index([strutturaId])
+  @@map("wifi_devices")
+}
+
+model WifiDeviceCommand {
+  id         String @id @default(cuid())
+  deviceId   String
+  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  action     String            // es. "set_splash_branding", "add_guest_user", "upload_splash_image"
+  payload    Json              // parametri azione
+  stato      WifiCommandStato @default(PENDING)
+
+  // Lifecycle
+  sentAt     DateTime?         // quando l'agent l'ha ritirato
+  doneAt     DateTime?         // quando l'agent ha riportato esito
+  result     Json?             // output restituito dall'agent
+  errorMsg   String?
+
+  // Auto-scadenza: comandi non ritirati entro X ore diventano EXPIRED
+  expiresAt  DateTime?
+
+  // Chi l'ha creato (operatore host)
+  createdByUserId String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([deviceId, stato])
+  @@index([stato, expiresAt])
+  @@map("wifi_device_commands")
+}
+
+model WifiGuestUser {
+  id         String @id @default(cuid())
+  hostId     String
+  host       Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  deviceId   String
+  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  // Dati account portale
+  username   String
+  passwordHash String            // hash, mai plaintext
+  displayName String?            // nome mostrato all'ospite
+  note       String?
+
+  // Collegamento opzionale a prenotazione / ospite del PMS
+  prenotazioneId String?
+  ospiteCrmId    String?
+
+  stato      WifiGuestStato @default(ATTIVO)
+  validFrom  DateTime @default(now())
+  validUntil DateTime?
+
+  // Telemetria dall'agent
+  ultimoLoginAt DateTime?
+  ultimoMac     String?
+  byteScaricati BigInt @default(0)
+  byteCaricati  BigInt @default(0)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([deviceId, username])
+  @@index([hostId, stato])
+  @@index([prenotazioneId])
+  @@map("wifi_guest_users")
+}
+
+model WifiAccessLog {
+  id         String @id @default(cuid())
+  hostId     String
+  host       Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  deviceId   String
+  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  timestamp  DateTime
+  eventType  String    // "login", "logout", "timeout", "revoke"
+  username   String?
+  macClient  String?
+  ipClient   String?
+  bytesIn    BigInt?
+  bytesOut   BigInt?
+  sessionSec Int?
+
+  createdAt  DateTime @default(now())
+
+  @@index([deviceId, timestamp])
+  @@index([hostId, timestamp])
+  @@map("wifi_access_logs")
 }
