@@ -150,7 +150,8 @@ export async function GET(req: NextRequest) {
     include: {
       trattamento: { select: { nome: true } },
       percorso: { select: { nome: true } },
-      host: { select: { nomeAzienda: true } },
+      host: { select: { id: true, nomeAzienda: true } },
+      prenotazione: { select: { guestLingua: true } },
     },
   })
 
@@ -164,6 +165,8 @@ export async function GET(req: NextRequest) {
         servizioNome: a.trattamento?.nome ?? a.percorso?.nome ?? 'Trattamento SPA',
         dataOra: a.dataOra,
         durata: a.durata,
+        lingua: a.prenotazione?.guestLingua ?? null,
+        hostId: a.host.id,
       })
 
       await prisma.appuntamentoSpa.update({

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { CATALOGO_MODULI, parseModuli } from '@/lib/moduli'
+import type { Prisma } from '@prisma/client'
+import { CATALOGO_MODULI, parseModuli, parseModuliEsteso } from '@/lib/moduli'
 
 /**
  * GET /api/superadmin/moduli
@@ -45,6 +46,7 @@ export async function GET() {
 /**
  * POST /api/superadmin/moduli
  * Bulk update: attiva/disattiva un modulo per tutti o specifici host.
+ * Preserva modalita/prezzo degli altri moduli di ciascun host.
  * Body: { moduloId: string, attivo: boolean, hostIds?: string[] }
  */
 export async function POST(req: NextRequest) {
@@ -60,7 +62,6 @@ export async function POST(req: NextRequest) {
     hostIds?: string[]
   }
 
-  // Validazione
   if (!moduloId || typeof attivo !== 'boolean') {
     return NextResponse.json(
       { error: 'moduloId e attivo sono obbligatori' },
@@ -68,29 +69,33 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const moduloEsiste = CATALOGO_MODULI.some(m => m.id === moduloId)
-  if (!moduloEsiste) {
+  if (!CATALOGO_MODULI.some(m => m.id === moduloId)) {
     return NextResponse.json({ error: 'Modulo non trovato nel catalogo' }, { status: 404 })
   }
 
-  // Recupera host target
-  const where = hostIds && hostIds.length > 0 ? { id: { in: hostIds } } : {}
+  // Target host
+  const where = Array.isArray(hostIds) && hostIds.length > 0 ? { id: { in: hostIds } } : {}
   const hosts = await prisma.host.findMany({
     where,
     select: { id: true, moduliAttivi: true },
   })
 
-  // Aggiorna in batch
-  let aggiornati = 0
-  for (const host of hosts) {
-    const attuali = parseModuli(host.moduliAttivi)
-    const nuovi = { ...attuali, [moduloId]: attivo }
-    await prisma.host.update({
-      where: { id: host.id },
-      data: { moduliAttivi: nuovi },
+  // Batch update in singola transazione — preserva modalita/prezzo degli altri moduli
+  await prisma.$transaction(
+    hosts.map(host => {
+      const esteso = parseModuliEsteso(host.moduliAttivi)
+      esteso[moduloId] = {
+        attivo,
+        modalita: attivo ? (esteso[moduloId]?.modalita ?? 'incluso') : 'off',
+        prezzo: attivo ? (esteso[moduloId]?.prezzo ?? 0) : 0,
+        scadenzaDemo: attivo ? esteso[moduloId]?.scadenzaDemo : undefined,
+      }
+      return prisma.host.update({
+        where: { id: host.id },
+        data: { moduliAttivi: esteso as unknown as Prisma.InputJsonValue },
+      })
     })
-    aggiornati++
-  }
+  )
 
-  return NextResponse.json({ ok: true, aggiornati })
+  return NextResponse.json({ ok: true, aggiornati: hosts.length })
 }

@@ -6,10 +6,9 @@ import {
   BookOpen, Building2, Users, Sparkles, Wrench, ClipboardCheck, MessageSquare,
   Shield, Search, Boxes, AlertTriangle, Waves, CalendarDays, FileText, TrendingUp,
   UtensilsCrossed, ShoppingBag, Gift, CreditCard, Award, Clock, Banknote,
-  Bot, Mail, CalendarRange, Globe, Package, BarChart3, ToggleLeft, ToggleRight,
-  ChevronRight, Loader2, Zap, Euro,
+  Bot, Mail, CalendarRange, Globe, Package, ToggleLeft,
+  ChevronRight, Loader2, Zap, Euro, Wifi, Handshake, LineChart, Coins,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 
 
@@ -43,7 +42,7 @@ const ICONE: Record<string, React.ElementType> = {
   BookOpen, Building2, Users, Sparkles, Wrench, ClipboardCheck, MessageSquare,
   Shield, Search, Boxes, AlertTriangle, Waves, CalendarDays, FileText, TrendingUp,
   UtensilsCrossed, ShoppingBag, Gift, CreditCard, Award, Clock, Banknote,
-  Bot, Mail, CalendarRange, Globe,
+  Bot, Mail, CalendarRange, Globe, Wifi, Handshake, LineChart, Coins,
 }
 
 function ModuloIcona({ nome, className }: { nome: string; className?: string }) {
@@ -77,7 +76,6 @@ const STATO_COLORI: Record<string, string> = {
 // ─── Componente principale ───────────────────────────────────────────────────
 
 export function ModuliManager({ hosts, usageStats, stats }: Props) {
-  const router = useRouter()
   const [selectedModulo, setSelectedModulo] = useState<string | null>(null)
   const [searchHost, setSearchHost] = useState('')
   const [loadingToggles, setLoadingToggles] = useState<Set<string>>(new Set())
@@ -206,11 +204,27 @@ export function ModuliManager({ hosts, usageStats, stats }: Props) {
       })
 
       if (res.ok) {
-        // Aggiorna stato locale
         setLocalHosts(prev => prev.map(h => ({
           ...h,
           moduli: { ...h.moduli, [moduloId]: attivo },
         })))
+        // Aggiorna anche lo stato esteso per mantenere la UI allineata
+        setLocalModuliEsteso(prev => {
+          const next: typeof prev = {}
+          for (const [hostId, moduli] of Object.entries(prev)) {
+            const prec = moduli[moduloId]
+            next[hostId] = {
+              ...moduli,
+              [moduloId]: {
+                attivo,
+                modalita: attivo ? (prec?.modalita ?? 'incluso') : 'off',
+                prezzo: attivo ? (prec?.prezzo ?? 0) : 0,
+                scadenzaDemo: attivo ? prec?.scadenzaDemo : undefined,
+              },
+            }
+          }
+          return next
+        })
       }
     } finally {
       setBulkLoading(false)
@@ -556,22 +570,25 @@ export function ModuliManager({ hosts, usageStats, stats }: Props) {
                                 value={statoEsteso.prezzo}
                                 onChange={e => {
                                   const nuovoPrezzo = parseFloat(e.target.value) || 0
-                                  const nuovoStato: ModuloStatoEsteso = {
-                                    ...statoEsteso,
-                                    prezzo: nuovoPrezzo,
-                                  }
-                                  // Update locally immediately, debounce API call
+                                  // Update locally immediately, debounce API call until blur
                                   setLocalModuliEsteso(prev => ({
                                     ...prev,
                                     [h.id]: {
                                       ...prev[h.id],
-                                      [selectedModulo]: nuovoStato,
+                                      [selectedModulo]: {
+                                        ...prev[h.id]?.[selectedModulo],
+                                        prezzo: nuovoPrezzo,
+                                      } as ModuloStatoEsteso,
                                     },
                                   }))
                                 }}
                                 onBlur={() => {
-                                  // PATCH on blur
-                                  cambiaStatoModulo(h.id, selectedModulo, statoEsteso)
+                                  // Legge lo stato fresco dal state, non dalla closure
+                                  setLocalModuliEsteso(current => {
+                                    const fresh = current[h.id]?.[selectedModulo]
+                                    if (fresh) cambiaStatoModulo(h.id, selectedModulo, fresh)
+                                    return current
+                                  })
                                 }}
                                 className="w-16 text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300"
                               />

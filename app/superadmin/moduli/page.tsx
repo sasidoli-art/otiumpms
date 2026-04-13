@@ -54,6 +54,7 @@ export default async function SuperAdminModuliPage() {
         piano: h.piano,
         statoAbbonamento: h.statoAbbonamento,
         moduli: h.moduli,
+        moduliRaw: h.moduliAttivi,
       }))}
       usageStats={usageStats}
       stats={{

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { CATALOGO_MODULI, parseModuli } from '@/lib/moduli'
+import type { Prisma } from '@prisma/client'
+import {
+  CATALOGO_MODULI,
+  parseModuli,
+  parseModuliEsteso,
+  type ModuloStatoEsteso,
+} from '@/lib/moduli'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -45,8 +51,12 @@ export async function GET(
 
 /**
  * PATCH /api/superadmin/host/[id]/moduli
- * Toggle moduli specifici — merge con quelli esistenti.
- * Body: { moduli: { spa: true, pos: false, ... } }
+ * Aggiorna lo stato di uno o più moduli per l'host — preserva modalita/prezzo
+ * degli altri moduli non toccati.
+ *
+ * Body supportato (retrocompatibile):
+ *   { moduli: { spa: true } }                                           // legacy boolean
+ *   { moduli: { spa: { attivo: true, modalita: 'demo', prezzo: 0 } } }  // esteso
  */
 export async function PATCH(
   req: NextRequest,
@@ -68,29 +78,44 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { moduli } = body as { moduli: Record<string, boolean> }
+  const { moduli } = body as {
+    moduli: Record<string, boolean | ModuloStatoEsteso>
+  }
 
   if (!moduli || typeof moduli !== 'object') {
     return NextResponse.json(
-      { error: 'Campo "moduli" obbligatorio (oggetto { moduloId: boolean })' },
+      { error: 'Campo "moduli" obbligatorio (oggetto { moduloId: stato })' },
       { status: 422 }
     )
   }
 
-  // Merge con moduli attuali
-  const attuali = parseModuli(host.moduliAttivi)
-  const nuovi = { ...attuali }
+  // Parte dal formato esteso per preservare modalita/prezzo degli altri moduli
+  const nuovi = parseModuliEsteso(host.moduliAttivi)
 
-  for (const [moduloId, attivo] of Object.entries(moduli)) {
-    // Accetta solo moduli del catalogo
-    if (CATALOGO_MODULI.some(m => m.id === moduloId)) {
-      nuovi[moduloId] = attivo
+  for (const [moduloId, valore] of Object.entries(moduli)) {
+    if (!CATALOGO_MODULI.some(m => m.id === moduloId)) continue
+
+    if (typeof valore === 'boolean') {
+      // Legacy: solo attivo/disattivo
+      nuovi[moduloId] = {
+        attivo: valore,
+        modalita: valore ? 'incluso' : 'off',
+        prezzo: 0,
+      }
+    } else if (valore && typeof valore === 'object' && 'attivo' in valore) {
+      // Formato esteso
+      nuovi[moduloId] = {
+        attivo: !!valore.attivo,
+        modalita: valore.modalita ?? (valore.attivo ? 'incluso' : 'off'),
+        prezzo: typeof valore.prezzo === 'number' ? valore.prezzo : 0,
+        scadenzaDemo: valore.scadenzaDemo,
+      }
     }
   }
 
   const updated = await prisma.host.update({
     where: { id },
-    data: { moduliAttivi: nuovi },
+    data: { moduliAttivi: nuovi as unknown as Prisma.InputJsonValue },
     select: { id: true, nomeAzienda: true, moduliAttivi: true },
   })
 
@@ -98,5 +123,6 @@ export async function PATCH(
     hostId: updated.id,
     nomeAzienda: updated.nomeAzienda,
     moduliAttivi: parseModuli(updated.moduliAttivi),
+    moduliEsteso: parseModuliEsteso(updated.moduliAttivi),
   })
 }

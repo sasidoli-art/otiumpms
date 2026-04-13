@@ -11,6 +11,8 @@ import { logger } from '@/lib/logger'
  *
  * Protezione: header Authorization: Bearer <CRON_SECRET>
  * Configurare CRON_SECRET nelle variabili d'ambiente.
+ *
+ * Idempotente: filtra su reminderInviato=false e aggiorna dopo l'invio.
  */
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET
@@ -33,11 +35,13 @@ export async function GET(req: NextRequest) {
       dataOra: { gte: domani, lt: dopodomani },
       stato: { in: ['PRENOTATO', 'CONFERMATO'] },
       guestEmail: { not: null },
+      reminderInviato: false,
     },
     include: {
       trattamento: { select: { nome: true } },
       percorso: { select: { nome: true } },
-      host: { select: { nomeAzienda: true } },
+      host: { select: { id: true, nomeAzienda: true } },
+      prenotazione: { select: { guestLingua: true } },
     },
   })
 
@@ -55,6 +59,12 @@ export async function GET(req: NextRequest) {
           servizioNome,
           dataOra: new Date(a.dataOra),
           durata: a.durata,
+          lingua: a.prenotazione?.guestLingua ?? null,
+          hostId: a.host.id,
+        })
+        await prisma.appuntamentoSpa.update({
+          where: { id: a.id },
+          data: { reminderInviato: true },
         })
         inviati++
       } catch (err) {

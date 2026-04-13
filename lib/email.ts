@@ -627,30 +627,74 @@ export async function sendEmailReminderAppuntamentoSpa(params: {
   servizioNome: string
   dataOra: Date
   durata: number
+  lingua?: string | null
   hostId?: string | null
 }) {
-  const { guestEmail, guestNome, hostNome, servizioNome, dataOra, durata, hostId } = params
+  const { guestEmail, guestNome, hostNome, servizioNome, dataOra, durata, lingua, hostId } = params
 
-  const fmtData = dataOra.toLocaleDateString('it-IT', {
+  const L = (lingua || 'it').toLowerCase()
+  const localeMap: Record<string, string> = { it: 'it-IT', en: 'en-GB', fr: 'fr-FR', de: 'de-DE', es: 'es-ES' }
+  const locale = localeMap[L] ?? 'it-IT'
+
+  const fmtData = dataOra.toLocaleDateString(locale, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   })
-  const fmtOra = dataOra.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const fmtOra = dataOra.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+
+  const T: Record<string, Record<string, string>> = {
+    it: {
+      hi: 'Ciao', intro: 'Ti ricordiamo che', tomorrow: 'domani',
+      haveApp: 'hai un appuntamento SPA con', service: 'Servizio',
+      date: 'Data', time: 'Orario', duration: 'Durata', minutes: 'minuti',
+      cancel: 'Per disdire o modificare l\'appuntamento contatta',
+      subject: 'Promemoria appuntamento SPA domani',
+    },
+    en: {
+      hi: 'Hi', intro: 'Reminder:', tomorrow: 'tomorrow',
+      haveApp: 'you have a SPA appointment with', service: 'Service',
+      date: 'Date', time: 'Time', duration: 'Duration', minutes: 'minutes',
+      cancel: 'To cancel or reschedule, contact',
+      subject: 'SPA appointment reminder — tomorrow',
+    },
+    fr: {
+      hi: 'Bonjour', intro: 'Rappel :', tomorrow: 'demain',
+      haveApp: 'vous avez un rendez-vous SPA avec', service: 'Service',
+      date: 'Date', time: 'Heure', duration: 'Durée', minutes: 'minutes',
+      cancel: 'Pour annuler ou modifier, contactez',
+      subject: 'Rappel rendez-vous SPA — demain',
+    },
+    de: {
+      hi: 'Hallo', intro: 'Erinnerung:', tomorrow: 'morgen',
+      haveApp: 'Sie haben einen SPA-Termin mit', service: 'Leistung',
+      date: 'Datum', time: 'Uhrzeit', duration: 'Dauer', minutes: 'Minuten',
+      cancel: 'Zum Stornieren oder Ändern kontaktieren Sie',
+      subject: 'SPA-Termin Erinnerung — morgen',
+    },
+    es: {
+      hi: 'Hola', intro: 'Recordatorio:', tomorrow: 'mañana',
+      haveApp: 'tienes una cita SPA con', service: 'Servicio',
+      date: 'Fecha', time: 'Hora', duration: 'Duración', minutes: 'minutos',
+      cancel: 'Para cancelar o modificar contacta con',
+      subject: 'Recordatorio cita SPA — mañana',
+    },
+  }
+  const t = T[L] ?? T.it
 
   const htmlBody = `
-    <p>Ciao <strong>${guestNome}</strong>,</p>
-    <p>Ti ricordiamo che <strong>domani</strong> hai un appuntamento SPA con <strong>${hostNome}</strong>.</p>
+    <p>${t.hi} <strong>${guestNome}</strong>,</p>
+    <p>${t.intro} <strong>${t.tomorrow}</strong> ${t.haveApp} <strong>${hostNome}</strong>.</p>
     <table class="table">
-      <tr><th>Servizio</th><td>${servizioNome}</td></tr>
-      <tr><th>Data</th><td>${fmtData}</td></tr>
-      <tr><th>Orario</th><td>${fmtOra}</td></tr>
-      <tr><th>Durata</th><td>${durata} minuti</td></tr>
+      <tr><th>${t.service}</th><td>${servizioNome}</td></tr>
+      <tr><th>${t.date}</th><td>${fmtData}</td></tr>
+      <tr><th>${t.time}</th><td>${fmtOra}</td></tr>
+      <tr><th>${t.duration}</th><td>${durata} ${t.minutes}</td></tr>
     </table>
-    <p>Per disdire o modificare l'appuntamento contatta <strong>${hostNome}</strong>.</p>
+    <p>${t.cancel} <strong>${hostNome}</strong>.</p>
   `
 
   await dispatchMail({
     to: guestEmail,
-    subject: `Promemoria appuntamento SPA domani – ${servizioNome}`,
+    subject: `${t.subject} – ${servizioNome}`,
     html: base(htmlBody),
   }, hostId)
 }
