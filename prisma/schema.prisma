@@ -324,6 +324,8 @@ model Host {
   wifiDevices      WifiDevice[]
   wifiGuestUsers   WifiGuestUser[]
   wifiAccessLogs   WifiAccessLog[]
+  wifiAccessCodes  WifiAccessCode[]
+  wifiSessions     WifiSession[]
 
   @@map("hosts")
 }
@@ -2958,4 +2960,75 @@ model WifiAccessLog {
   @@index([deviceId, timestamp])
   @@index([hostId, timestamp])
   @@map("wifi_access_logs")
+}
+
+// ─── Wi-Fi Access Codes (walk-in) ────────────────────────────────────────────
+// Codici operatore per ospiti walk-in: durata, max usi, scadenza assoluta.
+// Indipendenti dal device: valgono per l'host. Quando il device Comfast esiste,
+// il sistema crea automaticamente lo user corrispondente al primo login.
+
+model WifiAccessCode {
+  id          String   @id @default(cuid())
+  hostId      String
+  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  codice         String   @unique  // 8 char alphanum, case-insensitive in check
+  durataMinuti   Int               // validita' sessione dopo il login (es. 1440 = 24h)
+  usiMax         Int               // max login totali (-1 = illimitato)
+  usiEffettuati  Int      @default(0)
+  validoFino     DateTime          // dopo questa data il codice e' spento
+
+  note           String?
+  createdByUserId String?
+  revocatoAt     DateTime?
+
+  sessioni       WifiSession[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([hostId, revocatoAt])
+  @@index([validoFino])
+  @@map("wifi_access_codes")
+}
+
+// ─── Wi-Fi Sessions ──────────────────────────────────────────────────────────
+// Una sessione autenticata (compliance Pisanu: log 6 mesi, identificativo ospite).
+
+enum WifiSessionTipo {
+  PRENOTAZIONE   // ospite in struttura, login con nome+camera
+  CODICE         // walk-in, login con codice di accesso
+}
+
+model WifiSession {
+  id              String   @id @default(cuid())
+  hostId          String
+  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  tipo            WifiSessionTipo
+  prenotazioneId  String?
+  accessCodeId    String?
+  accessCode      WifiAccessCode? @relation(fields: [accessCodeId], references: [id], onDelete: SetNull)
+
+  // Identita' ospite (denormalizzata per audit log)
+  guestNome       String
+  guestCognome    String?
+  numeroCamera    String?         // solo per tipo=PRENOTAZIONE
+
+  // Contesto tecnico (quando disponibile dal captive portal)
+  macClient       String?
+  ipClient        String?
+  userAgent       String?
+
+  // Lifecycle
+  startAt         DateTime @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+
+  createdAt       DateTime @default(now())
+
+  @@index([hostId, startAt])
+  @@index([prenotazioneId])
+  @@index([accessCodeId])
+  @@map("wifi_sessions")
 }

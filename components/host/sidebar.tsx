@@ -10,7 +10,7 @@ import {
   Package, Shield, Waves, DoorOpen, Star, CalendarClock, Bell, Mail, Eye,
   ClipboardCheck, Puzzle, Search, UtensilsCrossed, Clock, Globe, Boxes,
   X, ExternalLink, Banknote, ShoppingBag, Award, Bot, HelpCircle, Code,
-  Shirt, Settings, Receipt, Tag,
+  Shirt, Settings, Receipt, Tag, Wifi,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { parseModuli } from '@/lib/moduli'
@@ -53,6 +53,7 @@ const HREF_MODULO: Record<string, string> = {
   '/host/fatture-emesse': 'fatturazioneE',
   '/host/allotment': 'allotment',
   '/host/business-intelligence': 'biPrevisionale',
+  '/host/wifi': 'wifi',
 }
 
 const allNavGroups = [
@@ -79,6 +80,7 @@ const allNavGroups = [
     items: [
       { href: '/host/pacchetti',   label: 'Pacchetti',        icon: Package },
       { href: '/host/canali',      label: 'Channel Manager',  icon: Globe },
+      { href: '/host/wifi',        label: 'Wi-Fi Ospiti',     icon: Wifi },
     ],
   },
   // ── OSPITI ──
