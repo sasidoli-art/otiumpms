@@ -4,11 +4,23 @@ import WifiLoginClient from './wifi-login-client'
 
 export const metadata = { title: 'Wi-Fi Ospiti — Login' }
 
-type SearchParams = Promise<{ h?: string }>
+type SearchParams = Promise<{
+  h?: string
+  // Parametri wifidog (quando arriviamo da captive portal intercept)
+  wd_gw_address?: string
+  wd_gw_port?: string
+  wd_gw_id?: string
+  wd_mac?: string
+  wd_url?: string
+}>
 
-export default async function WifiLoginPage({ searchParams }: { searchParams: SearchParams }) {
-  const { h } = await searchParams
-  const hostId = typeof h === 'string' ? h : null
+export default async function WifiLoginPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const params = await searchParams
+  const hostId = typeof params.h === 'string' ? params.h : null
 
   if (!hostId) {
     return (
@@ -35,5 +47,23 @@ export default async function WifiLoginPage({ searchParams }: { searchParams: Se
     )
   }
 
-  return <WifiLoginClient hostId={host.id} hostNome={host.nomeAzienda} />
+  // Se arriviamo da un intercept wifidog, prepariamo i params per il redirect-back
+  const wifidog =
+    params.wd_gw_address && params.wd_gw_port
+      ? {
+          gwAddress: params.wd_gw_address,
+          gwPort: params.wd_gw_port,
+          gwId: params.wd_gw_id ?? '',
+          mac: params.wd_mac ?? '',
+          originalUrl: params.wd_url ?? '',
+        }
+      : null
+
+  return (
+    <WifiLoginClient
+      hostId={host.id}
+      hostNome={host.nomeAzienda}
+      wifidog={wifidog}
+    />
+  )
 }

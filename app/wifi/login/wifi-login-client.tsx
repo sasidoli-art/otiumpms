@@ -15,11 +15,20 @@ type LoginResult = {
 
 type Step = 'welcome' | 'form' | 'success'
 
+export type WifidogParams = {
+  gwAddress: string
+  gwPort: string
+  gwId: string
+  mac: string
+  originalUrl: string
+}
+
 export default function WifiLoginClient({
-  hostId, hostNome,
+  hostId, hostNome, wifidog,
 }: {
   hostId: string
   hostNome: string
+  wifidog?: WifidogParams | null
 }) {
   const [step, setStep] = useState<Step>('welcome')
   const [tab, setTab] = useState<'prenotazione' | 'codice'>('prenotazione')
@@ -41,10 +50,13 @@ export default function WifiLoginClient({
     setLoading(true); setError(null)
 
     try {
+      // Se arriviamo da wifidog, propaghiamo il MAC del client all'auth
+      const macClient = wifidog?.mac || undefined
+
       const body =
         tab === 'prenotazione'
-          ? { mode: 'prenotazione', hostId, guestNome, guestCognome, numeroCamera }
-          : { mode: 'codice', hostId, codice, guestNome: codiceNome }
+          ? { mode: 'prenotazione', hostId, guestNome, guestCognome, numeroCamera, macClient }
+          : { mode: 'codice', hostId, codice, guestNome: codiceNome, macClient }
 
       const res = await fetch('/api/wifi/auth', {
         method: 'POST',
@@ -57,6 +69,19 @@ export default function WifiLoginClient({
         setError(data.error || 'Autenticazione fallita')
         return
       }
+
+      // Se arriviamo da wifidog, redirect al router per completare l'auth:
+      // GET http://<gw_address>:<gw_port>/wifidog/auth?token=<sessionId>
+      // Il router poi chiama il nostro /api/wifi/wifidog/auth per validare,
+      // whitelista il MAC e redirige il client alla pagina portal.
+      if (wifidog && wifidog.gwAddress && wifidog.gwPort && data.sessionId) {
+        const routerUrl =
+          `http://${wifidog.gwAddress}:${wifidog.gwPort}/wifidog/auth` +
+          `?token=${encodeURIComponent(data.sessionId)}`
+        window.location.href = routerUrl
+        return
+      }
+
       setResult(data)
       setStep('success')
     } catch {
