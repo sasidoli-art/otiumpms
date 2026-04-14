@@ -24,7 +24,7 @@ const nextConfig = {
         // Escludi /api/wifi/wifidog/* dai security headers: il WebView Samsung
         // CaptivePortalLogin rifiuta pagine con X-Frame-Options DENY e mostra
         // data:text/html vuoto.
-        source: '/((?!api/wifi/wifidog).*)',
+        source: '/:path((?!api/wifi/wifidog).*)',
         headers: [
           {
             key: 'X-Content-Type-Options',
