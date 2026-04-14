@@ -6,6 +6,17 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 const nextConfig = {
   serverExternalPackages: ['pdfkit'],
 
+  skipTrailingSlashRedirect: true,
+
+  async rewrites() {
+    return [
+      { source: '/api/wifi/wifidog/ping/', destination: '/api/wifi/wifidog/ping' },
+      { source: '/api/wifi/wifidog/auth/', destination: '/api/wifi/wifidog/auth' },
+      { source: '/api/wifi/wifidog/login/', destination: '/api/wifi/wifidog/login' },
+      { source: '/api/wifi/wifidog/portal/', destination: '/api/wifi/wifidog/portal' },
+    ]
+  },
+
   // Headers di sicurezza HTTP
   async headers() {
     return [
