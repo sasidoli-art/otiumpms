@@ -223,28 +223,30 @@ export default async function HostDashboardPage() {
         </div>
       )}
 
-      {/* Stats eventi */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <StatCard
-          titolo="I miei eventi"
-          valore={totaliEventi._count}
-          icona={<CalendarDays size={24} />}
-          colorIcona="text-brand-500"
-        />
-        <StatCard
-          titolo="Visualizzazioni totali"
-          valore={totalViews.toLocaleString('it-IT')}
-          icona={<Eye size={24} />}
-          colorIcona="text-[#39afd1]"
-        />
-        <StatCard
-          titolo="Click totali"
-          valore={totalClick.toLocaleString('it-IT')}
-          sotto={totalViews > 0 ? `CTR ${Math.round((totalClick / totalViews) * 100)}%` : undefined}
-          icona={<MousePointerClick size={24} />}
-          colorIcona="text-[#0acf97]"
-        />
-      </div>
+      {/* Stats eventi — solo se modulo eventi attivo */}
+      {isModuloAttivo(host?.moduliAttivi, 'eventi') && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <StatCard
+            titolo="I miei eventi"
+            valore={totaliEventi._count}
+            icona={<CalendarDays size={24} />}
+            colorIcona="text-brand-500"
+          />
+          <StatCard
+            titolo="Visualizzazioni totali"
+            valore={totalViews.toLocaleString('it-IT')}
+            icona={<Eye size={24} />}
+            colorIcona="text-[#39afd1]"
+          />
+          <StatCard
+            titolo="Click totali"
+            valore={totalClick.toLocaleString('it-IT')}
+            sotto={totalViews > 0 ? `CTR ${Math.round((totalClick / totalViews) * 100)}%` : undefined}
+            icona={<MousePointerClick size={24} />}
+            colorIcona="text-[#0acf97]"
+          />
+        </div>
+      )}
 
       {/* Occupancy chart */}
       {totalUnita > 0 && (
@@ -293,60 +295,64 @@ export default async function HostDashboardPage() {
           </div>
         </div>
 
-        {/* Ultimi eventi */}
-        <div className="card">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">I miei eventi</h2>
-            <Link href="/host/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">Vedi tutti →</Link>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {eventiRecenti.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <p className="text-sm text-gray-400 mb-3">Non hai ancora inserito eventi</p>
-                <Link href="/host/eventi/nuovo" className="btn-primary text-sm">Inserisci il primo evento</Link>
-              </div>
-            ) : eventiRecenti.map(ev => (
-              <Link key={ev.id} href={`/host/eventi/${ev.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{ev.titolo}</p>
-                  <p className="text-xs text-gray-400">{ev.citta} · {formatData(ev.dataInizio)}</p>
+        {/* Ultimi eventi — solo se modulo eventi attivo */}
+        {isModuloAttivo(host?.moduliAttivi, 'eventi') && (
+          <div className="card">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">I miei eventi</h2>
+              <Link href="/host/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">Vedi tutti →</Link>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {eventiRecenti.length === 0 ? (
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm text-gray-400 mb-3">Non hai ancora inserito eventi</p>
+                  <Link href="/host/eventi/nuovo" className="btn-primary text-sm">Inserisci il primo evento</Link>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right text-xs text-gray-400">
-                    <p>{ev.visualizzazioni} views</p>
-                    <p>{ev.click} click</p>
+              ) : eventiRecenti.map(ev => (
+                <Link key={ev.id} href={`/host/eventi/${ev.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{ev.titolo}</p>
+                    <p className="text-xs text-gray-400">{ev.citta} · {formatData(ev.dataInizio)}</p>
                   </div>
-                  <Badge className={statoEventoColor(ev.stato)}>{statoEventoLabel(ev.stato)}</Badge>
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center gap-2">
+                    <div className="text-right text-xs text-gray-400">
+                      <p>{ev.visualizzazioni} views</p>
+                      <p>{ev.click} click</p>
+                    </div>
+                    <Badge className={statoEventoColor(ev.stato)}>{statoEventoLabel(ev.stato)}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Ultime fatture */}
-        <div className="card">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Le mie fatture</h2>
-            <Link href="/host/fatture" className="text-sm text-brand-600 hover:text-brand-700 font-medium">Vedi tutte →</Link>
+        {/* Ultime fatture — solo se modulo fatturazione attivo */}
+        {isModuloAttivo(host?.moduliAttivi, 'fatturazione') && (
+          <div className="card">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Le mie fatture</h2>
+              <Link href="/host/fatture" className="text-sm text-brand-600 hover:text-brand-700 font-medium">Vedi tutte →</Link>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {fattureRecenti.length === 0 ? (
+                <p className="px-6 py-8 text-center text-sm text-gray-400">Nessuna fattura ancora</p>
+              ) : fattureRecenti.map(f => (
+                <Link key={f.id} href={`/host/fatture/${f.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
+                  <CreditCard size={16} className="text-gray-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-mono font-medium text-gray-900">{f.numero}</p>
+                    <p className="text-xs text-gray-400">{formatData(f.dataEmissione)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">{formatValuta(f.totale)}</span>
+                    <Badge className={statoFatturaColor(f.stato)}>{statoFatturaLabel(f.stato)}</Badge>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-          <div className="divide-y divide-gray-50">
-            {fattureRecenti.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">Nessuna fattura ancora</p>
-            ) : fattureRecenti.map(f => (
-              <Link key={f.id} href={`/host/fatture/${f.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
-                <CreditCard size={16} className="text-gray-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono font-medium text-gray-900">{f.numero}</p>
-                  <p className="text-xs text-gray-400">{formatData(f.dataEmissione)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{formatValuta(f.totale)}</span>
-                  <Badge className={statoFatturaColor(f.stato)}>{statoFatturaLabel(f.stato)}</Badge>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
