@@ -1,27 +1,18 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { CATALOGO_MODULI, type ModuloConfig, parseModuliEsteso, PREZZI_ADDON, calcolaCanoneAddon, type ModuloStatoEsteso } from '@/lib/moduli'
-import {
-  BookOpen, Building2, Users, Sparkles, Wrench, ClipboardCheck, MessageSquare,
-  Shield, Search, Boxes, AlertTriangle, Waves, CalendarDays, FileText, TrendingUp,
-  UtensilsCrossed, ShoppingBag, Gift, CreditCard, Award, Clock, Banknote,
-  Bot, Mail, CalendarRange, Globe, Package, ToggleLeft,
-  ChevronRight, Loader2, Zap, Euro, Wifi, Handshake, LineChart, Coins,
-} from 'lucide-react'
+import Link from 'next/link'
+import { Search, Loader2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Euro } from 'lucide-react'
+import { CATALOGO_MODULI, parseModuli, type ModuloConfig, type ModuliAttivi } from '@/lib/moduli'
 
-
-
-// ─── Tipi ────────────────────────────────────────────────────────────────────
-
-interface HostConModuli {
+type HostConModuli = {
   id: string
   nomeAzienda: string
   citta: string | null
   piano: string
   statoAbbonamento: string
-  moduli: Record<string, boolean>
-  moduliRaw?: unknown // raw JSON from DB for parseModuliEsteso
+  moduli: ModuliAttivi
+  moduliRaw?: unknown
 }
 
 interface Props {
@@ -34,30 +25,7 @@ interface Props {
     hostsBaseCompleti: number
     totaleHost: number
   }
-  initialSearchHost?: string // quando si arriva da /superadmin/strutture con ?host=<id>
-}
-
-// ─── Icona helper ────────────────────────────────────────────────────────────
-
-const ICONE: Record<string, React.ElementType> = {
-  BookOpen, Building2, Users, Sparkles, Wrench, ClipboardCheck, MessageSquare,
-  Shield, Search, Boxes, AlertTriangle, Waves, CalendarDays, FileText, TrendingUp,
-  UtensilsCrossed, ShoppingBag, Gift, CreditCard, Award, Clock, Banknote,
-  Bot, Mail, CalendarRange, Globe, Wifi, Handshake, LineChart, Coins,
-}
-
-function ModuloIcona({ nome, className }: { nome: string; className?: string }) {
-  const Icon = ICONE[nome] || Package
-  return <Icon className={className} />
-}
-
-// ─── Badge categoria ─────────────────────────────────────────────────────────
-
-const CATEGORIA_COLORI: Record<string, string> = {
-  base: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  operativo: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  avanzato: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  integrazioni: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  initialSearchHost?: string
 }
 
 const CATEGORIA_LABEL: Record<string, string> = {
@@ -67,152 +35,102 @@ const CATEGORIA_LABEL: Record<string, string> = {
   integrazioni: 'Integrazioni',
 }
 
-const STATO_COLORI: Record<string, string> = {
-  ATTIVO: 'bg-green-100 text-green-700',
-  IN_PROVA: 'bg-blue-100 text-blue-700',
-  SOSPESO: 'bg-amber-100 text-amber-700',
-  SCADUTO: 'bg-red-100 text-red-700',
+const CATEGORIA_COLORE: Record<string, string> = {
+  base: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  operativo: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  avanzato: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  integrazioni: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 
-// ─── Componente principale ───────────────────────────────────────────────────
+const STATO_COLORI: Record<string, string> = {
+  ATTIVO: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  IN_PROVA: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  SOSPESO: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  SCADUTO: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+}
 
-export function ModuliManager({ hosts, usageStats, stats, initialSearchHost }: Props) {
-  const [selectedModulo, setSelectedModulo] = useState<string | null>(null)
-  const [searchHost, setSearchHost] = useState(initialSearchHost ?? '')
-  const [loadingToggles, setLoadingToggles] = useState<Set<string>>(new Set())
-  const [bulkLoading, setBulkLoading] = useState(false)
-  const [localHosts, setLocalHosts] = useState(hosts)
+export function ModuliManager({ hosts: hostsIniziali, stats, initialSearchHost }: Props) {
+  const [search, setSearch] = useState(initialSearchHost ?? '')
+  const [hosts, setHosts] = useState(hostsIniziali)
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(initialSearchHost ? [] : []))
+  const [saving, setSaving] = useState<Set<string>>(new Set())
 
-  // Stato esteso moduli per ogni host
-  const [localModuliEsteso, setLocalModuliEsteso] = useState<Record<string, Record<string, ModuloStatoEsteso>>>(() => {
-    const map: Record<string, Record<string, ModuloStatoEsteso>> = {}
-    for (const h of hosts) {
-      map[h.id] = parseModuliEsteso(h.moduliRaw)
+  // Se ho un initialSearchHost, espando quel host di default
+  useMemo(() => {
+    if (initialSearchHost) {
+      const found = hostsIniziali.find(h => h.nomeAzienda === initialSearchHost)
+      if (found) setExpanded(new Set([found.id]))
     }
-    return map
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSearchHost])
 
-  // Revenue add-on mensile totale
-  const revenueMensile = useMemo(() => {
-    let totale = 0
-    for (const hostModuli of Object.values(localModuliEsteso)) {
-      for (const m of Object.values(hostModuli)) {
-        if (m.modalita === 'pagamento' && m.prezzo > 0) {
-          totale += m.prezzo
-        }
-      }
-    }
-    return totale
-  }, [localModuliEsteso])
-
-  // Conteggio breakdown per modulo: inclusi, demo, pagamento
-  const conteggioPerModulo = useMemo(() => {
-    const result: Record<string, { inclusi: number; demo: number; pagamento: number }> = {}
-    for (const m of CATALOGO_MODULI) {
-      result[m.id] = { inclusi: 0, demo: 0, pagamento: 0 }
-    }
-    for (const hostModuli of Object.values(localModuliEsteso)) {
-      for (const [moduloId, stato] of Object.entries(hostModuli)) {
-        if (!result[moduloId]) continue
-        if (stato.modalita === 'incluso') result[moduloId].inclusi++
-        else if (stato.modalita === 'demo') result[moduloId].demo++
-        else if (stato.modalita === 'pagamento') result[moduloId].pagamento++
-      }
-    }
-    return result
-  }, [localModuliEsteso])
-
-  // Raggruppa moduli per categoria
   const moduliPerCategoria = useMemo(() => {
-    const grouped: Record<string, ModuloConfig[]> = {}
-    for (const m of CATALOGO_MODULI) {
-      if (!grouped[m.categoria]) grouped[m.categoria] = []
-      grouped[m.categoria].push(m)
-    }
-    return grouped
+    const g: Record<string, ModuloConfig[]> = { base: [], operativo: [], avanzato: [], integrazioni: [] }
+    for (const m of CATALOGO_MODULI) g[m.categoria]?.push(m)
+    return g
   }, [])
 
-  const selectedModuloConfig = useMemo(
-    () => CATALOGO_MODULI.find(m => m.id === selectedModulo),
-    [selectedModulo]
-  )
-
-  // Host filtrati
   const hostsFiltrati = useMemo(() => {
-    if (!searchHost.trim()) return localHosts
-    const q = searchHost.toLowerCase()
-    return localHosts.filter(h =>
+    if (!search.trim()) return hosts
+    const q = search.toLowerCase()
+    return hosts.filter(h =>
       h.nomeAzienda.toLowerCase().includes(q) ||
-      (h.citta && h.citta.toLowerCase().includes(q))
+      (h.citta?.toLowerCase().includes(q) ?? false) ||
+      h.piano.toLowerCase().includes(q)
     )
-  }, [localHosts, searchHost])
+  }, [hosts, search])
 
-  // Modulo più/meno usato nome
-  const nomeModulo = (id: string) => CATALOGO_MODULI.find(m => m.id === id)?.nome ?? id
+  function toggleExpand(hostId: string) {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(hostId)) next.delete(hostId)
+      else next.add(hostId)
+      return next
+    })
+  }
 
-  // ─── Cambia stato modulo per singolo host ──────────────────────────────────
-
-  async function cambiaStatoModulo(hostId: string, moduloId: string, stato: ModuloStatoEsteso) {
+  async function toggleModulo(hostId: string, moduloId: string, newValue: boolean) {
     const key = `${hostId}-${moduloId}`
-    setLoadingToggles(prev => new Set(prev).add(key))
+    setSaving(prev => new Set(prev).add(key))
 
-    // Optimistic update: aggiorna subito la UI, poi rollback se fallisce
-    const prevStato = localModuliEsteso[hostId]?.[moduloId]
-    setLocalHosts(prev => prev.map(h =>
-      h.id === hostId
-        ? { ...h, moduli: { ...h.moduli, [moduloId]: stato.attivo } }
-        : h
-    ))
-    setLocalModuliEsteso(prev => ({
-      ...prev,
-      [hostId]: {
-        ...prev[hostId],
-        [moduloId]: stato,
-      },
-    }))
+    // Optimistic
+    const prevState = hosts.find(h => h.id === hostId)?.moduli[moduloId]
+    setHosts(prev =>
+      prev.map(h =>
+        h.id === hostId ? { ...h, moduli: { ...h.moduli, [moduloId]: newValue } } : h
+      )
+    )
 
     try {
-      const res = await fetch(`/api/superadmin/host/${hostId}/moduli`, {
+      const res = await fetch(`/api/superadmin/host/${hostId}/config`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moduli: { [moduloId]: stato } }),
+        body: JSON.stringify({ moduliAttivi: { [moduloId]: newValue } }),
       })
 
       if (!res.ok) {
+        const err = await res.text().catch(() => 'errore sconosciuto')
+        alert(`Errore: ${res.status} ${err.slice(0, 200)}`)
         // Rollback
-        const errText = await res.text().catch(() => 'errore sconosciuto')
-        console.error('[cambiaStatoModulo] API failed:', res.status, errText)
-        alert(`Errore salvataggio modulo: ${res.status} ${errText.slice(0, 200)}`)
-        setLocalHosts(prev => prev.map(h =>
-          h.id === hostId
-            ? { ...h, moduli: { ...h.moduli, [moduloId]: prevStato?.attivo ?? false } }
-            : h
-        ))
-        if (prevStato) {
-          setLocalModuliEsteso(prev => ({
-            ...prev,
-            [hostId]: {
-              ...prev[hostId],
-              [moduloId]: prevStato,
-            },
-          }))
-        }
+        setHosts(prev =>
+          prev.map(h =>
+            h.id === hostId
+              ? { ...h, moduli: { ...h.moduli, [moduloId]: prevState ?? false } }
+              : h
+          )
+        )
       }
     } catch (err) {
-      console.error('[cambiaStatoModulo] network error:', err)
-      alert(`Errore di rete salvando modulo: ${String(err).slice(0, 200)}`)
-      // Rollback
-      if (prevStato) {
-        setLocalModuliEsteso(prev => ({
-          ...prev,
-          [hostId]: {
-            ...prev[hostId],
-            [moduloId]: prevStato,
-          },
-        }))
-      }
+      alert(`Errore rete: ${String(err).slice(0, 200)}`)
+      setHosts(prev =>
+        prev.map(h =>
+          h.id === hostId
+            ? { ...h, moduli: { ...h.moduli, [moduloId]: prevState ?? false } }
+            : h
+        )
+      )
     } finally {
-      setLoadingToggles(prev => {
+      setSaving(prev => {
         const next = new Set(prev)
         next.delete(key)
         return next
@@ -220,425 +138,213 @@ export function ModuliManager({ hosts, usageStats, stats, initialSearchHost }: P
     }
   }
 
-  // ─── Bulk azione ──────────────────────────────────────────────────────────
+  async function applicaPresetPiano(hostId: string) {
+    // Al momento applica: niente — in futuro potrebbe resettare ai default piano
+    if (!confirm('Reset moduli ai default del piano?')) return
+    const host = hosts.find(h => h.id === hostId)
+    if (!host) return
 
-  async function bulkAction(moduloId: string, attivo: boolean) {
-    if (!confirm(
-      attivo
-        ? `Attivare "${nomeModulo(moduloId)}" per TUTTI gli host?`
-        : `Disattivare "${nomeModulo(moduloId)}" per TUTTI gli host?`
-    )) return
-
-    setBulkLoading(true)
-    try {
-      const res = await fetch('/api/superadmin/moduli', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ moduloId, attivo }),
-      })
-
-      if (res.ok) {
-        setLocalHosts(prev => prev.map(h => ({
-          ...h,
-          moduli: { ...h.moduli, [moduloId]: attivo },
-        })))
-        // Aggiorna anche lo stato esteso per mantenere la UI allineata
-        setLocalModuliEsteso(prev => {
-          const next: typeof prev = {}
-          for (const [hostId, moduli] of Object.entries(prev)) {
-            const prec = moduli[moduloId]
-            next[hostId] = {
-              ...moduli,
-              [moduloId]: {
-                attivo,
-                modalita: attivo ? (prec?.modalita ?? 'incluso') : 'off',
-                prezzo: attivo ? (prec?.prezzo ?? 0) : 0,
-                scadenzaDemo: attivo ? prec?.scadenzaDemo : undefined,
-              },
-            }
-          }
-          return next
-        })
-      }
-    } finally {
-      setBulkLoading(false)
+    // Reset: disattiva tutti i moduli non base
+    const reset: Record<string, boolean> = {}
+    for (const m of CATALOGO_MODULI) {
+      reset[m.id] = m.categoria === 'base'
+    }
+    const res = await fetch(`/api/superadmin/host/${hostId}/config`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduliAttivi: reset }),
+    })
+    if (res.ok) {
+      setHosts(prev => prev.map(h => (h.id === hostId ? { ...h, moduli: reset } : h)))
+      alert('Moduli ripristinati ai soli base.')
+    } else {
+      alert('Errore ripristino')
     }
   }
-
-  // ─── Contatori per modulo selezionato ─────────────────────────────────────
-
-  const conteggioAttivo = useMemo(() => {
-    if (!selectedModulo) return { attivi: 0, inattivi: 0, demo: 0, pagamento: 0 }
-    let demo = 0, pagamento = 0, attivi = 0
-    for (const h of localHosts) {
-      const stato = localModuliEsteso[h.id]?.[selectedModulo]
-      if (!stato || stato.modalita === 'off') continue
-      attivi++
-      if (stato.modalita === 'demo') demo++
-      if (stato.modalita === 'pagamento') pagamento++
-    }
-    return { attivi, inattivi: localHosts.length - attivi, demo, pagamento }
-  }, [selectedModulo, localHosts, localModuliEsteso])
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
-          Gestione Moduli {/* TODO: i18n */}
-        </h1>
-        <p className="text-sm text-gray-500">
-          Attiva o disattiva funzionalità per ogni host {/* TODO: i18n */}
-        </p>
-      </div>
-
-      {/* Overview stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
-            <Package className="w-5 h-5 text-brand-600" />
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{stats.totaleModuli}</p>
-            <p className="text-xs text-gray-500">Moduli disponibili</p>{/* TODO: i18n */}
-          </div>
-        </div>
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-slate-100">
-              {stats.piuUsato ? nomeModulo(stats.piuUsato.id) : '—'}
-            </p>
-            <p className="text-xs text-gray-500">
-              Più popolare ({stats.piuUsato?.count ?? 0} host) {/* TODO: i18n */}
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-amber-600" />
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-slate-100">
-              {stats.menoUsato ? nomeModulo(stats.menoUsato.id) : '—'}
-            </p>
-            <p className="text-xs text-gray-500">
-              Meno usato ({stats.menoUsato?.count ?? 0} host) {/* TODO: i18n */}
-            </p>
-          </div>
-        </div>
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-slate-100">
-              {stats.hostsBaseCompleti}/{stats.totaleHost}
-            </p>
-            <p className="text-xs text-gray-500">Host con base completi</p>{/* TODO: i18n */}
-          </div>
-        </div>
-        <div className="card flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-            <Euro className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xl font-extrabold text-gray-900 dark:text-slate-100">
-              {revenueMensile.toFixed(0)}
-            </p>
-            <p className="text-xs text-gray-500">Revenue add-on mensile</p>{/* TODO: i18n */}
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Gestione Moduli</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {stats.totaleHost} host · {stats.totaleModuli} moduli nel catalogo
+          </p>
         </div>
       </div>
 
-      {/* Two-panel layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Catalogo moduli */}
-        <div className="lg:col-span-2 space-y-4">
-          {(['base', 'operativo', 'avanzato', 'integrazioni'] as const).map(cat => (
-            <div key={cat}>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {CATEGORIA_LABEL[cat]}
-              </h3>
-              <div className="space-y-2">
-                {(moduliPerCategoria[cat] || []).map(m => {
-                  const isSelected = selectedModulo === m.id
-                  const count = usageStats[m.id] ?? 0
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => setSelectedModulo(isSelected ? null : m.id)}
-                      className={`w-full text-left card p-3 flex items-center gap-3 transition-all cursor-pointer ${
-                        isSelected
-                          ? 'ring-2 ring-brand-500 bg-brand-50/50 dark:bg-brand-900/20'
-                          : 'hover:bg-gray-50 dark:hover:bg-slate-800/50'
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatBox
+          label="Host totali"
+          value={stats.totaleHost}
+          color="brand"
+        />
+        <StatBox
+          label="Con moduli base completi"
+          value={stats.hostsBaseCompleti}
+          color="green"
+        />
+        <StatBox
+          label="Modulo più usato"
+          value={stats.piuUsato ? `${CATALOGO_MODULI.find(m => m.id === stats.piuUsato!.id)?.nome ?? stats.piuUsato.id} (${stats.piuUsato.count})` : '—'}
+          color="blue"
+        />
+        <StatBox
+          label="Modulo meno usato"
+          value={stats.menoUsato ? `${CATALOGO_MODULI.find(m => m.id === stats.menoUsato!.id)?.nome ?? stats.menoUsato.id} (${stats.menoUsato.count})` : '—'}
+          color="amber"
+        />
+      </div>
+
+      {/* Search */}
+      <div className="card">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Cerca host per nome, città o piano..."
+            className="w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-slate-600 rounded-lg text-sm dark:bg-slate-800 dark:text-slate-200"
+          />
+        </div>
+      </div>
+
+      {/* Host list */}
+      <div className="space-y-2">
+        {hostsFiltrati.length === 0 && (
+          <div className="card py-12 text-center text-sm text-gray-400">
+            Nessun host trovato.
+          </div>
+        )}
+
+        {hostsFiltrati.map(host => {
+          const isOpen = expanded.has(host.id)
+          const moduliAttiviCount = Object.values(host.moduli).filter(v => v === true).length
+
+          return (
+            <div key={host.id} className="card overflow-hidden">
+              {/* Row header */}
+              <button
+                onClick={() => toggleExpand(host.id)}
+                className="w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                {isOpen ? (
+                  <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-900 dark:text-slate-100 truncate">
+                      {host.nomeAzienda}
+                    </p>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                        STATO_COLORI[host.statoAbbonamento] || 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                        isSelected ? 'bg-brand-100 dark:bg-brand-900/40' : 'bg-gray-100 dark:bg-slate-800'
-                      }`}>
-                        <ModuloIcona nome={m.icona} className={`w-4 h-4 ${
-                          isSelected ? 'text-brand-600' : 'text-gray-500'
-                        }`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
-                            {m.nome}
-                          </span>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${CATEGORIA_COLORI[m.categoria]}`}>
-                            {CATEGORIA_LABEL[m.categoria]}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">{m.descrizione}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="flex items-center gap-1.5 text-[10px]">
-                          {conteggioPerModulo[m.id]?.inclusi > 0 && (
-                            <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1 py-0.5 rounded">{conteggioPerModulo[m.id].inclusi} incl</span>
-                          )}
-                          {conteggioPerModulo[m.id]?.demo > 0 && (
-                            <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-1 py-0.5 rounded">{conteggioPerModulo[m.id].demo} demo</span>
-                          )}
-                          {conteggioPerModulo[m.id]?.pagamento > 0 && (
-                            <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1 py-0.5 rounded">{conteggioPerModulo[m.id].pagamento} paid</span>
-                          )}
-                          {count === 0 && (
-                            <span className="text-gray-400">0 host</span>
-                          )}
-                        </div>
-                        <ChevronRight className={`w-4 h-4 text-gray-300 transition-transform ${
-                          isSelected ? 'rotate-90' : ''
-                        }`} />
-                      </div>
+                      {host.statoAbbonamento}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {host.citta ?? '—'} · {host.piano}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs text-gray-500">{moduliAttiviCount} moduli attivi</span>
+                  <Link
+                    href={`/superadmin/host/${host.id}`}
+                    onClick={e => e.stopPropagation()}
+                    className="text-xs text-brand-600 hover:underline flex items-center gap-1"
+                  >
+                    Dettaglio <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
+              </button>
+
+              {/* Expanded: checkbox per tutti i moduli */}
+              {isOpen && (
+                <div className="border-t border-gray-100 dark:border-slate-700 p-4 space-y-4 bg-gray-50/50 dark:bg-slate-800/30">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Click per attivare/disattivare. Le modifiche vengono salvate subito.
+                    </p>
+                    <button
+                      onClick={() => applicaPresetPiano(host.id)}
+                      className="text-[11px] text-gray-500 hover:text-red-600 underline"
+                    >
+                      Reset a soli base
                     </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Right: Host assignment */}
-        <div className="lg:col-span-3">
-          {!selectedModulo ? (
-            <div className="card py-16 flex flex-col items-center gap-3 text-gray-300 dark:text-slate-600">
-              <ToggleLeft className="w-12 h-12" />
-              <p className="text-sm">Seleziona un modulo per gestire le attivazioni</p>{/* TODO: i18n */}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Module header + bulk actions */}
-              <div className="card">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center">
-                      <ModuloIcona
-                        nome={selectedModuloConfig?.icona ?? ''}
-                        className="w-5 h-5 text-brand-600"
-                      />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">
-                        {selectedModuloConfig?.nome}
-                      </h2>
-                      <p className="text-xs text-gray-500">{selectedModuloConfig?.descrizione}</p>
-                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs flex-wrap">
-                    <span className="text-green-600 font-medium">{conteggioAttivo.attivi} attivi</span>
-                    {conteggioAttivo.demo > 0 && (
-                      <>
-                        <span className="text-gray-300">·</span>
-                        <span className="text-amber-600">{conteggioAttivo.demo} demo</span>
-                      </>
-                    )}
-                    {conteggioAttivo.pagamento > 0 && (
-                      <>
-                        <span className="text-gray-300">·</span>
-                        <span className="text-blue-600">{conteggioAttivo.pagamento} paid</span>
-                      </>
-                    )}
-                    <span className="text-gray-300">|</span>
-                    <span className="text-gray-400">{conteggioAttivo.inattivi} off</span>
-                  </div>
-                </div>
 
-                {/* Bulk actions */}
-                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100 dark:border-slate-700">
-                  <button
-                    onClick={() => bulkAction(selectedModulo, true)}
-                    disabled={bulkLoading}
-                    className="btn-sm bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-md disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {bulkLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                    Attiva per tutti gli host {/* TODO: i18n */}
-                  </button>
-                  <button
-                    onClick={() => bulkAction(selectedModulo, false)}
-                    disabled={bulkLoading}
-                    className="btn-sm bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-md disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {bulkLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                    Disattiva per tutti {/* TODO: i18n */}
-                  </button>
-                </div>
-              </div>
-
-              {/* Search */}
-              <input
-                type="text"
-                placeholder="Cerca host per nome o città..." /* TODO: i18n */
-                value={searchHost}
-                onChange={e => setSearchHost(e.target.value)}
-                className="input w-full"
-              />
-
-              {/* Host list */}
-              <div className="card divide-y divide-gray-100 dark:divide-slate-700">
-                {hostsFiltrati.length === 0 ? (
-                  <div className="py-8 text-center text-sm text-gray-400">
-                    Nessun host trovato {/* TODO: i18n */}
-                  </div>
-                ) : (
-                  hostsFiltrati.map(h => {
-                    const toggleKey = `${h.id}-${selectedModulo}`
-                    const isLoading = loadingToggles.has(toggleKey)
-                    const statoEsteso = localModuliEsteso[h.id]?.[selectedModulo] ?? { attivo: false, modalita: 'off' as const, prezzo: 0 }
-                    const modalita = statoEsteso.modalita
-                    const prezzoDefault = PREZZI_ADDON[selectedModulo] ?? 10
-
-                    return (
-                      <div key={h.id} className="py-3 px-1 first:pt-0 last:pb-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-slate-100 truncate">
-                                {h.nomeAzienda}
-                              </p>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-gray-400">{h.citta || '—'}</span>
-                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                  STATO_COLORI[h.statoAbbonamento] || 'bg-gray-100 text-gray-600'
-                                }`}>
-                                  {h.statoAbbonamento}
-                                </span>
-                                <span className="text-[10px] bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400 px-1.5 py-0.5 rounded">
-                                  {h.piano}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 3-state selector */}
-                          {isLoading ? (
-                            <Loader2 className="w-5 h-5 text-gray-300 animate-spin flex-shrink-0 ml-4" />
-                          ) : (
-                            <div className="flex items-center gap-1 flex-shrink-0 ml-4">
-                              <button
-                                onClick={() => cambiaStatoModulo(h.id, selectedModulo, { attivo: false, modalita: 'off', prezzo: 0 })}
-                                className={`text-[11px] px-2 py-1 rounded-l-md border transition-colors ${
-                                  modalita === 'off'
-                                    ? 'bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-slate-200 border-gray-300 dark:border-slate-500 font-semibold'
-                                    : 'bg-white dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                }`}
-                                title="Disattivato"
-                              >
-                                Off
-                              </button>
-                              <button
-                                onClick={() => cambiaStatoModulo(h.id, selectedModulo, { attivo: true, modalita: 'demo', prezzo: 0 })}
-                                className={`text-[11px] px-2 py-1 border-y transition-colors ${
-                                  modalita === 'demo'
-                                    ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 border-green-300 dark:border-green-700 font-semibold'
-                                    : 'bg-white dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-green-50 dark:hover:bg-green-900/20'
-                                }`}
-                                title="Demo gratuito"
-                              >
-                                Demo
-                              </button>
-                              <button
-                                onClick={() => cambiaStatoModulo(h.id, selectedModulo, { attivo: true, modalita: 'pagamento', prezzo: statoEsteso.prezzo || prezzoDefault })}
-                                className={`text-[11px] px-2 py-1 rounded-r-md border transition-colors ${
-                                  modalita === 'pagamento'
-                                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700 font-semibold'
-                                    : 'bg-white dark:bg-slate-800 text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                                }`}
-                                title="A pagamento"
-                              >
-                                {modalita === 'pagamento' ? `${statoEsteso.prezzo}` : `${prezzoDefault}`}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Extra fields for demo/pagamento */}
-                        {modalita === 'demo' && (
-                          <div className="mt-2 ml-0 flex items-center gap-2">
-                            <label className="text-[10px] text-gray-400">Scadenza demo:</label>
-                            <input
-                              type="date"
-                              value={statoEsteso.scadenzaDemo?.slice(0, 10) ?? ''}
-                              onChange={e => {
-                                const nuovoStato: ModuloStatoEsteso = {
-                                  ...statoEsteso,
-                                  scadenzaDemo: e.target.value ? new Date(e.target.value).toISOString() : undefined,
-                                }
-                                cambiaStatoModulo(h.id, selectedModulo, nuovoStato)
-                              }}
-                              className="text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300"
-                            />
-                          </div>
-                        )}
-                        {modalita === 'pagamento' && (
-                          <div className="mt-2 ml-0 flex items-center gap-2">
-                            <label className="text-[10px] text-gray-400">Prezzo mensile:</label>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[11px] text-gray-400">EUR</span>
+                  {Object.entries(moduliPerCategoria).map(([cat, moduli]) => (
+                    <div key={cat}>
+                      <p className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mb-2 ${CATEGORIA_COLORE[cat]}`}>
+                        {CATEGORIA_LABEL[cat]}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {moduli.map(m => {
+                          const key = `${host.id}-${m.id}`
+                          const attivo = !!host.moduli[m.id]
+                          const isSaving = saving.has(key)
+                          return (
+                            <label
+                              key={m.id}
+                              className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${
+                                attivo
+                                  ? 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+                                  : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300'
+                              } ${isSaving ? 'opacity-60' : ''}`}
+                            >
                               <input
-                                type="number"
-                                min={0}
-                                step={5}
-                                value={statoEsteso.prezzo}
-                                onChange={e => {
-                                  const nuovoPrezzo = parseFloat(e.target.value) || 0
-                                  // Update locally immediately, debounce API call until blur
-                                  setLocalModuliEsteso(prev => ({
-                                    ...prev,
-                                    [h.id]: {
-                                      ...prev[h.id],
-                                      [selectedModulo]: {
-                                        ...prev[h.id]?.[selectedModulo],
-                                        prezzo: nuovoPrezzo,
-                                      } as ModuloStatoEsteso,
-                                    },
-                                  }))
-                                }}
-                                onBlur={() => {
-                                  // Legge lo stato fresco dal state, non dalla closure
-                                  setLocalModuliEsteso(current => {
-                                    const fresh = current[h.id]?.[selectedModulo]
-                                    if (fresh) cambiaStatoModulo(h.id, selectedModulo, fresh)
-                                    return current
-                                  })
-                                }}
-                                className="w-16 text-[11px] px-1.5 py-0.5 rounded border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300"
+                                type="checkbox"
+                                checked={attivo}
+                                disabled={isSaving}
+                                onChange={e => toggleModulo(host.id, m.id, e.target.checked)}
+                                className="mt-0.5 shrink-0"
                               />
-                              <span className="text-[10px] text-gray-400">/mese</span>
-                            </div>
-                          </div>
-                        )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate">
+                                    {m.nome}
+                                  </p>
+                                  {isSaving && <Loader2 className="w-3 h-3 animate-spin text-gray-400" />}
+                                  {attivo && !isSaving && <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />}
+                                </div>
+                                <p className="text-[11px] text-gray-500 line-clamp-2">{m.descrizione}</p>
+                              </div>
+                            </label>
+                          )
+                        })}
                       </div>
-                    )
-                  })
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          )
+        })}
       </div>
+    </div>
+  )
+}
+
+function StatBox({ label, value, color }: { label: string; value: string | number; color: string }) {
+  const colors: Record<string, string> = {
+    brand: 'bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300',
+    green: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300',
+    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300',
+    amber: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300',
+  }
+  return (
+    <div className={`card ${colors[color]}`}>
+      <p className="text-[10px] uppercase font-bold tracking-wider opacity-70">{label}</p>
+      <p className="text-lg font-bold mt-1 truncate">{value}</p>
     </div>
   )
 }
