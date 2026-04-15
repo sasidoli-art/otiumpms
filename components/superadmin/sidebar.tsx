@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Building2, Users, CreditCard, BarChart3,
-  Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText,
+  Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText, Bot,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -16,19 +16,45 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
   const t = useTranslations('nav.superadmin')
   const tc = useTranslations('common')
 
-  const navItems = useMemo(() => [
-    { href: '/superadmin',            label: t('dashboard'),      icon: LayoutDashboard },
-    { href: '/superadmin/host',       label: t('hostClients'),    icon: Building2 },
-    { href: '/superadmin/strutture',  label: t('structures'),     icon: Globe },
-    { href: '/superadmin/utenti',     label: t('users'),          icon: Users },
-    { href: '/superadmin/abbonamenti',label: t('subscriptions'),  icon: CreditCard },
-    { href: '/superadmin/fatture',    label: t('billing'),        icon: FileText },
-    { href: '/superadmin/moduli',     label: t('planModules'),    icon: Puzzle },
-    { href: '/superadmin/analytics',  label: t('analytics'),      icon: BarChart3 },
-    { href: '/superadmin/monitoring', label: t('monitoring'),     icon: Activity },
-    { href: '/superadmin/audit',       label: 'Audit Log',         icon: ScrollText },
-    { href: '/superadmin/compliance',  label: 'Compliance',        icon: Shield },
-    { href: '/superadmin/impostazioni', label: t('settings'),     icon: Settings },
+  const navGroups = useMemo(() => [
+    {
+      label: null, // solo dashboard, senza header
+      items: [
+        { href: '/superadmin', label: t('dashboard'), icon: LayoutDashboard },
+      ],
+    },
+    {
+      label: 'CLIENTI',
+      items: [
+        { href: '/superadmin/host',      label: t('hostClients'), icon: Building2 },
+        { href: '/superadmin/strutture', label: t('structures'),  icon: Globe },
+        { href: '/superadmin/utenti',    label: t('users'),       icon: Users },
+      ],
+    },
+    {
+      label: 'COMMERCIALE',
+      items: [
+        { href: '/superadmin/abbonamenti', label: t('subscriptions'), icon: CreditCard },
+        { href: '/superadmin/fatture',     label: t('billing'),       icon: FileText },
+        { href: '/superadmin/moduli',      label: t('planModules'),   icon: Puzzle },
+      ],
+    },
+    {
+      label: 'MONITORAGGIO',
+      items: [
+        { href: '/superadmin/analytics',  label: t('analytics'),  icon: BarChart3 },
+        { href: '/superadmin/monitoring', label: t('monitoring'), icon: Activity },
+        { href: '/superadmin/audit',      label: 'Audit Log',     icon: ScrollText },
+        { href: '/superadmin/compliance', label: 'Compliance',    icon: Shield },
+      ],
+    },
+    {
+      label: 'CONFIGURAZIONE',
+      items: [
+        { href: '/superadmin/impostazioni/ai', label: 'AI Provider',    icon: Bot },
+        { href: '/superadmin/impostazioni',    label: t('settings'),    icon: Settings },
+      ],
+    },
   ], [t])
 
   return (
@@ -45,23 +71,35 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || (href !== '/superadmin' && pathname.startsWith(href + '/'))
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                isActive ? 'bg-red-600/20 text-red-400' : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
-              )}
-            >
-              <Icon size={16} className="shrink-0" />
-              <span>{label}</span>
-            </Link>
-          )
-        })}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className="space-y-0.5">
+            {group.label && (
+              <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-600">
+                {group.label}
+              </p>
+            )}
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const isActive =
+                pathname === href || (href !== '/superadmin' && pathname.startsWith(href + '/'))
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                    isActive
+                      ? 'bg-red-600/20 text-red-400'
+                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
+                  )}
+                >
+                  <Icon size={16} className="shrink-0" />
+                  <span>{label}</span>
+                </Link>
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
