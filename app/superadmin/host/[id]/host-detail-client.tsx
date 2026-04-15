@@ -468,6 +468,7 @@ function StrutturaCard({
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showAddUnita, setShowAddUnita] = useState(false)
   const [form, setForm] = useState({
     nome: struttura.nome,
     tipo: struttura.tipo,
@@ -515,21 +516,9 @@ function StrutturaCard({
     }
   }
 
-  async function aggiungiUnita() {
-    const nome = prompt(`Nome nuova unità (struttura: ${struttura.nome}):`)
-    if (!nome) return
-    const res = await fetch('/api/superadmin/unita', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ strutturaId: struttura.id, nome }),
-    })
-    if (res.ok) {
-      showToast('ok', 'Unità creata')
-      onChange()
-      setOpen(true)
-    } else {
-      showToast('err', 'Errore')
-    }
+  function apriAggiungiUnita() {
+    setOpen(true)
+    setShowAddUnita(true)
   }
 
   return (
@@ -613,21 +602,319 @@ function StrutturaCard({
               Unità ({struttura.unita.length})
             </h4>
             <button
-              onClick={aggiungiUnita}
-              className="flex items-center gap-1 text-xs font-semibold text-brand-600"
+              onClick={apriAggiungiUnita}
+              className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
             >
               <Plus className="w-3 h-3" /> Aggiungi unità
             </button>
           </div>
+
+          {showAddUnita && (
+            <AddUnitaForm
+              strutturaId={struttura.id}
+              onClose={() => setShowAddUnita(false)}
+              onCreated={() => {
+                onChange()
+                setShowAddUnita(false)
+              }}
+              showToast={showToast}
+            />
+          )}
+
           <div className="space-y-2">
             {struttura.unita.map(u => (
               <UnitaRow key={u.id} unita={u} onChange={onChange} showToast={showToast} />
             ))}
-            {struttura.unita.length === 0 && (
+            {struttura.unita.length === 0 && !showAddUnita && (
               <p className="text-xs text-gray-400 text-center py-4">Nessuna unità</p>
             )}
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADD UNITA' FORM — modale inline, single o bulk
+// ══════════════════════════════════════════════════════════════════════════════
+
+function AddUnitaForm({
+  strutturaId,
+  onClose,
+  onCreated,
+  showToast,
+}: {
+  strutturaId: string
+  onClose: () => void
+  onCreated: () => void
+  showToast: (t: 'ok' | 'err', m: string) => void
+}) {
+  const [mode, setMode] = useState<'single' | 'bulk'>('single')
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({
+    nome: '',
+    capacita: '2',
+    lettiExtra: '0',
+    prezzoBase: '80',
+    piano: '',
+    attiva: true,
+  })
+  const [bulkForm, setBulkForm] = useState({
+    count: '5',
+    prefix: 'Camera',
+    startFrom: '1',
+    capacita: '2',
+    lettiExtra: '0',
+    prezzoBase: '80',
+  })
+
+  async function salvaSingola(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.nome.trim()) {
+      showToast('err', 'Nome obbligatorio')
+      return
+    }
+    setSaving(true)
+    const res = await fetch('/api/superadmin/unita', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        strutturaId,
+        nome: form.nome.trim(),
+        capacita: Number(form.capacita) || 1,
+        lettiExtra: Number(form.lettiExtra) || 0,
+        prezzoBase: Number(form.prezzoBase) || 0,
+        piano: form.piano ? Number(form.piano) : null,
+        attiva: form.attiva,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      showToast('ok', `Unità "${form.nome}" creata`)
+      onCreated()
+    } else {
+      const err = await res.text().catch(() => '')
+      showToast('err', `Errore: ${err.slice(0, 100)}`)
+    }
+  }
+
+  async function salvaBulk(e: React.FormEvent) {
+    e.preventDefault()
+    const count = Number(bulkForm.count) || 0
+    if (count < 1 || count > 50) {
+      showToast('err', 'Numero camere 1-50')
+      return
+    }
+    setSaving(true)
+    const startFrom = Number(bulkForm.startFrom) || 1
+    const prefix = bulkForm.prefix.trim() || 'Camera'
+    let successCount = 0
+    for (let i = 0; i < count; i++) {
+      const nome = `${prefix} ${startFrom + i}`
+      const res = await fetch('/api/superadmin/unita', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          strutturaId,
+          nome,
+          capacita: Number(bulkForm.capacita) || 2,
+          lettiExtra: Number(bulkForm.lettiExtra) || 0,
+          prezzoBase: Number(bulkForm.prezzoBase) || 0,
+        }),
+      })
+      if (res.ok) successCount++
+    }
+    setSaving(false)
+    showToast('ok', `${successCount}/${count} unità create`)
+    onCreated()
+  }
+
+  const inpSm = 'w-full px-2 py-1.5 border border-gray-200 rounded text-xs dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
+
+  return (
+    <div className="mb-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-1 text-[11px] font-semibold">
+          <button
+            type="button"
+            onClick={() => setMode('single')}
+            className={`px-2 py-1 rounded ${mode === 'single' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}
+          >
+            Singola
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('bulk')}
+            className={`px-2 py-1 rounded ${mode === 'bulk' ? 'bg-brand-600 text-white' : 'bg-white dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}
+          >
+            Bulk N camere
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600"
+          aria-label="Chiudi"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {mode === 'single' ? (
+        <form onSubmit={salvaSingola} className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Nome unità *</label>
+              <input
+                required
+                value={form.nome}
+                onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                placeholder="Suite Piano Terra"
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Piano</label>
+              <input
+                type="number"
+                value={form.piano}
+                onChange={e => setForm(f => ({ ...f, piano: e.target.value }))}
+                placeholder="0 = terra"
+                className={inpSm}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Posti letto *</label>
+              <input
+                type="number"
+                min="1"
+                max="20"
+                value={form.capacita}
+                onChange={e => setForm(f => ({ ...f, capacita: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Letti extra</label>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                value={form.lettiExtra}
+                onChange={e => setForm(f => ({ ...f, lettiExtra: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Prezzo base €</label>
+              <input
+                type="number"
+                min="0"
+                value={form.prezzoBase}
+                onChange={e => setForm(f => ({ ...f, prezzoBase: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+            Crea unità
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={salvaBulk} className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">N° camere</label>
+              <input
+                type="number"
+                min="1"
+                max="50"
+                value={bulkForm.count}
+                onChange={e => setBulkForm(f => ({ ...f, count: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Prefisso nome</label>
+              <input
+                value={bulkForm.prefix}
+                onChange={e => setBulkForm(f => ({ ...f, prefix: e.target.value }))}
+                placeholder="Camera"
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Parti da</label>
+              <input
+                type="number"
+                min="1"
+                value={bulkForm.startFrom}
+                onChange={e => setBulkForm(f => ({ ...f, startFrom: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Posti letto</label>
+              <input
+                type="number"
+                min="1"
+                value={bulkForm.capacita}
+                onChange={e => setBulkForm(f => ({ ...f, capacita: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Letti extra</label>
+              <input
+                type="number"
+                min="0"
+                value={bulkForm.lettiExtra}
+                onChange={e => setBulkForm(f => ({ ...f, lettiExtra: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-600 dark:text-slate-400 block mb-0.5">Prezzo €</label>
+              <input
+                type="number"
+                min="0"
+                value={bulkForm.prezzoBase}
+                onChange={e => setBulkForm(f => ({ ...f, prezzoBase: e.target.value }))}
+                className={inpSm}
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-blue-700 dark:text-blue-300">
+            Crea <strong>{bulkForm.count}</strong> unità con nomi{' '}
+            <strong>
+              {bulkForm.prefix} {bulkForm.startFrom}
+            </strong>{' '}
+            ...{' '}
+            <strong>
+              {bulkForm.prefix} {Number(bulkForm.startFrom) + Number(bulkForm.count) - 1}
+            </strong>
+            , ciascuna {bulkForm.capacita} posti letto ({bulkForm.lettiExtra} extra) a €
+            {bulkForm.prezzoBase}.
+          </p>
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+            Crea {bulkForm.count} unità
+          </button>
+        </form>
       )}
     </div>
   )
