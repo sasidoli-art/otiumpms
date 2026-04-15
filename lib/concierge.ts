@@ -632,6 +632,7 @@ export async function processGuestMessage(params: {
     where: { id: hostId },
     select: {
       nomeAzienda: true,
+      conciergeAttivo: true,
       conciergeProvider: true,
       conciergeApiKey: true,
       conciergeModel: true,
@@ -697,6 +698,58 @@ export async function processGuestMessage(params: {
     })
     return {
       response: '',  // nessuna risposta AI — attende operatore umano
+      toolsUsed: [],
+      tokensUsed: null,
+      conversazioneId: conversazione.id,
+    }
+  }
+
+  // ── PILOTA AUTOMATICO OFF: l'host vuole rispondere personalmente ────────
+  // L'AI sta zitta, salviamo il messaggio, mandiamo auto-reply, notifichiamo host.
+  if (host.conciergeAttivo === false) {
+    await prisma.messaggioWhatsApp.create({
+      data: {
+        conversazioneId: conversazione.id,
+        mittente: 'OSPITE',
+        testo,
+        whatsappMessageId: messageId,
+      },
+    })
+
+    const autoReplies: Record<string, string> = {
+      it: `Grazie per il tuo messaggio! Ti rispondiamo appena possibile, di solito entro 15 minuti.`,
+      en: `Thanks for your message! We'll get back to you as soon as possible, usually within 15 minutes.`,
+      fr: `Merci pour votre message ! Nous vous repondrons des que possible, generalement dans les 15 minutes.`,
+      de: `Danke fur deine Nachricht! Wir melden uns so bald wie moglich, normalerweise innerhalb von 15 Minuten.`,
+    }
+    const autoReply = autoReplies[guest.lingua] || autoReplies.en
+
+    await prisma.messaggioWhatsApp.create({
+      data: {
+        conversazioneId: conversazione.id,
+        mittente: 'AI_CONCIERGE',
+        testo: autoReply,
+      },
+    })
+
+    // Notifica host: nuovo messaggio in coda umana (non bloccare se fallisce)
+    try {
+      await prisma.notifica.create({
+        data: {
+          hostId,
+          tipo: 'sistema',
+          titolo: `Nuovo messaggio da ${conversazione.nomeOspite || telefono}`,
+          messaggio: testo.slice(0, 200),
+          letta: false,
+          linkUrl: `/host/concierge/${conversazione.id}`,
+        },
+      })
+    } catch {
+      // Notifica è best-effort, non bloccare il flow
+    }
+
+    return {
+      response: autoReply,
       toolsUsed: [],
       tokensUsed: null,
       conversazioneId: conversazione.id,

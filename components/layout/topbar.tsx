@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { NotificheBell } from '@/components/layout/notifiche-bell'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
 import { StrutturaSwitcher } from '@/components/layout/struttura-switcher'
+import { ConciergeToggle } from '@/components/layout/concierge-toggle'
 import { useTheme } from '@/components/theme-provider'
 
 interface TopbarProps {
@@ -148,6 +149,7 @@ export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick, strutture
         {/* Language switcher */}
         <LanguageSwitcher className="hidden sm:block" />
 
+        {ruolo === 'HOST' && <ConciergeToggle />}
         {ruolo === 'HOST' && <NotificheBell />}
 
         {/* User Dropdown */}
