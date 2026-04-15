@@ -167,7 +167,7 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
                     </td>
                     <td className="table-td text-xs text-gray-400">{format(new Date(h.createdAt), 'd MMM yy', { locale: it })}</td>
                     <td className="table-td">
-                      <Link href={`/admin/clienti/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1">
+                      <Link href={`/superadmin/host/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1">
                         {tc('manage')} <ExternalLink className="w-3 h-3" />
                       </Link>
                     </td>
