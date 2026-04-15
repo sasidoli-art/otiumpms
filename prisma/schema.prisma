@@ -163,6 +163,26 @@ model Session {
   @@map("sessions")
 }
 
+/// Configurazione globale della piattaforma Otium, gestita dal SuperAdmin.
+/// Singleton: esiste una sola riga con id="singleton".
+model PlatformSettings {
+  id String @id @default("singleton")
+
+  // ─── AI Concierge: Platform Key centralizzata ──────────────────────────────
+  // Configurazione AI globale usata da tutti gli host (Strategia B "Platform Key").
+  // L'host abilita/disabilita dal suo toggle ma NON configura provider/chiave.
+  aiProvider String? @default("claude") // "claude" | "openai" | "ollama"
+  aiModel    String? @default("claude-haiku-4-5-20251001")
+  aiApiKey   String? // Chiave API piattaforma (Anthropic / OpenRouter / OpenAI)
+  aiBaseUrl  String? // Opzionale: URL gateway custom (OpenRouter, Ollama, ecc.)
+
+  // ─── Metadata ──────────────────────────────────────────────────────────────
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("platform_settings")
+}
+
 model Host {
   id     String @id @default(cuid())
   userId String @unique

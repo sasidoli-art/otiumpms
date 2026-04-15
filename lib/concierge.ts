@@ -17,6 +17,7 @@
 import { prisma } from '@/lib/db'
 import { PrioritaHK, PrioritaManutenzione, TipoAzioneConcierge } from '@prisma/client'
 import { createAIProvider, type AIMessage, type AIToolDefinition, type AIToolCall } from '@/lib/ai-provider'
+import { getPlatformSettings } from '@/lib/platform-settings'
 import { logger } from '@/lib/logger'
 
 // ─── Tool Definitions ─────────────────────────────────────────────────────────
@@ -795,11 +796,22 @@ export async function processGuestMessage(params: {
   ]
 
   // 7. Chiama AI provider
+  //
+  // Strategia Platform Key: leggi prima PlatformSettings (SuperAdmin),
+  // poi fallback su Host.conciergeApiKey se l'host ha una sua chiave
+  // (advanced BYO-Key opt-in, rimane come override opzionale).
+  const platformSettings = await getPlatformSettings()
+  const useBYO = !!host.conciergeApiKey
+
   const provider = createAIProvider({
-    provider: (host.conciergeProvider || 'ollama') as 'ollama' | 'claude' | 'openai',
-    apiKey: host.conciergeApiKey,
-    model: host.conciergeModel,
-    baseUrl: host.conciergeBaseUrl,
+    provider: (
+      useBYO
+        ? host.conciergeProvider || 'ollama'
+        : platformSettings.aiProvider || 'claude'
+    ) as 'ollama' | 'claude' | 'openai',
+    apiKey: useBYO ? host.conciergeApiKey : platformSettings.aiApiKey,
+    model: useBYO ? host.conciergeModel : platformSettings.aiModel,
+    baseUrl: useBYO ? host.conciergeBaseUrl : platformSettings.aiBaseUrl,
   })
 
   let response = await provider.chat(messages, CONCIERGE_TOOLS)
