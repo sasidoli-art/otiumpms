@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/wifi-heartbeat-check",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
