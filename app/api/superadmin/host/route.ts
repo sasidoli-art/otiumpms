@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
         piano: piano || 'LIGHT',
         statoAbbonamento: 'ATTIVO',
         dataFineAbb: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 anno
+        // White-glove onboarding: SuperAdmin ha gia' configurato tutto, l'host
+        // al primo login va direttamente in dashboard, no wizard.
+        onboardingCompletato: true,
       },
     })
 
