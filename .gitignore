@@ -45,3 +45,11 @@ _LOCAL_*
 **/PASSWORDS.md
 **/secrets/
 **/credentials/
+
+# backup files (mai committare — possono contenere config sensibili)
+*.bak
+*.backup
+bakup.file
+*-backup.*
+dump*.sql
+*.pg_dump
