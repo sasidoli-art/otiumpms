@@ -28,7 +28,7 @@
     "date-fns": "^3.6.0",
     "framer-motion": "^12.38.0",
     "imapflow": "^1.2.18",
-    "lucide-react": "^0.427.0",
+    "lucide-react": "^1.8.0",
     "mailparser": "^3.9.6",
     "next": "^16.2.1",
     "next-auth": "^4.24.7",
