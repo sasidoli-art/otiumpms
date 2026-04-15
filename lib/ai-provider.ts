@@ -44,7 +44,7 @@ export interface AIProviderConfig {
   provider: 'ollama' | 'claude' | 'openai'
   apiKey?: string | null
   model?: string | null
-  baseUrl?: string | null  // per Ollama custom URL
+  baseUrl?: string | null  // Ollama custom URL, oppure OpenAI-compatible gateway (es. OpenRouter)
 }
 
 export interface AIProvider {
@@ -247,10 +247,14 @@ class ClaudeProvider implements AIProvider {
 class OpenAIProvider implements AIProvider {
   private apiKey: string
   private model: string
+  private baseUrl: string
 
   constructor(config: AIProviderConfig) {
     this.apiKey = config.apiKey || ''
     this.model = config.model || 'gpt-4o-mini'
+    // baseUrl custom permette di usare qualsiasi gateway OpenAI-compatibile
+    // (OpenRouter, Groq, Together, Perplexity, Azure OpenAI, ecc.)
+    this.baseUrl = (config.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '')
     if (!this.apiKey) throw new Error('API key OpenAI obbligatoria per provider OpenAI')
   }
 
@@ -293,11 +297,14 @@ class OpenAIProvider implements AIProvider {
     }
 
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      const res = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
+          // OpenRouter richiede HTTP-Referer + X-Title per tracking (facoltativi)
+          'HTTP-Referer': 'https://otium-pms.vercel.app',
+          'X-Title': 'Otium PMS',
         },
         body: JSON.stringify(body),
       })

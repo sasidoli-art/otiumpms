@@ -194,6 +194,7 @@ model Host {
   conciergeProvider     String? @default("ollama") // "ollama" | "claude" | "openai"
   conciergeApiKey       String? // API key AI dell'host (non della piattaforma)
   conciergeModel        String? @default("llama3.1") // modello AI da usare
+  conciergeBaseUrl      String? // URL gateway custom (es. https://openrouter.ai/api/v1 per OpenRouter)
   conciergeSystemPrompt String? // info hotel: orari colazione, checkout, Wi-Fi, ecc.
   whatsappNumeroId      String? // Phone Number ID da Meta Cloud API
   whatsappAccessToken   String? // token API WhatsApp Business dell'host

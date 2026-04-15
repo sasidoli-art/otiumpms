@@ -635,6 +635,7 @@ export async function processGuestMessage(params: {
       conciergeProvider: true,
       conciergeApiKey: true,
       conciergeModel: true,
+      conciergeBaseUrl: true,
       conciergeSystemPrompt: true,
     },
   })
@@ -734,6 +735,7 @@ export async function processGuestMessage(params: {
     provider: (host.conciergeProvider || 'ollama') as 'ollama' | 'claude' | 'openai',
     apiKey: host.conciergeApiKey,
     model: host.conciergeModel,
+    baseUrl: host.conciergeBaseUrl,
   })
 
   let response = await provider.chat(messages, CONCIERGE_TOOLS)

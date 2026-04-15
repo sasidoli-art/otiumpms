@@ -1,11 +1,69 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Settings, Loader2, Check, Bot, Globe, Key } from 'lucide-react'
+import { Settings, Loader2, Check, Bot, Globe, Key, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 
 const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
+
+type Preset = {
+  id: string
+  label: string
+  desc: string
+  provider: 'openai' | 'claude' | 'ollama'
+  model: string
+  baseUrl: string
+  keyPlaceholder: string
+}
+
+const PRESETS: Preset[] = [
+  {
+    id: 'openrouter-qwen',
+    label: 'Qwen 2.5 72B (OpenRouter)',
+    desc: 'Cloud · ~€0.40/1M token · 🟢 ottimo IT',
+    provider: 'openai',
+    model: 'qwen/qwen-2.5-72b-instruct',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    keyPlaceholder: 'sk-or-v1-...',
+  },
+  {
+    id: 'openrouter-qwen-7b',
+    label: 'Qwen 2.5 7B (OpenRouter)',
+    desc: 'Cloud · economico · 🟢 buono IT',
+    provider: 'openai',
+    model: 'qwen/qwen-2.5-7b-instruct',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    keyPlaceholder: 'sk-or-v1-...',
+  },
+  {
+    id: 'claude-haiku',
+    label: 'Claude Haiku 4.5',
+    desc: 'Cloud · ~€0.15/1M token · 🟢🟢 eccellente IT',
+    provider: 'claude',
+    model: 'claude-haiku-4-5-20251001',
+    baseUrl: '',
+    keyPlaceholder: 'sk-ant-...',
+  },
+  {
+    id: 'openai-gpt4o-mini',
+    label: 'GPT-4o mini',
+    desc: 'Cloud · OpenAI diretto · 🟢 ottimo IT',
+    provider: 'openai',
+    model: 'gpt-4o-mini',
+    baseUrl: 'https://api.openai.com/v1',
+    keyPlaceholder: 'sk-...',
+  },
+  {
+    id: 'ollama-local',
+    label: 'Qwen 2.5 7B (Ollama locale)',
+    desc: 'Self-hosted · gratis · 🟡 privacy totale',
+    provider: 'ollama',
+    model: 'qwen2.5:7b',
+    baseUrl: 'http://localhost:11434',
+    keyPlaceholder: '',
+  },
+]
 
 export default function ConciergeSettingsPage() {
   const t = useTranslations('host.concierge')
@@ -13,6 +71,8 @@ export default function ConciergeSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [successo, setSuccesso] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const router = useRouter()
 
   const [form, setForm] = useState({
@@ -20,6 +80,7 @@ export default function ConciergeSettingsPage() {
     conciergeProvider: 'ollama',
     conciergeApiKey: '',
     conciergeModel: 'llama3.1',
+    conciergeBaseUrl: '',
     conciergeSystemPrompt: '',
     whatsappNumeroId: '',
     whatsappAccessToken: '',
@@ -35,6 +96,7 @@ export default function ConciergeSettingsPage() {
           conciergeProvider: d.conciergeProvider || 'ollama',
           conciergeApiKey: d.conciergeApiKey || '',
           conciergeModel: d.conciergeModel || 'llama3.1',
+          conciergeBaseUrl: d.conciergeBaseUrl || '',
           conciergeSystemPrompt: d.conciergeSystemPrompt || '',
           whatsappNumeroId: d.whatsappNumeroId || '',
           whatsappAccessToken: d.whatsappAccessToken || '',
@@ -43,6 +105,42 @@ export default function ConciergeSettingsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  function applyPreset(p: Preset) {
+    setForm(f => ({
+      ...f,
+      conciergeProvider: p.provider,
+      conciergeModel: p.model,
+      conciergeBaseUrl: p.baseUrl,
+    }))
+    setTestResult(null)
+  }
+
+  async function testConnection() {
+    setTesting(true); setTestResult(null)
+    try {
+      const res = await fetch('/api/host/concierge/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: form.conciergeProvider,
+          apiKey: form.conciergeApiKey,
+          model: form.conciergeModel,
+          baseUrl: form.conciergeBaseUrl,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setTestResult({ ok: true, msg: `OK · ${data.response?.slice(0, 80) ?? ''}` })
+      } else {
+        setTestResult({ ok: false, msg: data.error || 'Errore sconosciuto' })
+      }
+    } catch (err) {
+      setTestResult({ ok: false, msg: 'Errore di rete' })
+    } finally {
+      setTesting(false)
+    }
+  }
 
   async function salva() {
     setSaving(true); setSuccesso(false)
@@ -83,29 +181,120 @@ export default function ConciergeSettingsPage() {
 
       {/* Provider AI */}
       <div className="card space-y-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2"><Key className="w-4 h-4 text-gray-500" /> {t('aiProvider')}</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 'ollama', label: t('ollama'), desc: t('ollamaDesc') },
-            { id: 'claude', label: t('claude'), desc: t('claudeDesc') },
-            { id: 'openai', label: t('openai'), desc: t('openaiDesc') },
-          ].map(p => (
-            <button key={p.id} onClick={() => setForm(f => ({ ...f, conciergeProvider: p.id }))}
-              className={`p-3 rounded-lg border-2 text-left text-xs transition-all ${form.conciergeProvider === p.id ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-slate-600'}`}>
-              <p className="font-semibold">{p.label}</p>
-              <p className="text-gray-400 mt-0.5">{p.desc}</p>
-            </button>
-          ))}
+        <h3 className="text-sm font-semibold flex items-center gap-2"><Key className="w-4 h-4 text-gray-500" /> Modello AI</h3>
+        <p className="text-xs text-gray-400">Scegli un preset pronto, oppure imposta manualmente provider + model + base URL.</p>
+
+        {/* Preset chooser */}
+        <div className="grid gap-2">
+          {PRESETS.map(p => {
+            const isActive =
+              form.conciergeProvider === p.provider &&
+              form.conciergeModel === p.model &&
+              (form.conciergeBaseUrl || '') === p.baseUrl
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p)}
+                className={`p-3 rounded-lg border-2 text-left text-xs transition-all ${
+                  isActive
+                    ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-gray-200 dark:border-slate-600 hover:border-purple-300'
+                }`}
+              >
+                <p className="font-semibold">{p.label}</p>
+                <p className="text-gray-400 mt-0.5">{p.desc}</p>
+              </button>
+            )
+          })}
         </div>
-        {form.conciergeProvider !== 'ollama' && (
-          <div>
-            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('apiKey')}</label>
-            <input type="password" value={form.conciergeApiKey} onChange={e => setForm(f => ({ ...f, conciergeApiKey: e.target.value }))} placeholder={form.conciergeProvider === 'claude' ? 'sk-ant-...' : 'sk-...'} className={inp} />
+
+        {/* Configurazione manuale (sempre visibile) */}
+        <div className="border-t border-gray-200 dark:border-slate-700 pt-4 space-y-3">
+          <p className="text-xs font-semibold text-gray-600 dark:text-slate-400">Configurazione manuale</p>
+
+          <div className="grid grid-cols-3 gap-2">
+            {(['ollama', 'claude', 'openai'] as const).map(prov => (
+              <button
+                key={prov}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, conciergeProvider: prov }))}
+                className={`px-3 py-2 rounded-lg border text-xs font-semibold transition-all ${
+                  form.conciergeProvider === prov
+                    ? 'border-purple-400 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-slate-600 text-gray-500'
+                }`}
+              >
+                {prov}
+              </button>
+            ))}
           </div>
-        )}
-        <div>
-          <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">{t('model')}</label>
-          <input type="text" value={form.conciergeModel} onChange={e => setForm(f => ({ ...f, conciergeModel: e.target.value }))} className={inp} placeholder="llama3.1 / claude-haiku-4-5-20251001 / gpt-4o-mini" />
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">Modello</label>
+            <input
+              type="text"
+              value={form.conciergeModel}
+              onChange={e => setForm(f => ({ ...f, conciergeModel: e.target.value }))}
+              className={inp}
+              placeholder="qwen/qwen-2.5-72b-instruct · claude-haiku-4-5-20251001 · qwen2.5:7b"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">
+              Base URL (vuoto = default del provider)
+            </label>
+            <input
+              type="text"
+              value={form.conciergeBaseUrl}
+              onChange={e => setForm(f => ({ ...f, conciergeBaseUrl: e.target.value }))}
+              className={inp}
+              placeholder="https://openrouter.ai/api/v1"
+            />
+          </div>
+
+          {form.conciergeProvider !== 'ollama' && (
+            <div>
+              <label className="text-xs font-medium text-gray-600 dark:text-slate-400 block mb-1">API key</label>
+              <input
+                type="password"
+                value={form.conciergeApiKey}
+                onChange={e => setForm(f => ({ ...f, conciergeApiKey: e.target.value }))}
+                placeholder={
+                  form.conciergeProvider === 'claude'
+                    ? 'sk-ant-...'
+                    : form.conciergeBaseUrl?.includes('openrouter')
+                    ? 'sk-or-v1-...'
+                    : 'sk-...'
+                }
+                className={inp}
+              />
+            </div>
+          )}
+
+          {/* Test connection */}
+          <button
+            type="button"
+            onClick={testConnection}
+            disabled={testing}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold disabled:opacity-50"
+          >
+            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+            {testing ? 'Test in corso...' : 'Test connessione'}
+          </button>
+
+          {testResult && (
+            <div
+              className={`text-xs p-2 rounded-lg ${
+                testResult.ok
+                  ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                  : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+              }`}
+            >
+              {testResult.ok ? '✅' : '❌'} {testResult.msg}
+            </div>
+          )}
         </div>
       </div>
 

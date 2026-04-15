@@ -73,6 +73,17 @@ export async function PATCH(req: NextRequest) {
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
       // Modalita check-in
       modalitaCheckin: data.modalitaCheckin !== undefined ? data.modalitaCheckin : host.modalitaCheckin,
+      // AI Concierge
+      conciergeAttivo: data.conciergeAttivo !== undefined ? data.conciergeAttivo : host.conciergeAttivo,
+      conciergeProvider: data.conciergeProvider !== undefined ? data.conciergeProvider : host.conciergeProvider,
+      conciergeApiKey: data.conciergeApiKey !== undefined ? (data.conciergeApiKey || null) : host.conciergeApiKey,
+      conciergeModel: data.conciergeModel !== undefined ? (data.conciergeModel || null) : host.conciergeModel,
+      conciergeBaseUrl: data.conciergeBaseUrl !== undefined ? (data.conciergeBaseUrl || null) : host.conciergeBaseUrl,
+      conciergeSystemPrompt: data.conciergeSystemPrompt !== undefined ? (data.conciergeSystemPrompt || null) : host.conciergeSystemPrompt,
+      // WhatsApp Business
+      whatsappNumeroId: data.whatsappNumeroId !== undefined ? (data.whatsappNumeroId || null) : host.whatsappNumeroId,
+      whatsappAccessToken: data.whatsappAccessToken !== undefined ? (data.whatsappAccessToken || null) : host.whatsappAccessToken,
+      whatsappVerifyToken: data.whatsappVerifyToken !== undefined ? (data.whatsappVerifyToken || null) : host.whatsappVerifyToken,
     },
   })
 

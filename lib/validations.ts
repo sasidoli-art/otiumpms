@@ -281,6 +281,17 @@ export const profiloUpdateSchema = z.object({
   valuteAccettate: z.array(z.enum(['EUR', 'USD', 'GBP', 'CHF'])).optional(),
   // Modalita check-in
   modalitaCheckin: z.enum(['completo', 'leggero']).optional().nullable(),
+  // AI Concierge
+  conciergeAttivo: z.boolean().optional(),
+  conciergeProvider: z.enum(['ollama', 'claude', 'openai']).optional().nullable(),
+  conciergeApiKey: z.string().max(512).optional().nullable(),
+  conciergeModel: z.string().max(128).trim().optional().nullable(),
+  conciergeBaseUrl: z.string().url().max(255).optional().nullable().or(z.literal('')),
+  conciergeSystemPrompt: z.string().max(4096).optional().nullable(),
+  // WhatsApp Business
+  whatsappNumeroId: z.string().max(64).trim().optional().nullable(),
+  whatsappAccessToken: z.string().max(512).optional().nullable(),
+  whatsappVerifyToken: z.string().max(128).optional().nullable(),
 })
 
 export type ProfiloUpdateInput = z.infer<typeof profiloUpdateSchema>
