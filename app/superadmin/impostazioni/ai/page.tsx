@@ -6,6 +6,9 @@ import PlatformAiClient from './platform-ai-client'
 
 export const metadata = { title: 'AI Provider — SuperAdmin' }
 
+// Forza SSR — mai pre-renderizzata staticamente
+export const dynamic = 'force-dynamic'
+
 export default async function PlatformAiPage() {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'SUPERADMIN') redirect('/login')
