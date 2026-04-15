@@ -1,45 +1,35 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, Loader2, Check, Building2, Bot, FileText, Package } from 'lucide-react'
-import { CATALOGO_MODULI } from '@/lib/moduli'
+import { Plus, X, Loader2, Check, Building2, Bot, Trash2 } from 'lucide-react'
 
 const PIANI = [
   { id: 'LIGHT', label: 'LIGHT', desc: '€29/mese · 1 struttura · 10 unità' },
   { id: 'EVENTO_SINGOLO', label: 'EVENTO SINGOLO', desc: '€49/mese · 1 struttura · 3 eventi' },
-  { id: 'VISIBILITA_MENSILE', label: 'VISIBILITÀ MENSILE', desc: '€149/mese · 3 strutture · 20 unità · CRM+Staff+Channel' },
+  { id: 'VISIBILITA_MENSILE', label: 'VISIBILITÀ MENSILE', desc: '€149/mese · 3 strutture · CRM+Staff+Channel' },
   { id: 'PARTNER_PREMIUM', label: 'PARTNER PREMIUM', desc: '€299/mese · 10 strutture · tutti i moduli' },
 ]
 
-const REGIMI_FISCALI = [
-  { value: 'RF01', label: 'RF01 — Ordinario' },
-  { value: 'RF19', label: 'RF19 — Forfettario' },
-  { value: 'RF02', label: 'RF02 — Contribuenti minimi' },
-  { value: 'RF04', label: 'RF04 — Agricoltura e attività connesse' },
-  { value: 'RF05', label: 'RF05 — Vendita sali e tabacchi' },
-]
+type TipoStruttura = 'ALLOGGIO' | 'EVENTO' | 'VENUE' | 'ESPERIENZA' | 'SERVIZIO'
 
-const TEMPLATE_PROMPT = `Sei il concierge AI di [NOME STRUTTURA].
+type StrutturaForm = {
+  nome: string
+  tipo: TipoStruttura
+  citta: string
+  numeroUnita: string
+  prefissoUnita: string
+}
 
-INFORMAZIONI STRUTTURA:
-- Orario colazione: 07:30 - 10:00 al ristorante / in terrazza
-- Check-in: dalle 15:00
-- Check-out: entro le 11:00 (late check-out su richiesta fino alle 14:00)
-- Wi-Fi: [NOME_RETE] / password: [PASSWORD]
-- Parcheggio: gratuito nel cortile interno
-- Animali: ammessi su richiesta
+const emptyStruttura = (): StrutturaForm => ({
+  nome: '',
+  tipo: 'ALLOGGIO',
+  citta: '',
+  numeroUnita: '5',
+  prefissoUnita: 'Camera',
+})
 
-SERVIZI:
-- SPA aperta 09:00-20:00, prenotazione obbligatoria
-- Colazione inclusa nella tariffa
-- Servizio in camera su richiesta dalle 08:00 alle 22:00
-
-TONO:
-- Caldo, cortese, professionale da concierge di hotel
-- Risposte brevi (max 3 frasi)
-- Se non sai qualcosa, dillo onestamente e proponi di contattare la reception`
-
-const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
+const inp =
+  'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
 
 export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
   const [loading, setLoading] = useState(false)
@@ -52,40 +42,16 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
     password: '',
     nome: '',
     cognome: '',
-
-    // Azienda
+    // Azienda (minimal)
     nomeAzienda: '',
-    partitaIva: '',
-    codiceFiscale: '',
-    telefono: '',
-    sitoWeb: '',
-    indirizzo: '',
     citta: '',
-    provincia: '',
-    cap: '',
-    regione: '',
-
-    // Fatturazione
-    fattPec: '',
-    fattCodiceSDI: '',
-    regimeFiscale: 'RF01',
-
-    // Piano + Moduli
+    // Piano
     piano: 'VISIBILITA_MENSILE',
-    moduliAttivi: {} as Record<string, boolean>,
-
-    // Prima struttura
-    strutturaNome: '',
-    strutturaTipo: 'ALLOGGIO' as 'EVENTO' | 'VENUE' | 'ESPERIENZA' | 'ALLOGGIO' | 'SERVIZIO',
-    strutturaCitta: '',
-    strutturaPrezzoBase: '80',
-    numeroUnita: '5',
-    prefissoUnita: 'Camera',
-
     // Concierge
-    conciergeAttivo: false,
-    conciergeSystemPrompt: TEMPLATE_PROMPT,
+    conciergeAttivo: true,
   })
+
+  const [strutture, setStrutture] = useState<StrutturaForm[]>([emptyStruttura()])
 
   function generaPassword() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -95,11 +61,16 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
     setForm(f => ({ ...f, password: pwd }))
   }
 
-  function toggleModulo(id: string) {
-    setForm(f => ({
-      ...f,
-      moduliAttivi: { ...f.moduliAttivi, [id]: !f.moduliAttivi[id] },
-    }))
+  function aggiungiStruttura() {
+    setStrutture(s => [...s, emptyStruttura()])
+  }
+
+  function rimuoviStruttura(idx: number) {
+    setStrutture(s => s.filter((_, i) => i !== idx))
+  }
+
+  function aggiornaStruttura(idx: number, patch: Partial<StrutturaForm>) {
+    setStrutture(s => s.map((st, i) => (i === idx ? { ...st, ...patch } : st)))
   }
 
   async function salva(e: React.FormEvent) {
@@ -107,15 +78,28 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
     setLoading(true)
     setError(null)
     try {
+      // Filtra strutture vuote (senza nome)
+      const struttureValide = strutture.filter(s => s.nome.trim().length > 0)
+
       const res = await fetch('/api/superadmin/host', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          strutturaPrezzoBase: Number(form.strutturaPrezzoBase) || 0,
-          numeroUnita: Number(form.numeroUnita) || 0,
-          conciergeSystemPrompt: form.conciergeAttivo ? form.conciergeSystemPrompt : null,
-          fattPec: form.fattPec || null,
+          email: form.email,
+          password: form.password,
+          nome: form.nome,
+          cognome: form.cognome,
+          nomeAzienda: form.nomeAzienda,
+          citta: form.citta || null,
+          piano: form.piano,
+          conciergeAttivo: form.conciergeAttivo,
+          strutture: struttureValide.map(s => ({
+            nome: s.nome.trim(),
+            tipo: s.tipo,
+            citta: s.citta.trim() || form.citta || null,
+            numeroUnita: Number(s.numeroUnita) || 0,
+            prefissoUnita: s.prefissoUnita.trim() || 'Camera',
+          })),
         }),
       })
       const data = await res.json()
@@ -132,7 +116,7 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
     }
   }
 
-  // Schermata success con credenziali
+  // Schermata success
   if (success) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -141,10 +125,9 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
           <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
             <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-lg font-bold mb-1">Host creato con successo</h2>
+          <h2 className="text-lg font-bold mb-1">Host attivato</h2>
           <p className="text-xs text-gray-500 mb-4">
-            Salva queste credenziali e consegnale all&apos;host. La password non verrà mostrata di
-            nuovo.
+            Consegna queste credenziali all&apos;host. La password non verrà più mostrata.
           </p>
 
           <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 mb-4 space-y-2">
@@ -157,17 +140,17 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
               <p className="font-mono text-sm">{success.password}</p>
             </div>
             <div>
-              <p className="text-[10px] uppercase text-gray-400 font-semibold">URL login</p>
+              <p className="text-[10px] uppercase text-gray-400 font-semibold">Login</p>
               <p className="font-mono text-xs break-all">https://otium-pms.vercel.app/login</p>
             </div>
           </div>
 
           <button
-            onClick={() => {
+            onClick={() =>
               navigator.clipboard.writeText(
                 `Email: ${success.email}\nPassword: ${success.password}\nLogin: https://otium-pms.vercel.app/login`
               )
-            }}
+            }
             className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold mb-2 hover:bg-gray-50 dark:hover:bg-slate-800"
           >
             📋 Copia credenziali
@@ -192,102 +175,99 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl my-8">
+      <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl my-8">
         <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-700 px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Nuovo Host</h2>
-            <p className="text-xs text-gray-500">White-glove onboarding completo</p>
+            <p className="text-xs text-gray-500">
+              Attiva host + crea strutture iniziali. I dettagli (fatturazione, foto, tariffe
+              avanzate) si configurano dopo.
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            aria-label="Chiudi"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Chiudi">
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={salva} className="p-6 space-y-6">
-          {/* Sezione 1: Account utente */}
+          {/* Referente */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                1
-              </span>
-              Account utente
-            </h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Nome referente *
-                  </label>
-                  <input
-                    required
-                    value={form.nome}
-                    onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Cognome *
-                  </label>
-                  <input
-                    required
-                    value={form.cognome}
-                    onChange={e => setForm(f => ({ ...f, cognome: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Referente</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Nome *
+                </label>
+                <input
+                  required
+                  value={form.nome}
+                  onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                  className={inp}
+                />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Email (login) *
-                  </label>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Cognome *
+                </label>
+                <input
+                  required
+                  value={form.cognome}
+                  onChange={e => setForm(f => ({ ...f, cognome: e.target.value }))}
+                  className={inp}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Account login */}
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+              Credenziali login
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Email *
+                </label>
+                <input
+                  required
+                  type="email"
+                  value={form.email}
+                  onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                  placeholder="mario@hotel.it"
+                  className={inp}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+                  Password *
+                </label>
+                <div className="flex gap-2">
                   <input
                     required
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    placeholder="mario@hotel.it"
+                    type="text"
+                    minLength={6}
+                    value={form.password}
+                    onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                     className={inp}
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Password *
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      required
-                      type="text"
-                      minLength={6}
-                      value={form.password}
-                      onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                      className={inp}
-                    />
-                    <button
-                      type="button"
-                      onClick={generaPassword}
-                      className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold whitespace-nowrap"
-                    >
-                      🎲 Genera
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={generaPassword}
+                    className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold whitespace-nowrap"
+                    title="Genera password casuale"
+                  >
+                    🎲
+                  </button>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Sezione 2: Dati azienda */}
+          {/* Azienda */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                2
-              </span>
-              Dati azienda
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+              Azienda
             </h3>
             <div className="space-y-3">
               <div>
@@ -298,375 +278,189 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
                   required
                   value={form.nomeAzienda}
                   onChange={e => setForm(f => ({ ...f, nomeAzienda: e.target.value }))}
-                  placeholder="Agriturismo Il Poggio srl"
+                  placeholder="Agriturismo Il Poggio"
                   className={inp}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Partita IVA
-                  </label>
-                  <input
-                    value={form.partitaIva}
-                    onChange={e => setForm(f => ({ ...f, partitaIva: e.target.value }))}
-                    placeholder="IT01234567890"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Codice Fiscale
-                  </label>
-                  <input
-                    value={form.codiceFiscale}
-                    onChange={e => setForm(f => ({ ...f, codiceFiscale: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Telefono
-                  </label>
-                  <input
-                    value={form.telefono}
-                    onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
-                    placeholder="+39 055 123456"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Sito web
-                  </label>
-                  <input
-                    value={form.sitoWeb}
-                    onChange={e => setForm(f => ({ ...f, sitoWeb: e.target.value }))}
-                    placeholder="https://ilpoggio.it"
-                    className={inp}
-                  />
-                </div>
-              </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                  Indirizzo
+                  Città
                 </label>
                 <input
-                  value={form.indirizzo}
-                  onChange={e => setForm(f => ({ ...f, indirizzo: e.target.value }))}
-                  placeholder="Via del Poggio 12"
+                  value={form.citta}
+                  onChange={e => setForm(f => ({ ...f, citta: e.target.value }))}
+                  placeholder="Siena"
                   className={inp}
                 />
               </div>
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Città
-                  </label>
-                  <input
-                    value={form.citta}
-                    onChange={e => setForm(f => ({ ...f, citta: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Provincia
-                  </label>
-                  <input
-                    maxLength={2}
-                    value={form.provincia}
-                    onChange={e => setForm(f => ({ ...f, provincia: e.target.value.toUpperCase() }))}
-                    placeholder="SI"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    CAP
-                  </label>
-                  <input
-                    maxLength={5}
-                    value={form.cap}
-                    onChange={e => setForm(f => ({ ...f, cap: e.target.value }))}
-                    placeholder="53100"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Regione
-                  </label>
-                  <input
-                    value={form.regione}
-                    onChange={e => setForm(f => ({ ...f, regione: e.target.value }))}
-                    placeholder="Toscana"
-                    className={inp}
-                  />
-                </div>
-              </div>
             </div>
           </section>
 
-          {/* Sezione 3: Fatturazione elettronica */}
+          {/* Piano */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                3
-              </span>
-              <FileText className="w-3 h-3" /> Fatturazione elettronica
-            </h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    PEC
-                  </label>
-                  <input
-                    type="email"
-                    value={form.fattPec}
-                    onChange={e => setForm(f => ({ ...f, fattPec: e.target.value }))}
-                    placeholder="pec@ilpoggio.pec.it"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Codice SDI
-                  </label>
-                  <input
-                    maxLength={7}
-                    value={form.fattCodiceSDI}
-                    onChange={e => setForm(f => ({ ...f, fattCodiceSDI: e.target.value.toUpperCase() }))}
-                    placeholder="0000000"
-                    className={inp}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                  Regime fiscale
-                </label>
-                <select
-                  value={form.regimeFiscale}
-                  onChange={e => setForm(f => ({ ...f, regimeFiscale: e.target.value }))}
-                  className={inp}
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Piano</h3>
+            <div className="grid gap-2">
+              {PIANI.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, piano: p.id }))}
+                  className={`p-3 rounded-lg border-2 text-left text-xs transition-all ${
+                    form.piano === p.id
+                      ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-gray-200 dark:border-slate-600 hover:border-brand-300'
+                  }`}
                 >
-                  {REGIMI_FISCALI.map(r => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <p className="font-semibold">{p.label}</p>
+                  <p className="text-gray-400 mt-0.5">{p.desc}</p>
+                </button>
+              ))}
             </div>
           </section>
 
-          {/* Sezione 4: Piano + Moduli */}
+          {/* Strutture (repeatable) */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                4
-              </span>
-              <Package className="w-3 h-3" /> Piano + Moduli
-            </h3>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                  Piano
-                </label>
-                <div className="grid gap-2">
-                  {PIANI.map(p => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setForm(f => ({ ...f, piano: p.id }))}
-                      className={`p-3 rounded-lg border-2 text-left text-xs transition-all ${
-                        form.piano === p.id
-                          ? 'border-brand-400 bg-brand-50 dark:bg-brand-900/20'
-                          : 'border-gray-200 dark:border-slate-600 hover:border-brand-300'
-                      }`}
-                    >
-                      <p className="font-semibold">{p.label}</p>
-                      <p className="text-gray-400 mt-0.5">{p.desc}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-2">
-                  Moduli attivi extra (oltre quelli inclusi nel piano)
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 border border-gray-200 dark:border-slate-600 rounded-lg">
-                  {CATALOGO_MODULI.map(m => (
-                    <label
-                      key={m.id}
-                      className="flex items-start gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!form.moduliAttivi[m.id]}
-                        onChange={() => toggleModulo(m.id)}
-                        className="mt-0.5"
-                      />
-                      <div className="text-xs">
-                        <p className="font-semibold">{m.nome}</p>
-                        <p className="text-gray-400">{m.descrizione}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                <Building2 className="w-3 h-3" /> Strutture ({strutture.length})
+              </h3>
+              <button
+                type="button"
+                onClick={aggiungiStruttura}
+                className="flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
+              >
+                <Plus className="w-3 h-3" /> Aggiungi struttura
+              </button>
             </div>
-          </section>
 
-          {/* Sezione 5: Prima struttura */}
-          <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                5
-              </span>
-              <Building2 className="w-3 h-3" /> Prima struttura (opzionale)
-            </h3>
             <p className="text-[11px] text-gray-500 mb-3">
-              Lascia vuoto il nome struttura per saltare — potrai crearla dopo da{' '}
-              <code>/superadmin/strutture</code>.
+              Crea una o più strutture. Per ogni struttura specifichi solo il numero di camere — i
+              nomi specifici e i posti letto li configurerà l&apos;host (o tu stesso) dopo il login.
             </p>
+
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Nome struttura
-                  </label>
-                  <input
-                    value={form.strutturaNome}
-                    onChange={e => setForm(f => ({ ...f, strutturaNome: e.target.value }))}
-                    placeholder="Agriturismo Il Poggio"
-                    className={inp}
-                  />
+              {strutture.map((st, idx) => (
+                <div
+                  key={idx}
+                  className="border border-gray-200 dark:border-slate-700 rounded-lg p-4 bg-gray-50 dark:bg-slate-800/40"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-gray-500">Struttura #{idx + 1}</span>
+                    {strutture.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => rimuoviStruttura(idx)}
+                        className="text-red-500 hover:text-red-600"
+                        aria-label="Rimuovi"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          Nome struttura
+                        </label>
+                        <input
+                          value={st.nome}
+                          onChange={e => aggiornaStruttura(idx, { nome: e.target.value })}
+                          placeholder="Agriturismo Il Poggio"
+                          className={inp}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          Tipo
+                        </label>
+                        <select
+                          value={st.tipo}
+                          onChange={e => aggiornaStruttura(idx, { tipo: e.target.value as TipoStruttura })}
+                          className={inp}
+                        >
+                          <option value="ALLOGGIO">Alloggio</option>
+                          <option value="EVENTO">Evento</option>
+                          <option value="VENUE">Venue</option>
+                          <option value="ESPERIENZA">Esperienza</option>
+                          <option value="SERVIZIO">Servizio</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          Città
+                        </label>
+                        <input
+                          value={st.citta}
+                          onChange={e => aggiornaStruttura(idx, { citta: e.target.value })}
+                          placeholder="(opzionale)"
+                          className={inp}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          N° camere
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="200"
+                          value={st.numeroUnita}
+                          onChange={e => aggiornaStruttura(idx, { numeroUnita: e.target.value })}
+                          className={inp}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-600 dark:text-slate-400 mb-1">
+                          Prefisso
+                        </label>
+                        <input
+                          value={st.prefissoUnita}
+                          onChange={e => aggiornaStruttura(idx, { prefissoUnita: e.target.value })}
+                          placeholder="Camera"
+                          className={inp}
+                        />
+                      </div>
+                    </div>
+
+                    {Number(st.numeroUnita) > 0 && (
+                      <p className="text-[10px] text-gray-500">
+                        Create: <strong>{st.prefissoUnita} 1</strong> ...{' '}
+                        <strong>
+                          {st.prefissoUnita} {st.numeroUnita}
+                        </strong>{' '}
+                        — l&apos;host rinomina e imposta i posti letto dopo.
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Tipo
-                  </label>
-                  <select
-                    value={form.strutturaTipo}
-                    onChange={e => setForm(f => ({ ...f, strutturaTipo: e.target.value as typeof form.strutturaTipo }))}
-                    className={inp}
-                  >
-                    <option value="ALLOGGIO">Alloggio</option>
-                    <option value="EVENTO">Evento</option>
-                    <option value="VENUE">Venue</option>
-                    <option value="ESPERIENZA">Esperienza</option>
-                    <option value="SERVIZIO">Servizio</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Città struttura
-                  </label>
-                  <input
-                    value={form.strutturaCitta}
-                    onChange={e => setForm(f => ({ ...f, strutturaCitta: e.target.value }))}
-                    placeholder="(usa quella azienda se vuoto)"
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Prezzo base (€)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.strutturaPrezzoBase}
-                    onChange={e => setForm(f => ({ ...f, strutturaPrezzoBase: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Num. unità
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="200"
-                    value={form.numeroUnita}
-                    onChange={e => setForm(f => ({ ...f, numeroUnita: e.target.value }))}
-                    className={inp}
-                  />
-                </div>
-              </div>
-              {Number(form.numeroUnita) > 0 && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    Prefisso unità
-                  </label>
-                  <input
-                    value={form.prefissoUnita}
-                    onChange={e => setForm(f => ({ ...f, prefissoUnita: e.target.value }))}
-                    placeholder="Camera"
-                    className={inp}
-                  />
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    Verranno create: <strong>{form.prefissoUnita} 1</strong>, ...{' '}
-                    <strong>
-                      {form.prefissoUnita} {form.numeroUnita}
-                    </strong>
-                  </p>
-                </div>
-              )}
+              ))}
             </div>
           </section>
 
-          {/* Sezione 6: Concierge AI */}
+          {/* Concierge */}
           <section>
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3 flex items-center gap-2">
-              <span className="bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 w-5 h-5 rounded-full flex items-center justify-center text-[10px]">
-                6
-              </span>
               <Bot className="w-3 h-3" /> AI Concierge
             </h3>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.conciergeAttivo}
-                  onChange={e => setForm(f => ({ ...f, conciergeAttivo: e.target.checked }))}
-                />
-                <div className="text-xs">
-                  <p className="font-semibold">Attiva Concierge AI al primo login</p>
-                  <p className="text-gray-500">
-                    L&apos;host potrà comunque attivarlo/disattivarlo dal toggle in topbar. Config
-                    AI (provider, chiave) è centralizzata in{' '}
-                    <code>/superadmin/impostazioni/ai</code>.
-                  </p>
-                </div>
-              </label>
-
-              {form.conciergeAttivo && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
-                    System prompt (personalità + info struttura)
-                  </label>
-                  <textarea
-                    value={form.conciergeSystemPrompt}
-                    onChange={e => setForm(f => ({ ...f, conciergeSystemPrompt: e.target.value }))}
-                    rows={12}
-                    className={inp + ' font-mono text-[11px]'}
-                  />
-                  <p className="text-[11px] text-gray-500 mt-1">
-                    Personalizza col nome reale della struttura, password Wi-Fi reale, orari
-                    corretti. Puoi anche lasciare il template e modificarlo dopo.
-                  </p>
-                </div>
-              )}
-            </div>
+            <label className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.conciergeAttivo}
+                onChange={e => setForm(f => ({ ...f, conciergeAttivo: e.target.checked }))}
+              />
+              <div className="text-xs">
+                <p className="font-semibold">Attiva AI Concierge al primo login</p>
+                <p className="text-gray-500">
+                  L&apos;host può poi ON/OFF dal toggle in topbar. Provider + chiave sono
+                  centralizzati in <code>/superadmin/impostazioni/ai</code>.
+                </p>
+              </div>
+            </label>
           </section>
 
           {error && (
@@ -689,7 +483,7 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
               className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              {loading ? 'Creazione...' : 'Crea host white-glove'}
+              {loading ? 'Attivazione...' : 'Attiva host'}
             </button>
           </div>
         </form>

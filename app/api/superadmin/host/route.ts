@@ -12,6 +12,14 @@ import { z } from 'zod'
  * un'unica transazione.
  */
 
+const strutturaSchema = z.object({
+  nome: z.string().min(1).max(255),
+  tipo: z.enum(['EVENTO', 'VENUE', 'ESPERIENZA', 'ALLOGGIO', 'SERVIZIO']).default('ALLOGGIO'),
+  citta: z.string().max(100).optional().nullable(),
+  numeroUnita: z.coerce.number().int().min(0).max(200).optional(),
+  prefissoUnita: z.string().max(50).optional().nullable(),
+})
+
 const bodySchema = z.object({
   // Account
   email: z.string().email().max(254),
@@ -19,38 +27,18 @@ const bodySchema = z.object({
   nome: z.string().min(1).max(100),
   cognome: z.string().min(1).max(100),
 
-  // Azienda
+  // Azienda (minimal)
   nomeAzienda: z.string().min(1).max(255),
-  partitaIva: z.string().max(20).optional().nullable(),
-  codiceFiscale: z.string().max(20).optional().nullable(),
-  telefono: z.string().max(30).optional().nullable(),
-  sitoWeb: z.string().max(255).optional().nullable(),
-  indirizzo: z.string().max(255).optional().nullable(),
   citta: z.string().max(100).optional().nullable(),
-  provincia: z.string().max(10).optional().nullable(),
-  cap: z.string().max(10).optional().nullable(),
-  regione: z.string().max(100).optional().nullable(),
 
-  // Fatturazione
-  fattPec: z.string().email().max(254).optional().nullable().or(z.literal('')),
-  fattCodiceSDI: z.string().max(20).optional().nullable(),
-  regimeFiscale: z.string().max(20).optional().nullable(),
+  // Piano
+  piano: z.enum(['LIGHT', 'EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM']).default('VISIBILITA_MENSILE'),
 
-  // Piano + moduli
-  piano: z.enum(['LIGHT', 'EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM']).default('LIGHT'),
-  moduliAttivi: z.record(z.string(), z.boolean()).optional(),
-
-  // Prima struttura (opzionale)
-  strutturaNome: z.string().max(255).optional().nullable(),
-  strutturaTipo: z.enum(['EVENTO', 'VENUE', 'ESPERIENZA', 'ALLOGGIO', 'SERVIZIO']).optional(),
-  strutturaCitta: z.string().max(100).optional().nullable(),
-  strutturaPrezzoBase: z.coerce.number().min(0).optional(),
-  numeroUnita: z.coerce.number().int().min(0).max(200).optional(),
-  prefissoUnita: z.string().max(50).optional().nullable(),
+  // Strutture (array)
+  strutture: z.array(strutturaSchema).optional().default([]),
 
   // Concierge
-  conciergeAttivo: z.boolean().optional(),
-  conciergeSystemPrompt: z.string().max(4096).optional().nullable(),
+  conciergeAttivo: z.boolean().optional().default(false),
 })
 
 export async function POST(req: NextRequest) {
@@ -79,7 +67,7 @@ export async function POST(req: NextRequest) {
 
   const hashedPassword = await bcrypt.hash(d.password, 12)
 
-  // Transazione: User + Host + (opzionale) Struttura + Unità
+  // Transazione: User + Host + array Strutture + array Unità
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
@@ -96,60 +84,49 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         nomeAzienda: d.nomeAzienda.trim(),
-        partitaIva: d.partitaIva?.trim() || null,
-        codiceFiscale: d.codiceFiscale?.trim() || null,
-        telefono: d.telefono?.trim() || null,
-        sitoWeb: d.sitoWeb?.trim() || null,
-        indirizzo: d.indirizzo?.trim() || null,
         citta: d.citta?.trim() || null,
-        provincia: d.provincia?.trim() || null,
-        cap: d.cap?.trim() || null,
-        regione: d.regione?.trim() || null,
-        fattPec: d.fattPec?.trim() || null,
-        fattCodiceSDI: d.fattCodiceSDI?.trim() || null,
-        regimeFiscale: d.regimeFiscale?.trim() || null,
         piano: d.piano,
         statoAbbonamento: 'ATTIVO',
         dataFineAbb: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        moduliAttivi: d.moduliAttivi ?? {},
-        conciergeAttivo: d.conciergeAttivo ?? false,
-        conciergeSystemPrompt: d.conciergeSystemPrompt?.trim() || null,
-        // White-glove: setup completato dal SuperAdmin, skip wizard
+        // moduliAttivi intenzionalmente vuoto: il SuperAdmin attiva i singoli
+        // moduli per host da /superadmin/moduli dopo la creazione (eccetto i
+        // moduli base forniti dal piano).
+        moduliAttivi: {},
+        conciergeAttivo: d.conciergeAttivo,
         onboardingCompletato: true,
       },
     })
 
-    let strutturaId: string | null = null
-    let unitaCreate = 0
+    // Crea tutte le strutture + relative unità
+    const struttureCreate: string[] = []
+    let unitaTotali = 0
 
-    if (d.strutturaNome) {
+    for (const s of d.strutture) {
       const struttura = await tx.struttura.create({
         data: {
           hostId: host.id,
-          nome: d.strutturaNome.trim(),
-          tipo: d.strutturaTipo ?? 'ALLOGGIO',
-          citta: d.strutturaCitta?.trim() || d.citta?.trim() || null,
-          regione: d.regione?.trim() || null,
-          prezzoBase: d.strutturaPrezzoBase ?? 0,
+          nome: s.nome.trim(),
+          tipo: s.tipo,
+          citta: s.citta?.trim() || d.citta?.trim() || null,
           attiva: true,
         },
       })
-      strutturaId = struttura.id
+      struttureCreate.push(struttura.id)
 
-      if (d.numeroUnita && d.numeroUnita > 0) {
-        const prefisso = d.prefissoUnita?.trim() || 'Camera'
-        const unitaData = Array.from({ length: d.numeroUnita }, (_, i) => ({
+      if (s.numeroUnita && s.numeroUnita > 0) {
+        const prefisso = s.prefissoUnita?.trim() || 'Camera'
+        const unitaData = Array.from({ length: s.numeroUnita }, (_, i) => ({
           strutturaId: struttura.id,
           nome: `${prefisso} ${i + 1}`,
-          prezzoBase: d.strutturaPrezzoBase ?? 0,
+          prezzoBase: 0,
           attiva: true,
         }))
         await tx.unitaPrenotabile.createMany({ data: unitaData })
-        unitaCreate = d.numeroUnita
+        unitaTotali += s.numeroUnita
       }
     }
 
-    return { user, host, strutturaId, unitaCreate }
+    return { user, host, struttureCreate, unitaTotali }
   })
 
   await audit({
@@ -159,14 +136,14 @@ export async function POST(req: NextRequest) {
     azione: 'superadmin.host.creato',
     entita: 'Host',
     entitaId: result.host.id,
-    dettagli: `White-glove: host "${d.nomeAzienda}" (${d.email}), piano ${d.piano}, struttura=${result.strutturaId ? 'SI' : 'NO'}, unità=${result.unitaCreate}`,
+    dettagli: `White-glove: host "${d.nomeAzienda}" (${d.email}), piano ${d.piano}, ${result.struttureCreate.length} strutture, ${result.unitaTotali} unità totali`,
   })
 
   return NextResponse.json({
     id: result.host.id,
     nomeAzienda: result.host.nomeAzienda,
     email: result.user.email,
-    strutturaCreata: !!result.strutturaId,
-    unitaCreate: result.unitaCreate,
+    struttureCreate: result.struttureCreate.length,
+    unitaTotali: result.unitaTotali,
   })
 }

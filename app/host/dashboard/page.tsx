@@ -14,6 +14,7 @@ import { it as itLocale } from 'date-fns/locale'
 import OccupancyChart from './occupancy-chart'
 import { isHostAuthorized } from '@/lib/permissions'
 import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
+import { isModuloAttivo } from '@/lib/moduli'
 
 export default async function HostDashboardPage() {
   const session = await getServerSession(authOptions)
@@ -32,7 +33,7 @@ export default async function HostDashboardPage() {
   const [host, eventiRecenti, fattureRecenti, totaliEventi, arriviOggi, partenzeOggi, inCasaOggi, revenueMese, prenotazioniRecenti, spaOggi, spaRevenueMese] = await Promise.all([
     prisma.host.findUnique({
       where: { id: hostId },
-      select: { nomeAzienda: true, piano: true, statoAbbonamento: true, dataFineAbb: true },
+      select: { nomeAzienda: true, piano: true, statoAbbonamento: true, dataFineAbb: true, moduliAttivi: true },
     }),
     prisma.evento.findMany({
       where: { hostId },
@@ -196,29 +197,31 @@ export default async function HostDashboardPage() {
         </div>
       </div>
 
-      {/* SPA quick-access */}
-      <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
-            <Waves size={20} className="text-white" />
+      {/* SPA quick-access — solo se il modulo SPA è attivo per questo host */}
+      {isModuloAttivo(host?.moduliAttivi, 'spa') && (
+        <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center shrink-0">
+              <Waves size={20} className="text-white" />
+            </div>
+            <div>
+              <p className="font-semibold text-violet-900 text-sm">Modulo SPA &amp; Benessere</p>
+              <p className="text-xs text-violet-600 mt-0.5">
+                {spaOggi} appuntament{spaOggi === 1 ? 'o' : 'i'} oggi
+                {spaRevenueMeseVal > 0 && ` · €${spaRevenueMeseVal.toFixed(0)} revenue mese`}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="font-semibold text-violet-900 text-sm">Modulo SPA &amp; Benessere</p>
-            <p className="text-xs text-violet-600 mt-0.5">
-              {spaOggi} appuntament{spaOggi === 1 ? 'o' : 'i'} oggi
-              {spaRevenueMeseVal > 0 && ` · €${spaRevenueMeseVal.toFixed(0)} revenue mese`}
-            </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link href="/host/spa/appuntamenti" className="text-xs font-medium text-violet-700 border border-violet-300 bg-white hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
+              Appuntamenti
+            </Link>
+            <Link href="/host/spa" className="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg transition-colors">
+              Dashboard SPA →
+            </Link>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Link href="/host/spa/appuntamenti" className="text-xs font-medium text-violet-700 border border-violet-300 bg-white hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
-            Appuntamenti
-          </Link>
-          <Link href="/host/spa" className="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg transition-colors">
-            Dashboard SPA →
-          </Link>
-        </div>
-      </div>
+      )}
 
       {/* Stats eventi */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
