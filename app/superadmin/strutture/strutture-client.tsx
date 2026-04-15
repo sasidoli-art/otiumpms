@@ -423,10 +423,11 @@ export default function StruttureClient({
                   <td className="table-td text-right font-medium">{s._count.prenotazioni}</td>
                   <td className="table-td">
                     <Link
-                      href={`/admin/clienti/${s.hostId}`}
+                      href={`/superadmin/moduli?host=${s.hostId}`}
                       className="text-brand-600 hover:underline text-xs flex items-center gap-1"
+                      title="Attiva/disattiva moduli per questo host"
                     >
-                      Gestisci <ExternalLink className="w-3 h-3" />
+                      Gestisci moduli <ExternalLink className="w-3 h-3" />
                     </Link>
                   </td>
                 </tr>

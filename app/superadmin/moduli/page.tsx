@@ -7,9 +7,16 @@ import { ModuliManager } from './moduli-manager'
 
 export const metadata = { title: 'Moduli — SuperAdmin' }
 
-export default async function SuperAdminModuliPage() {
+export default async function SuperAdminModuliPage({
+  searchParams: searchParamsPromise,
+}: {
+  searchParams: Promise<{ host?: string }>
+}) {
   const session = await getServerSession(authOptions)
   if (!session || session.user.role !== 'SUPERADMIN') redirect('/login')
+
+  const searchParams = await searchParamsPromise
+  const preselectedHostId = searchParams.host || null
 
   const hosts = await prisma.host.findMany({
     select: {
@@ -22,6 +29,10 @@ export default async function SuperAdminModuliPage() {
     },
     orderBy: { nomeAzienda: 'asc' },
   })
+
+  // Se host preselezionato via query param, usa il suo nome come filtro iniziale
+  const initialSearchHost =
+    preselectedHostId && hosts.find(h => h.id === preselectedHostId)?.nomeAzienda || ''
 
   // Calcola statistiche di utilizzo per ogni modulo
   const hostsConModuli = hosts.map(h => ({
@@ -64,6 +75,7 @@ export default async function SuperAdminModuliPage() {
         hostsBaseCompleti,
         totaleHost: hosts.length,
       }}
+      initialSearchHost={initialSearchHost}
     />
   )
 }

@@ -34,6 +34,7 @@ interface Props {
     hostsBaseCompleti: number
     totaleHost: number
   }
+  initialSearchHost?: string // quando si arriva da /superadmin/strutture con ?host=<id>
 }
 
 // ─── Icona helper ────────────────────────────────────────────────────────────
@@ -75,9 +76,9 @@ const STATO_COLORI: Record<string, string> = {
 
 // ─── Componente principale ───────────────────────────────────────────────────
 
-export function ModuliManager({ hosts, usageStats, stats }: Props) {
+export function ModuliManager({ hosts, usageStats, stats, initialSearchHost }: Props) {
   const [selectedModulo, setSelectedModulo] = useState<string | null>(null)
-  const [searchHost, setSearchHost] = useState('')
+  const [searchHost, setSearchHost] = useState(initialSearchHost ?? '')
   const [loadingToggles, setLoadingToggles] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [localHosts, setLocalHosts] = useState(hosts)
