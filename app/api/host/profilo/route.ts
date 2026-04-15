@@ -73,11 +73,15 @@ export async function PATCH(req: NextRequest) {
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
       // Modalita check-in
       modalitaCheckin: data.modalitaCheckin !== undefined ? data.modalitaCheckin : host.modalitaCheckin,
-      // AI Concierge — toggle ON richiede accettazione GDPR pregressa
+      // AI Concierge — toggle ON richiede accettazione GDPR (già presente o
+      // in arrivo nello stesso PATCH). Evita il bug in cui la prima attivazione
+      // falliva perché il check leggeva solo il vecchio host.conciergeGdprAcceptedAt.
       conciergeAttivo:
         data.conciergeAttivo !== undefined
-          ? data.conciergeAttivo === true && !host.conciergeGdprAcceptedAt
-            ? false // blocca attivazione se GDPR non accettato
+          ? data.conciergeAttivo === true &&
+            !host.conciergeGdprAcceptedAt &&
+            !data.conciergeGdprAcceptedAt
+            ? false // blocca attivazione solo se GDPR non accettato né ora né prima
             : data.conciergeAttivo
           : host.conciergeAttivo,
       conciergeGdprAcceptedAt:
