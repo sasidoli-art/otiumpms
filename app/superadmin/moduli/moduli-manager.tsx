@@ -156,6 +156,21 @@ export function ModuliManager({ hosts, usageStats, stats, initialSearchHost }: P
     const key = `${hostId}-${moduloId}`
     setLoadingToggles(prev => new Set(prev).add(key))
 
+    // Optimistic update: aggiorna subito la UI, poi rollback se fallisce
+    const prevStato = localModuliEsteso[hostId]?.[moduloId]
+    setLocalHosts(prev => prev.map(h =>
+      h.id === hostId
+        ? { ...h, moduli: { ...h.moduli, [moduloId]: stato.attivo } }
+        : h
+    ))
+    setLocalModuliEsteso(prev => ({
+      ...prev,
+      [hostId]: {
+        ...prev[hostId],
+        [moduloId]: stato,
+      },
+    }))
+
     try {
       const res = await fetch(`/api/superadmin/host/${hostId}/moduli`, {
         method: 'PATCH',
@@ -163,18 +178,36 @@ export function ModuliManager({ hosts, usageStats, stats, initialSearchHost }: P
         body: JSON.stringify({ moduli: { [moduloId]: stato } }),
       })
 
-      if (res.ok) {
-        // Aggiorna stato locale (sia booleano legacy che esteso)
+      if (!res.ok) {
+        // Rollback
+        const errText = await res.text().catch(() => 'errore sconosciuto')
+        console.error('[cambiaStatoModulo] API failed:', res.status, errText)
+        alert(`Errore salvataggio modulo: ${res.status} ${errText.slice(0, 200)}`)
         setLocalHosts(prev => prev.map(h =>
           h.id === hostId
-            ? { ...h, moduli: { ...h.moduli, [moduloId]: stato.attivo } }
+            ? { ...h, moduli: { ...h.moduli, [moduloId]: prevStato?.attivo ?? false } }
             : h
         ))
+        if (prevStato) {
+          setLocalModuliEsteso(prev => ({
+            ...prev,
+            [hostId]: {
+              ...prev[hostId],
+              [moduloId]: prevStato,
+            },
+          }))
+        }
+      }
+    } catch (err) {
+      console.error('[cambiaStatoModulo] network error:', err)
+      alert(`Errore di rete salvando modulo: ${String(err).slice(0, 200)}`)
+      // Rollback
+      if (prevStato) {
         setLocalModuliEsteso(prev => ({
           ...prev,
           [hostId]: {
             ...prev[hostId],
-            [moduloId]: stato,
+            [moduloId]: prevStato,
           },
         }))
       }
