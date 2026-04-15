@@ -288,6 +288,7 @@ export const profiloUpdateSchema = z.object({
   conciergeModel: z.string().max(128).trim().optional().nullable(),
   conciergeBaseUrl: z.string().url().max(255).optional().nullable().or(z.literal('')),
   conciergeSystemPrompt: z.string().max(4096).optional().nullable(),
+  conciergeGdprAcceptedAt: z.string().datetime().optional().nullable(),
   // WhatsApp Business
   whatsappNumeroId: z.string().max(64).trim().optional().nullable(),
   whatsappAccessToken: z.string().max(512).optional().nullable(),

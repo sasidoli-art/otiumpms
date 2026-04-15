@@ -19,9 +19,18 @@ type Preset = {
 
 const PRESETS: Preset[] = [
   {
+    id: 'claude-haiku',
+    label: '⭐ Claude Haiku 4.5 (consigliato)',
+    desc: 'Cloud · italiano eccellente · tool use affidabile · GDPR-friendly',
+    provider: 'claude',
+    model: 'claude-haiku-4-5-20251001',
+    baseUrl: '',
+    keyPlaceholder: 'sk-ant-...',
+  },
+  {
     id: 'openrouter-qwen',
     label: 'Qwen 2.5 72B (OpenRouter)',
-    desc: 'Cloud · ~€0.40/1M token · 🟢 ottimo IT',
+    desc: 'Cloud · economico · italiano buono · routing forzato EU/DPF',
     provider: 'openai',
     model: 'qwen/qwen-2.5-72b-instruct',
     baseUrl: 'https://openrouter.ai/api/v1',
@@ -30,25 +39,16 @@ const PRESETS: Preset[] = [
   {
     id: 'openrouter-qwen-7b',
     label: 'Qwen 2.5 7B (OpenRouter)',
-    desc: 'Cloud · economico · 🟢 buono IT',
+    desc: 'Cloud · molto economico · per test e prototipi',
     provider: 'openai',
     model: 'qwen/qwen-2.5-7b-instruct',
     baseUrl: 'https://openrouter.ai/api/v1',
     keyPlaceholder: 'sk-or-v1-...',
   },
   {
-    id: 'claude-haiku',
-    label: 'Claude Haiku 4.5',
-    desc: 'Cloud · ~€0.15/1M token · 🟢🟢 eccellente IT',
-    provider: 'claude',
-    model: 'claude-haiku-4-5-20251001',
-    baseUrl: '',
-    keyPlaceholder: 'sk-ant-...',
-  },
-  {
     id: 'openai-gpt4o-mini',
     label: 'GPT-4o mini',
-    desc: 'Cloud · OpenAI diretto · 🟢 ottimo IT',
+    desc: 'Cloud · OpenAI diretto · italiano ottimo',
     provider: 'openai',
     model: 'gpt-4o-mini',
     baseUrl: 'https://api.openai.com/v1',
@@ -57,7 +57,7 @@ const PRESETS: Preset[] = [
   {
     id: 'ollama-local',
     label: 'Qwen 2.5 7B (Ollama locale)',
-    desc: 'Self-hosted · gratis · 🟡 privacy totale',
+    desc: 'Self-hosted · gratis · privacy totale · richiede server',
     provider: 'ollama',
     model: 'qwen2.5:7b',
     baseUrl: 'http://localhost:11434',

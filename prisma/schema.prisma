@@ -196,6 +196,7 @@ model Host {
   conciergeModel        String? @default("llama3.1") // modello AI da usare
   conciergeBaseUrl      String? // URL gateway custom (es. https://openrouter.ai/api/v1 per OpenRouter)
   conciergeSystemPrompt String? // info hotel: orari colazione, checkout, Wi-Fi, ecc.
+  conciergeGdprAcceptedAt DateTime? // timestamp accettazione DPA AI da parte dell'host. NULL = non accettato (toggle ON bloccato)
   whatsappNumeroId      String? // Phone Number ID da Meta Cloud API
   whatsappAccessToken   String? // token API WhatsApp Business dell'host
   whatsappVerifyToken   String? // token verifica webhook Meta

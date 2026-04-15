@@ -73,8 +73,19 @@ export async function PATCH(req: NextRequest) {
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
       // Modalita check-in
       modalitaCheckin: data.modalitaCheckin !== undefined ? data.modalitaCheckin : host.modalitaCheckin,
-      // AI Concierge
-      conciergeAttivo: data.conciergeAttivo !== undefined ? data.conciergeAttivo : host.conciergeAttivo,
+      // AI Concierge — toggle ON richiede accettazione GDPR pregressa
+      conciergeAttivo:
+        data.conciergeAttivo !== undefined
+          ? data.conciergeAttivo === true && !host.conciergeGdprAcceptedAt
+            ? false // blocca attivazione se GDPR non accettato
+            : data.conciergeAttivo
+          : host.conciergeAttivo,
+      conciergeGdprAcceptedAt:
+        data.conciergeGdprAcceptedAt !== undefined
+          ? data.conciergeGdprAcceptedAt === null
+            ? null
+            : new Date(data.conciergeGdprAcceptedAt)
+          : host.conciergeGdprAcceptedAt,
       conciergeProvider: data.conciergeProvider !== undefined ? data.conciergeProvider : host.conciergeProvider,
       conciergeApiKey: data.conciergeApiKey !== undefined ? (data.conciergeApiKey || null) : host.conciergeApiKey,
       conciergeModel: data.conciergeModel !== undefined ? (data.conciergeModel || null) : host.conciergeModel,

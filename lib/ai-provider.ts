@@ -296,6 +296,18 @@ class OpenAIProvider implements AIProvider {
       }))
     }
 
+    // ── GDPR routing: se siamo su OpenRouter, vincoliamo a provider EU-friendly
+    // e disabilitiamo data collection upstream. Together AI ha data center EU,
+    // Fireworks è DPF certified. allow_fallbacks=false rifiuta routing imprevisto.
+    const isOpenRouter = this.baseUrl.includes('openrouter.ai')
+    if (isOpenRouter) {
+      body.provider = {
+        order: ['Together', 'Fireworks', 'DeepInfra'],
+        allow_fallbacks: false,
+        data_collection: 'deny',
+      }
+    }
+
     try {
       const res = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',

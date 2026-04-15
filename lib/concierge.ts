@@ -258,13 +258,24 @@ function buildSystemPrompt(host: {
 }, guest: GuestContext): string {
   const hotelInfo = host.conciergeSystemPrompt || 'Nessuna informazione specifica configurata dall\'hotel.'
 
-  let guestBlock = `Nome: ${guest.guestNome} ${guest.guestCognome}`
-  if (guest.unitaNome) guestBlock += `\nCamera/Unità: ${guest.unitaNome}`
+  // ── DATA MINIMIZATION GDPR ────────────────────────────────────────────────
+  // Mandiamo all'LLM solo i dati strettamente necessari per rispondere bene:
+  //  - solo il NOME (no cognome — riduce tracking se i log venissero compromessi)
+  //  - camera (necessaria per task HK, identificazione contesto)
+  //  - struttura (necessaria per raccomandazioni locali)
+  //  - date checkin/checkout (necessarie per rispondere "quando parto")
+  // NON mandiamo: cognome, email, telefono, codice fiscale, indirizzo, dati
+  // pagamento, allergie, condizioni mediche. Se l'ospite menziona dati sensibili
+  // nella conversazione (es. "ho la celiachia"), restano nel turn corrente ma
+  // non vengono ri-arricchiti dal nostro contesto.
+  const firstName = (guest.guestNome || '').split(' ')[0] || 'Ospite'
+  let guestBlock = `Nome: ${firstName}`
+  if (guest.unitaNome) guestBlock += `\nCamera: ${guest.unitaNome}`
   if (guest.strutturaNome) guestBlock += `\nStruttura: ${guest.strutturaNome}`
   if (guest.dataArrivo) guestBlock += `\nCheck-in: ${guest.dataArrivo}`
   if (guest.dataPartenza) guestBlock += `\nCheck-out: ${guest.dataPartenza}`
   if (guest.stato) guestBlock += `\nStato prenotazione: ${guest.stato}`
-  if (!guest.prenotazioneId) guestBlock += `\n⚠ Ospite non identificato — chiedi gentilmente nome ed email per verificare la prenotazione`
+  if (!guest.prenotazioneId) guestBlock += `\n⚠ Ospite non identificato — chiedi gentilmente nome e numero di camera per identificarlo (NON chiedere email, codice fiscale o altri dati personali).`
 
   return `Sei il concierge AI di ${host.nomeAzienda}, un assistente disponibile 24/7 via WhatsApp.
 
