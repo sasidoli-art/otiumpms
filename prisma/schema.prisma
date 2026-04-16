@@ -712,6 +712,11 @@ model Prenotazione {
   unitaId     String?
   unita       UnitaPrenotabile? @relation(fields: [unitaId], references: [id])
 
+  // PIN ospite — chiave universale del soggiorno (4 cifre, unique per host)
+  // Auto-generato alla conferma, valido check-in → check-out.
+  // Usato per: WiFi login, directory camera, concierge WhatsApp, richieste, SPA, checkout.
+  pin           String?
+
   // Dati ospite
   guestNome     String
   guestCognome  String
@@ -795,6 +800,7 @@ model Prenotazione {
   updatedAt DateTime @updatedAt
 
   // Indici per le query più frequenti nei route handler
+  @@unique([hostId, pin])
   @@index([hostId])
   @@index([hostId, stato])
   @@index([guestEmail])

@@ -56,6 +56,49 @@ export async function POST(req: NextRequest) {
   const userAgent = req.headers.get('user-agent') ?? null
   const macClient = typeof body.macClient === 'string' ? body.macClient : null
 
+  // ─── Modalita' 0: PIN (chiave universale ospite) ───────────────────────────
+  if (mode === 'pin') {
+    const pin = typeof body.pin === 'string' ? body.pin.trim() : ''
+    if (!pin || pin.length < 4) {
+      return NextResponse.json({ error: 'PIN deve avere almeno 4 cifre' }, { status: 422 })
+    }
+
+    const { validatePin } = await import('@/lib/guest-pin')
+    const prenotazione = await validatePin(host.id, pin)
+
+    if (!prenotazione) {
+      logger.warn('Wi-Fi login PIN fallito', 'wifi/auth', { hostId, pin, ip })
+      return NextResponse.json({ error: 'PIN non valido o prenotazione non attiva' }, { status: 401 })
+    }
+
+    const expiresAt = prenotazione.dataPartenza
+      ? new Date(prenotazione.dataPartenza.getTime())
+      : new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+    const session = await prisma.wifiSession.create({
+      data: {
+        hostId: host.id,
+        tipo: 'PRENOTAZIONE',
+        prenotazioneId: prenotazione.id,
+        guestNome: prenotazione.guestNome,
+        guestCognome: prenotazione.guestCognome,
+        numeroCamera: prenotazione.unita?.nome || null,
+        macClient,
+        ipClient: ip,
+        userAgent,
+        expiresAt,
+      },
+    })
+
+    return NextResponse.json({
+      ok: true,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+      hostNome: host.nomeAzienda,
+      guestNome: prenotazione.guestNome,
+    })
+  }
+
   // ─── Modalita' 1: PRENOTAZIONE ─────────────────────────────────────────────
   if (mode === 'prenotazione') {
     const guestNome = typeof body.guestNome === 'string' ? body.guestNome.trim() : ''

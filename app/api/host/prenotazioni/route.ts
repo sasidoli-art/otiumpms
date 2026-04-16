@@ -98,6 +98,12 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  // ── Auto-genera PIN ospite ──────────────────────────────────────────────────
+  try {
+    const { ensurePin } = await import('@/lib/guest-pin')
+    await ensurePin(prenotazione.id, auth.user.hostId)
+  } catch { /* best effort */ }
+
   // ── Email notifica + notifica in-app (non bloccante) ────────────────────────
   const struttura = strutturaId
     ? await prisma.struttura.findUnique({ where: { id: strutturaId }, select: { nome: true } })

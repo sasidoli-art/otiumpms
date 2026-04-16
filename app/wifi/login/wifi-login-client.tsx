@@ -32,7 +32,7 @@ export type AuthMethods = {
   userForm: boolean
 }
 
-type Tab = 'prenotazione' | 'codice' | 'complimentary' | 'user_form'
+type Tab = 'pin' | 'prenotazione' | 'codice' | 'complimentary' | 'user_form'
 
 export default function WifiLoginClient({
   hostId, hostNome, wifidog, authMethods, redirectUrl, welcomeMessage,
@@ -47,9 +47,10 @@ export default function WifiLoginClient({
   const methods = authMethods ?? { pms: true, code: true, complimentary: false, complimentaryMins: 120, userForm: false }
 
   const availableTabs: { id: Tab; label: string; icon: React.ReactNode }[] = []
-  if (methods.pms) availableTabs.push({ id: 'prenotazione', label: 'Sono ospite', icon: <UserCheck className="w-4 h-4" /> })
-  if (methods.code) availableTabs.push({ id: 'codice', label: 'Ho un codice', icon: <KeyRound className="w-4 h-4" /> })
-  if (methods.complimentary) availableTabs.push({ id: 'complimentary', label: 'Accesso gratuito', icon: <Globe className="w-4 h-4" /> })
+  if (methods.pms) availableTabs.push({ id: 'pin', label: 'Ho il PIN', icon: <KeyRound className="w-4 h-4" /> })
+  if (methods.pms) availableTabs.push({ id: 'prenotazione', label: 'Camera + Cognome', icon: <UserCheck className="w-4 h-4" /> })
+  if (methods.code) availableTabs.push({ id: 'codice', label: 'Codice accesso', icon: <KeyRound className="w-4 h-4" /> })
+  if (methods.complimentary) availableTabs.push({ id: 'complimentary', label: 'Gratis', icon: <Globe className="w-4 h-4" /> })
   if (methods.userForm) availableTabs.push({ id: 'user_form', label: 'Registrati', icon: <Mail className="w-4 h-4" /> })
 
   const [step, setStep] = useState<Step>('welcome')
@@ -67,6 +68,7 @@ export default function WifiLoginClient({
   const [formEmail, setFormEmail] = useState('')
   const [formNome, setFormNome] = useState('')
   const [compNome, setCompNome] = useState('')
+  const [pinValue, setPinValue] = useState('')
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,6 +79,9 @@ export default function WifiLoginClient({
 
       let body: Record<string, unknown>
       switch (tab) {
+        case 'pin':
+          body = { mode: 'pin', hostId, pin: pinValue, macClient }
+          break
         case 'prenotazione':
           body = { mode: 'prenotazione', hostId, guestNome, guestCognome, numeroCamera, macClient }
           break
@@ -238,6 +243,20 @@ export default function WifiLoginClient({
 
         {/* Form */}
         <form onSubmit={submit} className="p-6 space-y-4">
+
+          {/* TAB: PIN */}
+          {tab === 'pin' && (
+            <>
+              <p className="text-xs text-gray-500">Inserisci il PIN ricevuto alla conferma della prenotazione.</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Il tuo PIN</label>
+                <input type="text" inputMode="numeric" required maxLength={5}
+                  value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g, ''))}
+                  placeholder="1234"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-2xl font-mono text-center tracking-[0.5em] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+              </div>
+            </>
+          )}
 
           {/* TAB: Prenotazione (Room + Cognome) */}
           {tab === 'prenotazione' && (
