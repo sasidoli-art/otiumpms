@@ -34,7 +34,18 @@ export default async function WifiLoginPage({
 
   const host = await prisma.host.findUnique({
     where: { id: hostId },
-    select: { id: true, nomeAzienda: true, moduliAttivi: true },
+    select: {
+      id: true,
+      nomeAzienda: true,
+      moduliAttivi: true,
+      wifiAuthPms: true,
+      wifiAuthCode: true,
+      wifiAuthComplimentary: true,
+      wifiComplimentaryMins: true,
+      wifiAuthUserForm: true,
+      wifiRedirectUrl: true,
+      wifiWelcomeMessage: true,
+    },
   })
 
   if (!host || !isModuloAttivo(host.moduliAttivi, 'wifi')) {
@@ -64,6 +75,15 @@ export default async function WifiLoginPage({
       hostId={host.id}
       hostNome={host.nomeAzienda}
       wifidog={wifidog}
+      authMethods={{
+        pms: host.wifiAuthPms,
+        code: host.wifiAuthCode,
+        complimentary: host.wifiAuthComplimentary,
+        complimentaryMins: host.wifiComplimentaryMins,
+        userForm: host.wifiAuthUserForm,
+      }}
+      redirectUrl={host.wifiRedirectUrl}
+      welcomeMessage={host.wifiWelcomeMessage}
     />
   )
 }

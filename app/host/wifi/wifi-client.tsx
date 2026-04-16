@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Wifi, KeyRound, Users, Trash2, Copy, Check, Loader2,
-  Clock, UserCheck, Ticket, AlertCircle,
+  Clock, UserCheck, Ticket, AlertCircle, Settings, Save, Globe, Mail,
 } from 'lucide-react'
 
 type AccessCode = {
@@ -20,7 +20,7 @@ type AccessCode = {
 
 type Session = {
   id: string
-  tipo: 'PRENOTAZIONE' | 'CODICE'
+  tipo: 'PRENOTAZIONE' | 'CODICE' | 'COMPLIMENTARY' | 'USER_FORM'
   guestNome: string
   guestCognome: string | null
   numeroCamera: string | null
@@ -40,14 +40,26 @@ const PRESETS = [
   { label: '30 giorni', durataMinuti: 43200, usiMax: 1, validGiorni: 30 },
 ]
 
+type WifiConfig = {
+  authPms: boolean
+  authCode: boolean
+  authComplimentary: boolean
+  complimentaryMins: number
+  authUserForm: boolean
+  authSocial: boolean
+  redirectUrl: string | null
+  welcomeMessage: string | null
+}
+
 export default function WifiClient({
-  hostNome, loginUrl,
+  hostNome, loginUrl, wifiConfig,
 }: {
   hostId: string
   hostNome: string
   loginUrl: string
+  wifiConfig?: WifiConfig
 }) {
-  const [tab, setTab] = useState<'codes' | 'sessions'>('codes')
+  const [tab, setTab] = useState<'codes' | 'sessions' | 'config'>('codes')
   const [codes, setCodes] = useState<AccessCode[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(false)
@@ -184,6 +196,16 @@ export default function WifiClient({
           }`}
         >
           <Users className="w-4 h-4" /> Log accessi
+        </button>
+        <button
+          onClick={() => setTab('config')}
+          className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === 'config'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Settings className="w-4 h-4" /> Autenticazione
         </button>
       </div>
 
@@ -361,6 +383,138 @@ export default function WifiClient({
           )}
         </div>
       )}
+
+      {tab === 'config' && <WifiAuthConfig initial={wifiConfig} />}
+    </div>
+  )
+}
+
+// ─── Componente config autenticazione ────────────────────────────────────────
+
+function WifiAuthConfig({ initial }: { initial?: WifiConfig }) {
+  const [cfg, setCfg] = useState<WifiConfig>(initial ?? {
+    authPms: true, authCode: true, authComplimentary: false,
+    complimentaryMins: 120, authUserForm: false, authSocial: false,
+    redirectUrl: null, welcomeMessage: null,
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function salva() {
+    setSaving(true); setSaved(false)
+    try {
+      const res = await fetch('/api/host/profilo', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wifiAuthPms: cfg.authPms,
+          wifiAuthCode: cfg.authCode,
+          wifiAuthComplimentary: cfg.authComplimentary,
+          wifiComplimentaryMins: cfg.complimentaryMins,
+          wifiAuthUserForm: cfg.authUserForm,
+          wifiAuthSocial: cfg.authSocial,
+          wifiRedirectUrl: cfg.redirectUrl || null,
+          wifiWelcomeMessage: cfg.welcomeMessage || null,
+        }),
+      })
+      if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+    } catch {}
+    setSaving(false)
+  }
+
+  const toggle = 'relative inline-flex items-center h-6 w-11 rounded-full transition-colors cursor-pointer'
+  const toggleDot = 'inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform'
+  const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm dark:bg-slate-800 dark:border-slate-600 dark:text-slate-200'
+
+  function Toggle({ on, onChange, label, desc }: { on: boolean; onChange: (v: boolean) => void; label: string; desc: string }) {
+    return (
+      <div className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-slate-700">
+        <button type="button" onClick={() => onChange(!on)}
+          className={`${toggle} ${on ? 'bg-indigo-600' : 'bg-gray-300'} shrink-0 mt-0.5`}>
+          <span className={`${toggleDot} ${on ? 'translate-x-5' : 'translate-x-1'}`} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{label}</p>
+          <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div>
+        <h3 className="text-base font-bold text-gray-900 dark:text-slate-100">Metodi di autenticazione</h3>
+        <p className="text-xs text-gray-500 mt-1">
+          Attiva/disattiva i metodi di login nella pagina Wi-Fi ospiti. Almeno un metodo deve essere attivo.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Toggle on={cfg.authPms} label="Camera + Cognome (PMS)"
+          desc="L'ospite inserisce numero camera e cognome. Validato contro le prenotazioni attive."
+          onChange={v => setCfg(c => ({ ...c, authPms: v }))} />
+
+        <Toggle on={cfg.authCode} label="Codice di accesso"
+          desc="Codice alfanumerico fornito dalla reception o stampato sullo scontrino."
+          onChange={v => setCfg(c => ({ ...c, authCode: v }))} />
+
+        <Toggle on={cfg.authComplimentary} label="Accesso gratuito a tempo"
+          desc={`Accesso libero per ${cfg.complimentaryMins} minuti, nessuna registrazione. Ideale per bar, negozi, sale d'attesa.`}
+          onChange={v => setCfg(c => ({ ...c, authComplimentary: v }))} />
+
+        {cfg.authComplimentary && (
+          <div className="ml-14 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+            <label className="text-xs font-medium text-gray-700 dark:text-slate-300">Durata accesso gratuito (minuti)</label>
+            <input type="number" min={5} max={1440} value={cfg.complimentaryMins}
+              onChange={e => setCfg(c => ({ ...c, complimentaryMins: parseInt(e.target.value) || 120 }))}
+              className={`${inp} mt-1 w-32`} />
+            <p className="text-[11px] text-gray-400 mt-1">Dopo la scadenza, l&apos;ospite deve riconnettersi.</p>
+          </div>
+        )}
+
+        <Toggle on={cfg.authUserForm} label="Registrazione (nome + email)"
+          desc="L'ospite compila un form con nome e email. Utile per lead generation e marketing."
+          onChange={v => setCfg(c => ({ ...c, authUserForm: v }))} />
+
+        <Toggle on={cfg.authSocial} label="Social Login (Google, Facebook)"
+          desc="Login con account social. Richiede configurazione OAuth (disponibile a breve)."
+          onChange={v => setCfg(c => ({ ...c, authSocial: v }))} />
+        {cfg.authSocial && (
+          <div className="ml-14 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-700 dark:text-amber-300">
+            Social login sarà disponibile in un prossimo aggiornamento. Il toggle viene salvato per quando sarà attivo.
+          </div>
+        )}
+      </div>
+
+      <hr className="border-gray-200 dark:border-slate-700" />
+
+      <div className="space-y-3">
+        <h3 className="text-base font-bold text-gray-900 dark:text-slate-100">Personalizzazione</h3>
+
+        <div>
+          <label className="text-xs font-medium text-gray-700 dark:text-slate-300">Messaggio di benvenuto</label>
+          <input type="text" value={cfg.welcomeMessage ?? ''} placeholder="Benvenuto. Connettiti alla nostra rete Wi-Fi gratuita."
+            onChange={e => setCfg(c => ({ ...c, welcomeMessage: e.target.value || null }))}
+            className={`${inp} mt-1`} />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-700 dark:text-slate-300">Redirect dopo il login (URL)</label>
+          <input type="url" value={cfg.redirectUrl ?? ''} placeholder="https://www.miohotel.it"
+            onChange={e => setCfg(c => ({ ...c, redirectUrl: e.target.value || null }))}
+            className={`${inp} mt-1`} />
+          <p className="text-[11px] text-gray-400 mt-1">Dopo il login, l&apos;ospite viene mandato a questo URL. Lascia vuoto per mostrare la pagina &quot;Connesso!&quot;.</p>
+        </div>
+      </div>
+
+      <button onClick={salva} disabled={saving}
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+          saved ? 'bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+        } disabled:opacity-50`}>
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+        {saving ? 'Salvo...' : saved ? 'Salvato!' : 'Salva configurazione'}
+      </button>
     </div>
   )
 }

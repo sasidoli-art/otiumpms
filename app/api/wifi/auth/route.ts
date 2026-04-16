@@ -188,8 +188,88 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // ─── Modalita' 3: COMPLIMENTARY (accesso gratuito a tempo) ──────────────────
+  if (mode === 'complimentary') {
+    const guestNome = typeof body.guestNome === 'string' ? body.guestNome.trim() : 'Visitatore'
+
+    // Controlla se l'host ha abilitato complimentary
+    const hostFull = await prisma.host.findUnique({
+      where: { id: hostId },
+      select: { wifiAuthComplimentary: true, wifiComplimentaryMins: true },
+    })
+    if (!hostFull?.wifiAuthComplimentary) {
+      return NextResponse.json({ error: 'Accesso gratuito non disponibile' }, { status: 403 })
+    }
+
+    const durataMin = hostFull.wifiComplimentaryMins || 120
+    const expiresAt = new Date(Date.now() + durataMin * 60 * 1000)
+
+    const session = await prisma.wifiSession.create({
+      data: {
+        hostId: host.id,
+        tipo: 'COMPLIMENTARY',
+        guestNome,
+        macClient,
+        ipClient: ip,
+        userAgent,
+        expiresAt,
+      },
+    })
+
+    return NextResponse.json({
+      ok: true,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+      hostNome: host.nomeAzienda,
+      durataMinuti: durataMin,
+    })
+  }
+
+  // ─── Modalita' 4: USER_FORM (registrazione con email) ─────────────────────
+  if (mode === 'user_form') {
+    const guestNome = typeof body.guestNome === 'string' ? body.guestNome.trim() : ''
+    const guestEmail = typeof body.guestEmail === 'string' ? body.guestEmail.trim().toLowerCase() : ''
+
+    if (!guestNome || !guestEmail) {
+      return NextResponse.json({ error: 'Nome e email obbligatori' }, { status: 422 })
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      return NextResponse.json({ error: 'Email non valida' }, { status: 422 })
+    }
+
+    const hostFull = await prisma.host.findUnique({
+      where: { id: hostId },
+      select: { wifiAuthUserForm: true },
+    })
+    if (!hostFull?.wifiAuthUserForm) {
+      return NextResponse.json({ error: 'Registrazione non disponibile' }, { status: 403 })
+    }
+
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+
+    const session = await prisma.wifiSession.create({
+      data: {
+        hostId: host.id,
+        tipo: 'USER_FORM',
+        guestNome,
+        guestCognome: guestEmail, // salva email nel campo cognome per audit
+        macClient,
+        ipClient: ip,
+        userAgent,
+        expiresAt,
+      },
+    })
+
+    return NextResponse.json({
+      ok: true,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+      hostNome: host.nomeAzienda,
+    })
+  }
+
   return NextResponse.json(
-    { error: 'mode deve essere "prenotazione" o "codice"' },
+    { error: 'mode deve essere "prenotazione", "codice", "complimentary" o "user_form"' },
     { status: 422 }
   )
 }

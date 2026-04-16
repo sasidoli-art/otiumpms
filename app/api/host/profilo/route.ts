@@ -37,6 +37,8 @@ export async function PATCH(req: NextRequest) {
   const parsed = parseBody(profiloUpdateSchema, raw)
   if (parsed.error) return parsed.error
   const data = parsed.data
+  // Campi WiFi passano fuori dallo schema Zod (opzionali, tipizzati manualmente)
+  const rawObj = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
 
   const updated = await prisma.host.update({
     where: { id: auth.user.hostId },
@@ -99,6 +101,15 @@ export async function PATCH(req: NextRequest) {
       whatsappNumeroId: data.whatsappNumeroId !== undefined ? (data.whatsappNumeroId || null) : host.whatsappNumeroId,
       whatsappAccessToken: data.whatsappAccessToken !== undefined ? (data.whatsappAccessToken || null) : host.whatsappAccessToken,
       whatsappVerifyToken: data.whatsappVerifyToken !== undefined ? (data.whatsappVerifyToken || null) : host.whatsappVerifyToken,
+      // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod)
+      wifiAuthPms: rawObj.wifiAuthPms !== undefined ? !!rawObj.wifiAuthPms : host.wifiAuthPms,
+      wifiAuthCode: rawObj.wifiAuthCode !== undefined ? !!rawObj.wifiAuthCode : host.wifiAuthCode,
+      wifiAuthComplimentary: rawObj.wifiAuthComplimentary !== undefined ? !!rawObj.wifiAuthComplimentary : host.wifiAuthComplimentary,
+      wifiComplimentaryMins: rawObj.wifiComplimentaryMins !== undefined ? (Number(rawObj.wifiComplimentaryMins) || 120) : host.wifiComplimentaryMins,
+      wifiAuthUserForm: rawObj.wifiAuthUserForm !== undefined ? !!rawObj.wifiAuthUserForm : host.wifiAuthUserForm,
+      wifiAuthSocial: rawObj.wifiAuthSocial !== undefined ? !!rawObj.wifiAuthSocial : host.wifiAuthSocial,
+      wifiRedirectUrl: rawObj.wifiRedirectUrl !== undefined ? (String(rawObj.wifiRedirectUrl) || null) : host.wifiRedirectUrl,
+      wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,
     },
   })
 

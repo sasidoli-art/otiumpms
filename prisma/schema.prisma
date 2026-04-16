@@ -221,6 +221,16 @@ model Host {
   whatsappAccessToken   String? // token API WhatsApp Business dell'host
   whatsappVerifyToken   String? // token verifica webhook Meta
 
+  // Wi-Fi Captive Portal — configurazione metodi autenticazione
+  wifiAuthPms           Boolean @default(true)   // Login Room + Cognome (da prenotazione)
+  wifiAuthCode          Boolean @default(true)   // Login con codice accesso
+  wifiAuthComplimentary Boolean @default(false)  // Accesso gratuito a tempo
+  wifiComplimentaryMins Int     @default(120)    // Durata accesso gratuito in minuti (default 2h)
+  wifiAuthUserForm      Boolean @default(false)  // Registrazione con nome+email
+  wifiAuthSocial        Boolean @default(false)  // Social login (Google/Facebook)
+  wifiRedirectUrl       String?                  // URL redirect post-login (sito hotel/attività)
+  wifiWelcomeMessage    String?                  // Messaggio personalizzato welcome page
+
   // Onboarding
   onboardingCompletato Boolean @default(false)
 
@@ -3020,6 +3030,8 @@ model WifiAccessCode {
 enum WifiSessionTipo {
   PRENOTAZIONE   // ospite in struttura, login con nome+camera
   CODICE         // walk-in, login con codice di accesso
+  COMPLIMENTARY  // accesso gratuito a tempo, nessuna auth richiesta
+  USER_FORM      // registrazione con nome+email (lead generation)
 }
 
 model WifiSession {
