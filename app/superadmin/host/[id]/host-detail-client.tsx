@@ -565,7 +565,7 @@ function StrutturaCard({
                 onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
                 className={inp}
               >
-                <option value="ALLOGGIO">Alloggio</option>
+                <option value="ALLOGGIO">Struttura ricettiva</option>
                 <option value="EVENTO">Evento</option>
                 <option value="VENUE">Venue</option>
                 <option value="ESPERIENZA">Esperienza</option>

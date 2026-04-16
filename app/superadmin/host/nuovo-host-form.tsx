@@ -380,7 +380,7 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
                           onChange={e => aggiornaStruttura(idx, { tipo: e.target.value as TipoStruttura })}
                           className={inp}
                         >
-                          <option value="ALLOGGIO">Alloggio</option>
+                          <option value="ALLOGGIO">Struttura ricettiva</option>
                           <option value="EVENTO">Evento</option>
                           <option value="VENUE">Venue</option>
                           <option value="ESPERIENZA">Esperienza</option>

@@ -93,6 +93,9 @@ export const PREZZI_ADDON: Record<string, number> = {
  * Parsa il campo JSON moduliAttivi dal DB.
  * Retrocompatibile: supporta sia il vecchio formato { "spa": true }
  * che il nuovo { "spa": { "attivo": true, "modalita": "demo", "prezzo": 0 } }
+ *
+ * Se un modulo è in modalità "demo" e la scadenzaDemo è passata, viene
+ * considerato OFF automaticamente — nessun cron necessario.
  */
 export function parseModuli(moduliJson: unknown): ModuliAttivi {
   const defaults: ModuliAttivi = {}
@@ -104,14 +107,19 @@ export function parseModuli(moduliJson: unknown): ModuliAttivi {
 
   const stored = moduliJson as Record<string, unknown>
   const result = { ...defaults }
+  const now = new Date()
 
   for (const [key, value] of Object.entries(stored)) {
     if (typeof value === 'boolean') {
-      // Vecchio formato: { "spa": true }
       result[key] = value
     } else if (value && typeof value === 'object' && 'attivo' in value) {
-      // Nuovo formato: { "spa": { "attivo": true, "modalita": "demo" } }
-      result[key] = !!(value as ModuloStatoEsteso).attivo
+      const ext = value as ModuloStatoEsteso
+      if (ext.modalita === 'demo' && ext.scadenzaDemo) {
+        // Demo scaduta → modulo OFF
+        result[key] = new Date(ext.scadenzaDemo) > now
+      } else {
+        result[key] = !!ext.attivo
+      }
     }
   }
 

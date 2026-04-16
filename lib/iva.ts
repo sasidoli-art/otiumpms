@@ -18,7 +18,7 @@ export type AliquotaIva = typeof ALIQUOTE_IVA[number]['valore']
  * L'host può sempre sovrascrivere l'aliquota per ogni servizio.
  */
 export const CATEGORIE_SERVIZIO = [
-  { id: 'ALLOGGIO',      label: 'Alloggio',           ivaSuggerita: 10, esempi: 'Camera, suite, appartamento' },
+  { id: 'ALLOGGIO',      label: 'Struttura ricettiva',           ivaSuggerita: 10, esempi: 'Camera, suite, appartamento' },
   { id: 'RISTORAZIONE',  label: 'Ristorazione',       ivaSuggerita: 10, esempi: 'Colazione, pranzo, cena, room service' },
   { id: 'BEVANDE',       label: 'Bevande',            ivaSuggerita: 22, esempi: 'Vino, cocktail, minibar alcolici' },
   { id: 'SPA',           label: 'SPA & Benessere',    ivaSuggerita: 22, esempi: 'Massaggi, trattamenti, percorsi' },

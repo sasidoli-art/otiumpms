@@ -25,11 +25,19 @@ export async function PATCH(
   const body = await req.json()
   const data: Record<string, unknown> = {}
 
-  // Aggiorna moduli
+  // Aggiorna moduli — supporta sia formato semplice { spa: true } che
+  // formato esteso { spa: { attivo: true, modalita: "demo", scadenzaDemo: "2026-05-01" } }
   if (body.moduliAttivi) {
-    const attuali = parseModuli(host.moduliAttivi)
-    const nuovi = { ...attuali, ...body.moduliAttivi }
-    data.moduliAttivi = nuovi
+    const raw = (host.moduliAttivi && typeof host.moduliAttivi === 'object' ? host.moduliAttivi : {}) as Record<string, unknown>
+    const merged = { ...raw }
+    for (const [key, value] of Object.entries(body.moduliAttivi)) {
+      if (typeof value === 'boolean') {
+        merged[key] = value
+      } else if (value && typeof value === 'object') {
+        merged[key] = value
+      }
+    }
+    data.moduliAttivi = merged
   }
 
   // Aggiorna flag concierge

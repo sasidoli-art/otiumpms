@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Search, Loader2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Euro } from 'lucide-react'
-import { CATALOGO_MODULI, parseModuli, type ModuloConfig, type ModuliAttivi } from '@/lib/moduli'
+import { Search, Loader2, CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Euro, Clock, Timer } from 'lucide-react'
+import { CATALOGO_MODULI, parseModuli, parseModuliEsteso, type ModuloConfig, type ModuliAttivi, type ModuloStatoEsteso } from '@/lib/moduli'
 
 type HostConModuli = {
   id: string
@@ -135,6 +135,58 @@ export function ModuliManager({ hosts: hostsIniziali, stats, initialSearchHost }
         next.delete(key)
         return next
       })
+    }
+  }
+
+  function getDemoInfo(hostId: string, moduloId: string): ModuloStatoEsteso | null {
+    const host = hosts.find(h => h.id === hostId)
+    if (!host?.moduliRaw || typeof host.moduliRaw !== 'object') return null
+    const raw = host.moduliRaw as Record<string, unknown>
+    const val = raw[moduloId]
+    if (val && typeof val === 'object' && 'modalita' in (val as Record<string, unknown>)) {
+      return val as ModuloStatoEsteso
+    }
+    return null
+  }
+
+  async function attivaDemo(hostId: string, moduloId: string, giorni: number) {
+    const key = `${hostId}-${moduloId}`
+    setSaving(prev => new Set(prev).add(key))
+
+    const scadenza = new Date()
+    scadenza.setDate(scadenza.getDate() + giorni)
+
+    const demoValue: ModuloStatoEsteso = {
+      attivo: true,
+      modalita: 'demo',
+      prezzo: 0,
+      scadenzaDemo: scadenza.toISOString(),
+    }
+
+    // Optimistic
+    setHosts(prev =>
+      prev.map(h =>
+        h.id === hostId
+          ? {
+              ...h,
+              moduli: { ...h.moduli, [moduloId]: true },
+              moduliRaw: { ...(typeof h.moduliRaw === 'object' ? h.moduliRaw : {}), [moduloId]: demoValue },
+            }
+          : h
+      )
+    )
+
+    try {
+      const res = await fetch(`/api/superadmin/host/${hostId}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduliAttivi: { [moduloId]: demoValue } }),
+      })
+      if (!res.ok) alert('Errore attivazione demo')
+    } catch {
+      alert('Errore rete')
+    } finally {
+      setSaving(prev => { const n = new Set(prev); n.delete(key); return n })
     }
   }
 
@@ -292,33 +344,68 @@ export function ModuliManager({ hosts: hostsIniziali, stats, initialSearchHost }
                           const key = `${host.id}-${m.id}`
                           const attivo = !!host.moduli[m.id]
                           const isSaving = saving.has(key)
+                          const demoInfo = getDemoInfo(host.id, m.id)
+                          const isDemo = demoInfo?.modalita === 'demo' && demoInfo.scadenzaDemo
+                          const demoScadenza = isDemo ? new Date(demoInfo!.scadenzaDemo!) : null
+                          const demoScaduto = demoScadenza ? demoScadenza < new Date() : false
+
                           return (
-                            <label
+                            <div
                               key={m.id}
-                              className={`flex items-start gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                                attivo
+                              className={`flex items-start gap-2 p-2.5 rounded-lg border transition-all ${
+                                isDemo && !demoScaduto
+                                  ? 'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20'
+                                  : attivo
                                   ? 'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
                                   : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300'
                               } ${isSaving ? 'opacity-60' : ''}`}
                             >
                               <input
                                 type="checkbox"
-                                checked={attivo}
+                                checked={attivo && !demoScaduto}
                                 disabled={isSaving}
                                 onChange={e => toggleModulo(host.id, m.id, e.target.checked)}
-                                className="mt-0.5 shrink-0"
+                                className="mt-0.5 shrink-0 cursor-pointer"
                               />
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                   <p className="text-xs font-semibold text-gray-900 dark:text-slate-100 truncate">
                                     {m.nome}
                                   </p>
                                   {isSaving && <Loader2 className="w-3 h-3 animate-spin text-gray-400" />}
-                                  {attivo && !isSaving && <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />}
+                                  {attivo && !isSaving && !isDemo && <CheckCircle2 className="w-3 h-3 text-green-600 shrink-0" />}
+                                  {isDemo && !demoScaduto && (
+                                    <span className="text-[9px] bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5">
+                                      <Timer className="w-2.5 h-2.5" />
+                                      DEMO — scade {demoScadenza!.toLocaleDateString('it-IT')}
+                                    </span>
+                                  )}
+                                  {isDemo && demoScaduto && (
+                                    <span className="text-[9px] bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 px-1.5 py-0.5 rounded font-bold">
+                                      DEMO SCADUTA
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-[11px] text-gray-500 line-clamp-2">{m.descrizione}</p>
+
+                                {/* Bottone Demo — visibile solo se il modulo è OFF */}
+                                {!attivo && !isDemo && (
+                                  <div className="flex gap-1 mt-1.5">
+                                    {[7, 14, 30].map(gg => (
+                                      <button
+                                        key={gg}
+                                        type="button"
+                                        onClick={() => attivaDemo(host.id, m.id, gg)}
+                                        disabled={isSaving}
+                                        className="text-[10px] px-2 py-1 rounded bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 font-semibold flex items-center gap-0.5 disabled:opacity-50"
+                                      >
+                                        <Clock className="w-2.5 h-2.5" /> {gg}gg
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            </label>
+                            </div>
                           )
                         })}
                       </div>

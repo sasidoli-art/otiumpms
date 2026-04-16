@@ -393,7 +393,7 @@
       "event": "Evento",
       "venue": "Venue",
       "experience": "Esperienza",
-      "accommodation": "Alloggio",
+      "accommodation": "Struttura ricettiva",
       "service": "Servizio",
       "units": "unità",
       "bookings": "prenotazioni",
@@ -1278,7 +1278,7 @@
     "event": "Evento",
     "venue": "Venue",
     "experience": "Esperienza",
-    "accommodation": "Alloggio",
+    "accommodation": "Struttura ricettiva",
     "service": "Servizio",
     "noResults": "Nessun risultato",
     "changeFilters": "Prova a cambiare i filtri di ricerca",
@@ -1433,7 +1433,7 @@
     "event": "Evento",
     "venue": "Venue",
     "experience": "Esperienza",
-    "accommodation": "Alloggio",
+    "accommodation": "Struttura ricettiva",
     "service": "Servizio"
   },
 
@@ -1474,7 +1474,7 @@
       "subtitle": "Crea la struttura per iniziare a ricevere prenotazioni",
       "typeLabel": "Tipo di struttura",
       "types": {
-        "ALLOGGIO": "Alloggio",
+        "ALLOGGIO": "Struttura ricettiva",
         "EVENTO": "Evento",
         "VENUE": "Venue",
         "ESPERIENZA": "Esperienza",

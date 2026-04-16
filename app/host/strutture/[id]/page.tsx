@@ -11,7 +11,7 @@ import IcalCopyButton from './ical-copy-button'
 import { isHostAuthorized } from '@/lib/permissions'
 
 const tipoLabel: Record<string, string> = {
-  EVENTO: 'Evento', VENUE: 'Venue', ESPERIENZA: 'Esperienza', ALLOGGIO: 'Alloggio', SERVIZIO: 'Servizio',
+  EVENTO: 'Evento', VENUE: 'Venue', ESPERIENZA: 'Esperienza', ALLOGGIO: 'Struttura ricettiva', SERVIZIO: 'Servizio',
 }
 
 export default async function StrutturaDetailPage({

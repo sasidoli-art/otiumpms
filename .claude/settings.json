@@ -169,7 +169,12 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://otium-pms.vercel.app/random/nonexistent/path\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://otium-pms.vercel.app/superadmin/nonexistent\")",
       "Bash(ssh -o ConnectTimeout=10 -i ~/.ssh/id_router root@172.16.0.1 'grep -E \"CheckInterval|ClientTimeout\" /etc/wifidog.conf 2>/dev/null; echo ---; pidof wifidog; uptime')",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Read(//c/Users/admin/AppData/Local/Temp/claude/c--PROGETTI-Gestionale-otium/2232d5d4-51d2-463e-b1c9-0d587c5b6fac/tasks/**)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:github.com)",
+      "Bash(ls .env*)",
+      "Bash(grep -rn \"text-gray-4\\\\|Nessun\" /c/PROGETTI/Gestionale_otium/app/host/*.tsx)"
     ]
   }
 }

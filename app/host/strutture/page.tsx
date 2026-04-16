@@ -12,7 +12,7 @@ const tipoLabel: Record<string, string> = {
   EVENTO: 'Evento',
   VENUE: 'Venue',
   ESPERIENZA: 'Esperienza',
-  ALLOGGIO: 'Alloggio',
+  ALLOGGIO: 'Struttura ricettiva',
   SERVIZIO: 'Servizio',
 }
 
