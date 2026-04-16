@@ -987,6 +987,10 @@ function UnitaRow({
           </span>
         </div>
         <div className="flex gap-1">
+          <a href={`/room/${unita.id}/qr`} target="_blank" rel="noopener noreferrer"
+            className="px-2 py-1 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded" title="QR Camera">
+            QR
+          </a>
           <button onClick={() => setEditing(true)} className="px-2 py-1 text-brand-600 hover:bg-white dark:hover:bg-slate-700 rounded">
             Modifica
           </button>
