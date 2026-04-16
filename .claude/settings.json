@@ -180,7 +180,21 @@
       "Bash(mkdir -p /c/Users/admin/Downloads/whatsapp-captive)",
       "Bash(unzip -o \"WhatsApp Unknown 2026-04-16 at 11.49.25.zip\" -d whatsapp-captive/)",
       "Bash(sed -i 's/Otium WiFi/Captive Portal/g; s/Otium wifi/Captive Portal/g; s/# Otium WiFi/# Captive Portal/g' OTIUM_WIFI_MINDMAP.md)",
-      "Bash(mv OTIUM_WIFI_MINDMAP.md CAPTIVE_PORTAL_MINDMAP.md)"
+      "Bash(mv OTIUM_WIFI_MINDMAP.md CAPTIVE_PORTAL_MINDMAP.md)",
+      "WebFetch(domain:otium-week-sasidoli-arts-projects.vercel.app)",
+      "Bash(git rm *)",
+      "WebFetch(domain:otium-week-q0z4ni7vg-otiums-projects-92d1e02b.vercel.app)",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Campania\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Lombardia\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Lazio\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Toscana\"}')",
+      "Bash(wait)",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Piemonte\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Sicilia\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Veneto\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Emilia-Romagna\"}')",
+      "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Puglia\"}')",
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\('Next.js:', pkg.dependencies.next\\);\")"
     ]
   }
 }
