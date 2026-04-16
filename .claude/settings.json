@@ -213,7 +213,12 @@
       "Bash(curl -s \"https://www.otiumweek.it/robots.txt\")",
       "Bash(curl -s \"https://www.otiumweek.it/sitemap.xml\")",
       "Bash(curl -sI \"https://www.otiumweek.it\")",
-      "Bash(curl -s \"https://www.otiumweek.it\")"
+      "Bash(curl -s \"https://www.otiumweek.it\")",
+      "WebFetch(domain:getdesign.md)",
+      "Bash(ls /c/Users/admin/Downloads/*otium* /c/Users/admin/Downloads/*OTIUM* /c/Users/admin/Downloads/*logo*)",
+      "Bash(ls -lt /c/Users/admin/Downloads/*.png /c/Users/admin/Downloads/*.svg)",
+      "Bash(node scripts/gen-real-events.js)",
+      "Bash(ls -la /c/PROGETTI/Gestionale_otium/OTIUM/public/logo*)"
     ]
   }
 }
