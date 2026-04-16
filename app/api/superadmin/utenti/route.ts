@@ -4,12 +4,13 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { validatePassword, isPasswordPwned } from '@/lib/password-policy'
 
 const createUserSchema = z.object({
   nome: z.string().min(1, 'Nome richiesto'),
   cognome: z.string().min(1, 'Cognome richiesto'),
   email: z.string().email('Email non valida'),
-  password: z.string().min(6, 'Password minimo 6 caratteri'),
+  password: z.string().min(10, 'Password minimo 10 caratteri'),
   role: z.enum(['SUPERADMIN', 'ADMIN', 'HOST']),
 })
 
@@ -38,6 +39,17 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
     return NextResponse.json({ error: 'Email già registrata' }, { status: 409 })
+  }
+
+  const policy = validatePassword(password)
+  if (!policy.ok) {
+    return NextResponse.json({ error: policy.reason }, { status: 400 })
+  }
+  if (await isPasswordPwned(password)) {
+    return NextResponse.json(
+      { error: 'Questa password è apparsa in un data breach noto. Scegline una diversa.' },
+      { status: 400 },
+    )
   }
 
   const hashedPassword = await bcrypt.hash(password, 12)

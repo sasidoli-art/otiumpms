@@ -109,7 +109,7 @@ export default async function OggiPage() {
         </div>
 
         {arrivi.length === 0 ? (
-          <div className="py-10 text-center text-gray-400">
+          <div className="py-10 text-center text-gray-500">
             <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Nessun arrivo previsto per oggi</p>
           </div>
@@ -229,18 +229,18 @@ export default async function OggiPage() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {p.guestTelefono && (
-                            <a href={`tel:${p.guestTelefono}`} className="p-1 text-slate-400 hover:text-green-600 rounded" title="Chiama">
+                            <a href={`tel:${p.guestTelefono}`} className="p-2 text-slate-400 hover:text-green-600 rounded" title="Chiama">
                               <Phone className="w-3.5 h-3.5" />
                             </a>
                           )}
                           {p.chat && (
-                            <Link href={`/host/prenotazioni/${p.id}`} className="p-1 text-slate-400 hover:text-blue-600 rounded" title="Chat">
+                            <Link href={`/host/prenotazioni/${p.id}`} className="p-2 text-slate-400 hover:text-blue-600 rounded" title="Chat">
                               <MessageSquare className="w-3.5 h-3.5" />
                             </Link>
                           )}
                           <Link
                             href={`/host/prenotazioni/${p.id}`}
-                            className="px-2.5 py-1 text-[11px] font-semibold bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            className="px-3 py-2 text-[11px] font-semibold bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                           >
                             Check-in →
                           </Link>
@@ -264,7 +264,7 @@ export default async function OggiPage() {
         </div>
 
         {partenze.length === 0 ? (
-          <div className="py-10 text-center text-gray-400">
+          <div className="py-10 text-center text-gray-500">
             <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Nessuna partenza prevista per oggi</p>
           </div>
@@ -313,7 +313,7 @@ export default async function OggiPage() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/host/prenotazioni/${p.id}`}
-                          className="px-2.5 py-1 text-[11px] font-semibold bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
+                          className="px-3 py-2 text-[11px] font-semibold bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors"
                         >
                           Check-out →
                         </Link>
@@ -336,7 +336,7 @@ export default async function OggiPage() {
         </div>
 
         {inCasa.length === 0 ? (
-          <div className="py-10 text-center text-gray-400">
+          <div className="py-10 text-center text-gray-500">
             <Home className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p className="text-sm">Nessun ospite in casa</p>
           </div>

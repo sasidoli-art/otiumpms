@@ -31,7 +31,7 @@ export default async function HostFatturePage() {
         <div className="card p-12 text-center">
           <p className="text-4xl mb-4">📄</p>
           <p className="text-lg font-semibold text-gray-700">Nessuna fattura ancora</p>
-          <p className="text-gray-400 text-sm mt-2">Le fatture emesse da Otium Week appariranno qui</p>
+          <p className="text-gray-500 text-sm mt-2">Le fatture emesse appariranno qui automaticamente.</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
@@ -69,7 +69,7 @@ export default async function HostFatturePage() {
                         <a
                           href={`/api/host/fatture/${f.id}/pdf`}
                           target="_blank"
-                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                          className="p-2 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-600"
                           title="Scarica PDF"
                         >
                           <FileDown size={14} />

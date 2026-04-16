@@ -213,10 +213,10 @@ export default async function HostDashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Link href="/host/spa/appuntamenti" className="text-xs font-medium text-violet-700 border border-violet-300 bg-white hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-colors">
+            <Link href="/host/spa/appuntamenti" className="text-xs font-medium text-violet-700 border border-violet-300 bg-white hover:bg-violet-100 px-3 py-2 rounded-lg transition-colors">
               Appuntamenti
             </Link>
-            <Link href="/host/spa" className="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 px-3 py-1.5 rounded-lg transition-colors">
+            <Link href="/host/spa" className="text-xs font-medium text-white bg-violet-600 hover:bg-violet-700 px-3 py-2 rounded-lg transition-colors">
               Dashboard SPA →
             </Link>
           </div>
@@ -266,14 +266,15 @@ export default async function HostDashboardPage() {
           <div>
             {prenotazioniRecenti.length === 0 ? (
               <div className="px-6 py-8 text-center">
-                <p className="text-sm text-gray-400 mb-3">Nessuna prenotazione ancora</p>
+                <p className="text-sm text-gray-500 mb-1">Nessuna prenotazione ancora.</p>
+                <p className="text-xs text-gray-500 mb-3"><Link href="/host/prenotazioni" className="text-brand-500 hover:text-brand-600 font-medium">Vai alla sezione prenotazioni</Link> per crearne una.</p>
                 <Link href="/host/prenotazioni/nuova" className="btn-primary text-sm">Aggiungi prenotazione</Link>
               </div>
             ) : prenotazioniRecenti.map((p, idx) => (
               <Link key={p.id} href={`/host/prenotazioni/${p.id}`} className={`flex items-center gap-3 px-6 py-3.5 hover:bg-blue-50 transition-colors ${idx % 2 === 1 ? 'bg-gray-50/60' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{p.guestNome} {p.guestCognome}</p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-gray-500">
                     {p.struttura?.nome ?? '—'} &middot; {format(new Date(p.dataArrivo), 'd MMM', { locale: itLocale })}
                     {p.dataPartenza && ` \u2192 ${format(new Date(p.dataPartenza), 'd MMM', { locale: itLocale })}`}
                   </p>
@@ -305,17 +306,18 @@ export default async function HostDashboardPage() {
             <div className="divide-y divide-gray-50">
               {eventiRecenti.length === 0 ? (
                 <div className="px-6 py-8 text-center">
-                  <p className="text-sm text-gray-400 mb-3">Non hai ancora inserito eventi</p>
+                  <p className="text-sm text-gray-500 mb-1">Non hai ancora inserito eventi.</p>
+                  <p className="text-xs text-gray-500 mb-3"><Link href="/host/eventi" className="text-brand-500 hover:text-brand-600 font-medium">Vai alla sezione eventi</Link> per iniziare a promuovere le tue attivit&agrave;.</p>
                   <Link href="/host/eventi/nuovo" className="btn-primary text-sm">Inserisci il primo evento</Link>
                 </div>
               ) : eventiRecenti.map(ev => (
                 <Link key={ev.id} href={`/host/eventi/${ev.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{ev.titolo}</p>
-                    <p className="text-xs text-gray-400">{ev.citta} · {formatData(ev.dataInizio)}</p>
+                    <p className="text-xs text-gray-500">{ev.citta} · {formatData(ev.dataInizio)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="text-right text-xs text-gray-400">
+                    <div className="text-right text-xs text-gray-500">
                       <p>{ev.visualizzazioni} views</p>
                       <p>{ev.click} click</p>
                     </div>
@@ -336,13 +338,16 @@ export default async function HostDashboardPage() {
             </div>
             <div className="divide-y divide-gray-50">
               {fattureRecenti.length === 0 ? (
-                <p className="px-6 py-8 text-center text-sm text-gray-400">Nessuna fattura ancora</p>
+                <div className="px-6 py-8 text-center">
+                  <p className="text-sm text-gray-500 mb-1">Nessuna fattura ancora.</p>
+                  <p className="text-xs text-gray-500">Le fatture emesse appariranno qui automaticamente.</p>
+                </div>
               ) : fattureRecenti.map(f => (
                 <Link key={f.id} href={`/host/fatture/${f.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors">
-                  <CreditCard size={16} className="text-gray-400 shrink-0" />
+                  <CreditCard size={16} className="text-gray-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-mono font-medium text-gray-900">{f.numero}</p>
-                    <p className="text-xs text-gray-400">{formatData(f.dataEmissione)}</p>
+                    <p className="text-xs text-gray-500">{formatData(f.dataEmissione)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{formatValuta(f.totale)}</span>

@@ -111,7 +111,7 @@ export default async function PrenotazioniPage({
           <Link
             key={s.value}
             href={`/host/prenotazioni?stato=${s.value}${q ? `&q=${q}` : ''}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
               stato === s.value
                 ? 'bg-brand-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -138,7 +138,7 @@ export default async function PrenotazioniPage({
       {/* Tabella */}
       {prenotazioni.length === 0 ? (
         <div className="card py-12 text-center text-gray-500">
-          <p>Nessuna prenotazione trovata</p>
+          <p>Nessuna prenotazione trovata. Modifica i filtri oppure crea una nuova prenotazione.</p>
         </div>
       ) : (
         <div className="card overflow-hidden p-0">
@@ -164,11 +164,11 @@ export default async function PrenotazioniPage({
                       <div className="font-medium text-gray-900">
                         {p.guestNome} {p.guestCognome}
                       </div>
-                      <div className="text-xs text-gray-400">{p.guestEmail}</div>
+                      <div className="text-xs text-gray-500">{p.guestEmail}</div>
                     </td>
                     <td className="table-td text-sm text-gray-600">
                       {p.struttura?.nome ?? '—'}
-                      {p.unita && <div className="text-xs text-gray-400">{p.unita.nome}</div>}
+                      {p.unita && <div className="text-xs text-gray-500">{p.unita.nome}</div>}
                     </td>
                     <td className="table-td text-sm">
                       {format(new Date(p.dataArrivo), 'd MMM yyyy', { locale: it })}
@@ -182,7 +182,7 @@ export default async function PrenotazioniPage({
                     <td className="table-td text-sm text-gray-600">
                       <div className="font-medium">€{p.prezzoTotale?.toFixed(2) ?? '—'}</div>
                       {p.tassaSoggiorno && (
-                        <div className="text-xs text-gray-400">+€{p.tassaSoggiorno.toFixed(2)}/n</div>
+                        <div className="text-xs text-gray-500">+€{p.tassaSoggiorno.toFixed(2)}/n</div>
                       )}
                     </td>
                     <td className="table-td">

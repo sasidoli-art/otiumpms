@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Eye, EyeOff, Loader2, X, Send, CheckCircle2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, X, Send, CheckCircle2, Shield } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,6 +12,8 @@ export default function LoginPage() {
   const tc = useTranslations('common')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [totpCode, setTotpCode] = useState('')
+  const [needsTotp, setNeedsTotp] = useState(false)
   const [mostraPassword, setMostraPassword] = useState(false)
   const [errore, setErrore] = useState('')
   const [loading, setLoading] = useState(false)
@@ -45,11 +47,18 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email: email.trim().toLowerCase(),
         password,
+        totpCode: needsTotp ? totpCode.trim() : '',
         redirect: false,
       })
 
       if (result?.error) {
-        setErrore(result.error)
+        // Il backend usa 'Error: 2FA_REQUIRED' come segnale per mostrare lo step 2
+        if (result.error.includes('2FA_REQUIRED')) {
+          setNeedsTotp(true)
+          setErrore('')
+        } else {
+          setErrore(result.error)
+        }
       } else {
         router.push('/')
         router.refresh()
@@ -78,40 +87,75 @@ export default function LoginPage() {
         <p className="text-sm text-gray-400 mb-6">{t('enterCredentials')}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">{t('emailAddress')}</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="input"
-              placeholder={t('emailPlaceholder')}
-              required
-              autoComplete="email"
-            />
-          </div>
+          {!needsTotp ? (
+            <>
+              <div>
+                <label className="label">{t('emailAddress')}</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input"
+                  placeholder={t('emailPlaceholder')}
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-          <div>
-            <label className="label">{t('password')}</label>
-            <div className="relative">
+              <div>
+                <label className="label">{t('password')}</label>
+                <div className="relative">
+                  <input
+                    type={mostraPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input pr-10"
+                    placeholder={t('passwordPlaceholder')}
+                    required
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostraPassword(!mostraPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {mostraPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                <Shield className="w-4 h-4 text-indigo-600 shrink-0" />
+                <p className="text-xs text-indigo-800 leading-tight">
+                  Verifica 2FA richiesta. Apri la tua app Authenticator e inserisci il codice a 6 cifre.
+                </p>
+              </div>
+              <label className="label">Codice a 6 cifre</label>
               <input
-                type={mostraPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input pr-10"
-                placeholder={t('passwordPlaceholder')}
-                required
-                autoComplete="current-password"
+                type="text"
+                inputMode="numeric"
+                maxLength={10}
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase())}
+                className="input text-center text-xl font-mono tracking-widest"
+                placeholder="123456"
+                autoFocus
+                autoComplete="one-time-code"
               />
+              <p className="text-[11px] text-gray-400 mt-1.5">
+                Non hai il telefono? Usa uno dei backup code.
+              </p>
               <button
                 type="button"
-                onClick={() => setMostraPassword(!mostraPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                onClick={() => { setNeedsTotp(false); setTotpCode(''); setErrore('') }}
+                className="text-xs text-gray-500 hover:text-gray-700 mt-2 underline"
               >
-                {mostraPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                ← Torna indietro
               </button>
             </div>
-          </div>
+          )}
 
           {errore && (
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded">
@@ -125,7 +169,7 @@ export default function LoginPage() {
             className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 mt-2"
           >
             {loading && <Loader2 size={15} className="animate-spin" />}
-            {loading ? t('signingIn') : t('signIn')}
+            {loading ? t('signingIn') : needsTotp ? 'Verifica' : t('signIn')}
           </button>
         </form>
 

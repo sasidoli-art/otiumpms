@@ -4,12 +4,13 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+import { validatePassword, isPasswordPwned } from '@/lib/password-policy'
 
 const updateUserSchema = z.object({
   nome: z.string().min(1).optional(),
   cognome: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  password: z.string().min(6).optional(),
+  password: z.string().min(10).optional(),
   role: z.enum(['SUPERADMIN', 'ADMIN', 'HOST']).optional(),
   attivo: z.boolean().optional(),
 }).refine(data => Object.keys(data).length > 0, { message: 'Nessun campo da aggiornare' })
@@ -46,6 +47,16 @@ export async function PATCH(
 
   // Hash password se presente
   if (data.password && typeof data.password === 'string') {
+    const policy = validatePassword(data.password)
+    if (!policy.ok) {
+      return NextResponse.json({ error: policy.reason }, { status: 400 })
+    }
+    if (await isPasswordPwned(data.password)) {
+      return NextResponse.json(
+        { error: 'Questa password è apparsa in un data breach noto. Scegline una diversa.' },
+        { status: 400 },
+      )
+    }
     data.password = await bcrypt.hash(data.password, 12)
   }
 

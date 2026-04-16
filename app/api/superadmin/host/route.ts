@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireSuperAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import bcrypt from 'bcryptjs'
 import { audit } from '@/lib/audit'
+import { validatePassword, isPasswordPwned } from '@/lib/password-policy'
 import { z } from 'zod'
 
 /**
@@ -63,6 +64,17 @@ export async function POST(req: NextRequest) {
   })
   if (existing) {
     return NextResponse.json({ error: 'Email già registrata' }, { status: 409 })
+  }
+
+  const policy = validatePassword(d.password)
+  if (!policy.ok) {
+    return NextResponse.json({ error: policy.reason }, { status: 400 })
+  }
+  if (await isPasswordPwned(d.password)) {
+    return NextResponse.json(
+      { error: 'Questa password è apparsa in un data breach noto. Scegline una diversa.' },
+      { status: 400 },
+    )
   }
 
   const hashedPassword = await bcrypt.hash(d.password, 12)

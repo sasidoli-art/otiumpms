@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import SpaBookingClient from './spa-booking-client'
+import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
 
 export default async function SpaBookingPage({
   params: paramsPromise,
@@ -51,17 +52,20 @@ export default async function SpaBookingPage({
   ])
 
   return (
-    <SpaBookingClient
-      strutturaId={params.strutturaId}
-      strutturaNome={struttura.nome}
-      nomeAzienda={struttura.host.nomeAzienda}
-      citta={struttura.citta}
-      trattamenti={trattamenti}
-      percorsi={percorsi.map(p => ({
-        ...p,
-        passaggi: p.passaggi.map(ps => ({ ordine: ps.ordine, durata: ps.durata, trattamentoNome: ps.trattamento.nome })),
-      }))}
-      terapisti={terapisti}
-    />
+    <>
+      <SpaBookingClient
+        strutturaId={params.strutturaId}
+        strutturaNome={struttura.nome}
+        nomeAzienda={struttura.host.nomeAzienda}
+        citta={struttura.citta}
+        trattamenti={trattamenti}
+        percorsi={percorsi.map(p => ({
+          ...p,
+          passaggi: p.passaggi.map(ps => ({ ordine: ps.ordine, durata: ps.durata, trattamentoNome: ps.trattamento.nome })),
+        }))}
+        terapisti={terapisti}
+      />
+      <PublicConciergeWidget strutturaId={params.strutturaId} strutturaNome={struttura.nome} />
+    </>
   )
 }

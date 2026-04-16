@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db'
 import { notFound } from 'next/navigation'
 import SceltaPastiForm from './scelta-pasti-form'
+import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
 
 
 
@@ -83,6 +84,7 @@ export default async function PastiPage({
           pastiEsclusi={prenotazione.pianoPasto?.pastiEsclusi ?? []}
         />
       </div>
+      <PublicConciergeWidget strutturaId={struttura.id} strutturaNome={struttura.nome} />
     </div>
   )
 }

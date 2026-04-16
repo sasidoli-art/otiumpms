@@ -119,7 +119,7 @@ export default function NotificheClient({
           <Link
             key={f.value}
             href={`/host/notifiche${f.value ? `?tipo=${f.value}` : ''}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
               filtroTipo === f.value
                 ? 'bg-brand-600 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -135,12 +135,15 @@ export default function NotificheClient({
       {notifiche.length === 0 ? (
         <div className="card py-16 text-center">
           <Bell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400">Nessuna notifica trovata</p>
+          <p className="text-gray-500 font-medium">Nessuna notifica trovata</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Qui appariranno le notifiche su prenotazioni, check-in, SPA, manutenzione e aggiornamenti di sistema.
+          </p>
         </div>
       ) : (
         <div className="card p-0 divide-y divide-gray-50">
           {notifiche.map(n => {
-            const tipoInfo = TIPO_ICON[n.tipo] ?? { icon: <Bell className="w-4 h-4 text-gray-400" />, label: n.tipo }
+            const tipoInfo = TIPO_ICON[n.tipo] ?? { icon: <Bell className="w-4 h-4 text-gray-500" />, label: n.tipo }
             return (
               <button
                 key={n.id}
@@ -158,14 +161,14 @@ export default function NotificheClient({
                       {n.titolo}
                     </p>
                     {!n.letta && <span className="w-2 h-2 bg-indigo-500 rounded-full shrink-0" />}
-                    <span className="text-xs text-gray-300 px-2 py-0.5 bg-gray-50 rounded-full ml-auto shrink-0">
+                    <span className="text-xs text-gray-500 px-2 py-0.5 bg-gray-50 rounded-full ml-auto shrink-0">
                       {tipoInfo.label}
                     </span>
                   </div>
                   {n.messaggio && (
                     <p className="text-sm text-gray-500 mt-0.5">{n.messaggio}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {format(new Date(n.createdAt), 'd MMM yyyy HH:mm', { locale: it })}
                     {' · '}
                     {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true, locale: it })}

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { validatePassword, isPasswordPwned } from '@/lib/password-policy'
 
 // ─── GET: Validate token and return invite details ───────────────────────────
 
@@ -48,7 +49,7 @@ export async function GET(
 // ─── POST: Complete registration ─────────────────────────────────────────────
 
 const registerSchema = z.object({
-  password: z.string().min(8, 'La password deve essere di almeno 8 caratteri'),
+  password: z.string().min(10, 'La password deve essere di almeno 10 caratteri'),
 })
 
 export async function POST(
@@ -140,6 +141,19 @@ export async function POST(
     ])
 
     return NextResponse.json({ success: true })
+  }
+
+  // Policy check: la lunghezza minima è già validata dallo schema, qui controlliamo
+  // complessità + breach DB online (best effort).
+  const policy = validatePassword(password)
+  if (!policy.ok) {
+    return NextResponse.json({ error: policy.reason }, { status: 400 })
+  }
+  if (await isPasswordPwned(password)) {
+    return NextResponse.json(
+      { error: 'Questa password è apparsa in un data breach noto. Scegline una diversa.' },
+      { status: 400 },
+    )
   }
 
   // Create new User + StaffMember + update invite in a transaction

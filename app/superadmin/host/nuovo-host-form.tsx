@@ -141,14 +141,14 @@ export default function NuovoHostForm({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <p className="text-[10px] uppercase text-gray-400 font-semibold">Login</p>
-              <p className="font-mono text-xs break-all">https://otium-pms.vercel.app/login</p>
+              <p className="font-mono text-xs break-all">{typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}</p>
             </div>
           </div>
 
           <button
             onClick={() =>
               navigator.clipboard.writeText(
-                `Email: ${success.email}\nPassword: ${success.password}\nLogin: https://otium-pms.vercel.app/login`
+                `Email: ${success.email}\nPassword: ${success.password}\nLogin: ${typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}`
               )
             }
             className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-slate-700 text-xs font-semibold mb-2 hover:bg-gray-50 dark:hover:bg-slate-800"

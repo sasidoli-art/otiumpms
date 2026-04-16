@@ -4,10 +4,11 @@ import { z } from 'zod'
 import { requireAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { parseBody } from '@/lib/validations'
 import { prisma } from '@/lib/db'
+import { validatePassword, isPasswordPwned } from '@/lib/password-policy'
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, 'Password attuale obbligatoria'),
-  newPassword: z.string().min(8, 'La nuova password deve avere almeno 8 caratteri'),
+  newPassword: z.string().min(10, 'La nuova password deve avere almeno 10 caratteri'),
   confirmPassword: z.string().min(1, 'Conferma password obbligatoria'),
 }).refine(d => d.newPassword === d.confirmPassword, {
   message: 'Le password non coincidono',
@@ -33,6 +34,17 @@ export async function POST(req: NextRequest) {
   const passwordOk = await bcrypt.compare(currentPassword, user.password)
   if (!passwordOk) {
     return NextResponse.json({ error: 'Password attuale non corretta' }, { status: 400 })
+  }
+
+  const policy = validatePassword(newPassword)
+  if (!policy.ok) {
+    return NextResponse.json({ error: policy.reason }, { status: 400 })
+  }
+  if (await isPasswordPwned(newPassword)) {
+    return NextResponse.json(
+      { error: 'Questa password è apparsa in un data breach noto. Scegline una diversa per sicurezza.' },
+      { status: 400 },
+    )
   }
 
   const hashed = await bcrypt.hash(newPassword, 12)

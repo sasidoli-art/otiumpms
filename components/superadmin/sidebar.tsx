@@ -51,8 +51,9 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
     {
       label: 'CONFIGURAZIONE',
       items: [
-        { href: '/superadmin/impostazioni/ai', label: 'AI Provider',    icon: Bot },
-        { href: '/superadmin/impostazioni',    label: t('settings'),    icon: Settings },
+        { href: '/superadmin/impostazioni/ai',  label: 'AI Provider',     icon: Bot },
+        { href: '/superadmin/impostazioni/2fa', label: '2FA / Sicurezza', icon: Shield },
+        { href: '/superadmin/impostazioni',     label: t('settings'),     icon: Settings },
       ],
     },
   ], [t])

@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import BookingForm from './booking-form'
 import { getTranslations } from 'next-intl/server'
+import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
 
 const TIPO_COLOR: Record<string, string> = {
   EVENTO: 'bg-purple-100 text-purple-700',
@@ -288,6 +289,12 @@ export default async function ProfiloStrutturaPage({ params: paramsPromise }: { 
           {' '}— {t('platform')}
         </p>
       </div>
+
+      <PublicConciergeWidget
+        strutturaId={struttura.id}
+        strutturaNome={struttura.nome}
+        lingua="it"
+      />
     </div>
   )
 }

@@ -23,11 +23,32 @@ export async function POST(
   })
   if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
 
-  // Genera password random (10 char, caratteri non ambigui)
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  const bytes = new Uint8Array(10)
-  crypto.getRandomValues(bytes)
-  const password = Array.from(bytes, (b) => chars[b % chars.length]).join('')
+  // Genera password random forte conforme alla policy:
+  // 14 char con almeno 1 per ogni classe (min, maiusc, num, simbolo).
+  // Caratteri ambigui (0/O, 1/l/I) evitati per leggibilità al telefono.
+  const lower = 'abcdefghijkmnpqrstuvwxyz'
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+  const nums = '23456789'
+  const syms = '!@#$%&*+?'
+  const all = lower + upper + nums + syms
+
+  function pick(set: string): string {
+    const buf = new Uint8Array(1)
+    crypto.getRandomValues(buf)
+    return set[buf[0] % set.length]
+  }
+
+  // 4 obbligatori + 10 random dal set completo
+  const pool = [pick(lower), pick(upper), pick(nums), pick(syms)]
+  for (let i = 0; i < 10; i++) pool.push(pick(all))
+  // Shuffle Fisher-Yates crypto-safe
+  for (let i = pool.length - 1; i > 0; i--) {
+    const buf = new Uint8Array(1)
+    crypto.getRandomValues(buf)
+    const j = buf[0] % (i + 1)
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  const password = pool.join('')
 
   const hashedPassword = await bcrypt.hash(password, 12)
 

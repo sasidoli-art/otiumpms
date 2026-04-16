@@ -314,9 +314,10 @@ class OpenAIProvider implements AIProvider {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
-          // OpenRouter richiede HTTP-Referer + X-Title per tracking (facoltativi)
-          'HTTP-Referer': 'https://otium-pms.vercel.app',
-          'X-Title': 'Otium PMS',
+          // OpenRouter richiede HTTP-Referer + X-Title per tracking (facoltativi).
+          // Uso dominio marketing pubblico (non il PMS) per non esporre il pms a OpenRouter logs.
+          'HTTP-Referer': 'https://www.otiumweek.com',
+          'X-Title': 'Otium Week',
         },
         body: JSON.stringify(body),
       })
