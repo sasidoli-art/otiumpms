@@ -247,10 +247,19 @@ export async function sendEmailConfermaPrenotazione(params: {
   prezzoTotale?: number | null
   hostId?: string | null
   strutturaId?: string | null
+  pin?: string | null
 }) {
-  const { guestEmail, guestNome, strutturaNome, hostNome, dataArrivo, dataPartenza, numOspiti, prezzoTotale, hostId, strutturaId } = params
+  const { guestEmail, guestNome, strutturaNome, hostNome, dataArrivo, dataPartenza, numOspiti, prezzoTotale, hostId, strutturaId, pin } = params
   const fmt = (d: Date) =>
     d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const pinBlock = pin ? `
+    <tr><th>PIN personale</th><td><strong style="font-size: 18px; letter-spacing: 4px; color: #4f46e5;">${pin}</strong></td></tr>
+    <tr><td colspan="2" style="font-size: 11px; color: #6b7280; padding-top: 4px;">
+      Usa questo PIN per: Wi-Fi, servizi in camera (QR code), concierge AI e checkout.
+      Non condividerlo con altri ospiti.
+    </td></tr>
+  ` : ''
 
   const htmlBody = `
     <p>Ciao <strong>${guestNome}</strong>,</p>
@@ -263,6 +272,7 @@ export async function sendEmailConfermaPrenotazione(params: {
       ${dataPartenza ? `<tr><th>Partenza</th><td>${fmt(dataPartenza)}</td></tr>` : ''}
       <tr><th>Ospiti</th><td>${numOspiti}</td></tr>
       ${prezzoTotale != null ? `<tr><th>Totale</th><td>€${prezzoTotale.toFixed(2)}</td></tr>` : ''}
+      ${pinBlock}
     </table>
     <p>Per ulteriori informazioni o domande, rispondi a questa email.</p>
   `

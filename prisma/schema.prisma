@@ -231,6 +231,12 @@ model Host {
   wifiRedirectUrl       String?                  // URL redirect post-login (sito hotel/attività)
   wifiWelcomeMessage    String?                  // Messaggio personalizzato welcome page
 
+  // Email routing — inoltro richieste ospiti a reparti specifici
+  emailHousekeeping  String?  // richieste pulizie/biancheria/asciugamani
+  emailManutenzione  String?  // segnalazioni guasti/problemi tecnici
+  emailRistorazione  String?  // room service/ristorante/colazione
+  emailReception     String?  // fallback: tutto quello che non ha categoria specifica
+
   // Onboarding
   onboardingCompletato Boolean @default(false)
 

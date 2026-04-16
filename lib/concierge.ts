@@ -126,6 +126,17 @@ export const CONCIERGE_TOOLS: AIToolDefinition[] = [
     },
   },
   {
+    name: 'identify_guest_by_pin',
+    description: 'Identifica l\'ospite tramite il PIN a 4 cifre della prenotazione. Usa quando l\'ospite fornisce il proprio PIN. Dopo l\'identificazione, avrai accesso ai dati della prenotazione.',
+    parameters: {
+      type: 'object',
+      properties: {
+        pin: { type: 'string', description: 'PIN a 4 cifre fornito dall\'ospite' },
+      },
+      required: ['pin'],
+    },
+  },
+  {
     name: 'add_companion',
     description: 'Registra un accompagnatore per la prenotazione. Usa quando l\'ospite comunica i dati di chi viaggia con lui (nome, cognome, documento). Chiedi i dati uno alla volta in modo naturale.',
     parameters: {
@@ -276,7 +287,7 @@ function buildSystemPrompt(host: {
   if (guest.dataArrivo) guestBlock += `\nCheck-in: ${guest.dataArrivo}`
   if (guest.dataPartenza) guestBlock += `\nCheck-out: ${guest.dataPartenza}`
   if (guest.stato) guestBlock += `\nStato prenotazione: ${guest.stato}`
-  if (!guest.prenotazioneId) guestBlock += `\n⚠ Ospite non identificato — chiedi gentilmente nome e numero di camera per identificarlo (NON chiedere email, codice fiscale o altri dati personali).`
+  if (!guest.prenotazioneId) guestBlock += `\n⚠ Ospite non identificato — chiedi gentilmente il PIN della prenotazione (4 cifre, ricevuto via email). In alternativa, chiedi nome e numero di camera. NON chiedere email, codice fiscale o altri dati personali.`
 
   return `Sei il concierge AI di ${host.nomeAzienda}, un assistente disponibile 24/7 via WhatsApp.
 
@@ -315,6 +326,38 @@ async function executeTool(
 
   try {
     switch (toolCall.name) {
+      case 'identify_guest_by_pin': {
+        tipo = 'IDENTIFICAZIONE_PIN'
+        const pin = String(args.pin).trim()
+        const { validatePin } = await import('@/lib/guest-pin')
+        const pren = await validatePin(hostId, pin)
+
+        if (!pren) {
+          result = 'PIN non valido o nessuna prenotazione attiva con questo PIN. Chiedi all\'ospite di verificare il PIN nella email di conferma.'
+          successo = false
+          break
+        }
+
+        // Aggiorna il contesto della conversazione con i dati della prenotazione
+        await prisma.conversazioneWhatsApp.update({
+          where: { id: conversazioneId },
+          data: { prenotazioneId: pren.id },
+        })
+
+        guest.prenotazioneId = pren.id
+        guest.guestNome = pren.guestNome
+        guest.guestCognome = pren.guestCognome
+        guest.unitaId = pren.unita?.id || null
+        guest.unitaNome = pren.unita?.nome || null
+        guest.strutturaNome = pren.struttura?.nome || null
+        guest.strutturaId = pren.struttura?.id || null
+        guest.dataArrivo = pren.dataArrivo.toISOString().split('T')[0]
+        guest.dataPartenza = pren.dataPartenza?.toISOString().split('T')[0] || null
+
+        result = `Ospite identificato: ${pren.guestNome} ${pren.guestCognome}. Camera: ${pren.unita?.nome || 'N/D'}. Check-in: ${guest.dataArrivo}. Check-out: ${guest.dataPartenza || 'N/D'}. Ora puoi rispondere in modo personalizzato.`
+        break
+      }
+
       case 'check_spa_availability': {
         tipo = 'SPA_CHECK_DISPONIBILITA'
         if (!guest.strutturaId) {
@@ -420,6 +463,16 @@ async function executeTool(
           },
         })
 
+        // Email routing al reparto HK
+        import('@/lib/request-email-routing').then(({ routeRequestEmail }) =>
+          routeRequestEmail({
+            hostId, category: 'housekeeping',
+            guestNome: `${guest.guestNome} ${guest.guestCognome}`,
+            cameraNome: guest.unitaNome,
+            richiesta: String(args.descrizione),
+          })
+        ).catch(() => {})
+
         result = `Task housekeeping creato (ID: ${task.id}). Tipo: ${args.tipo}. Lo staff è stato notificato.`
         break
       }
@@ -447,6 +500,17 @@ async function executeTool(
             linkUrl: '/host/manutenzione',
           },
         })
+
+        // Email routing al reparto manutenzione
+        import('@/lib/request-email-routing').then(({ routeRequestEmail }) =>
+          routeRequestEmail({
+            hostId, category: 'manutenzione',
+            guestNome: `${guest.guestNome} ${guest.guestCognome}`,
+            cameraNome: guest.unitaNome,
+            richiesta: String(args.titolo),
+            dettagli: String(args.descrizione),
+          })
+        ).catch(() => {})
 
         result = `Segnalazione manutenzione creata (ID: ${segn.id}). Lo staff tecnico è stato avvisato.`
         break
@@ -587,6 +651,16 @@ async function executeTool(
             linkUrl: `/host/concierge/${conversazioneId}`,
           },
         })
+
+        // Email routing alla reception
+        import('@/lib/request-email-routing').then(({ routeRequestEmail }) =>
+          routeRequestEmail({
+            hostId, category: 'reception',
+            guestNome: `${guest.guestNome} ${guest.guestCognome}`,
+            cameraNome: guest.unitaNome,
+            richiesta: `Escalation concierge: ${args.motivo}`,
+          })
+        ).catch(() => {})
 
         result = `Conversazione passata a un operatore umano. Motivo: ${args.motivo}`
         break
