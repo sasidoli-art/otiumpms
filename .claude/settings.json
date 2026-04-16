@@ -194,7 +194,26 @@
       "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Veneto\"}')",
       "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Emilia-Romagna\"}')",
       "Bash(curl -s -X POST https://www.otiumweek.it/api/agent -H 'Content-Type: application/json' -H 'x-admin-secret: otium-week-2026' -d '{\"region\": \"Puglia\"}')",
-      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\('Next.js:', pkg.dependencies.next\\);\")"
+      "Bash(node -e \"const pkg = require\\('./package.json'\\); console.log\\('Next.js:', pkg.dependencies.next\\);\")",
+      "Bash(npx shadcn@latest init --yes)",
+      "Bash(sed -i 's/<Image\\\\b/<img/g; s/ fill / /g; s/ priority / /g; s/ fill$//g' src/components/ArticlesSection.tsx)",
+      "Bash(sed -i 's|className=\"object-cover |className=\"absolute inset-0 w-full h-full object-cover |g' src/components/ArticlesSection.tsx)",
+      "Bash(curl -s \"https://www.otiumweek.it/api/articles?limit=10\")",
+      "Bash(node scripts/gen-batch3.js)",
+      "Bash(node scripts/gen-moda-design.js)",
+      "Bash(mkdir -p /c/Users/admin/.claude/skills)",
+      "Bash(cp -r /c/PROGETTI/designer-skills/* /c/Users/admin/.claude/skills/)",
+      "Bash(python3 skills/ui-ux-pro-max/scripts/search.py \"luxury magazine editorial events culture premium italian\" --design-system -p \"OtiumWeek\")",
+      "Bash(python skills/ui-ux-pro-max/scripts/search.py \"luxury magazine editorial events culture premium italian\" --design-system -p \"OtiumWeek\")",
+      "Bash(ls /c/Python*)",
+      "Read(//c/Users/admin/AppData/Local/Programs/**)",
+      "Bash(curl -s \"https://api.github.com/search/repositories?q=marketingskill+user:coreyhaines31\")",
+      "Bash(cp -r /c/PROGETTI/marketingskills/skills/* /c/Users/admin/.claude/skills/)",
+      "Bash(cp -r /c/PROGETTI/marketingskills/tools/* /c/Users/admin/.claude/skills/)",
+      "Bash(curl -s \"https://www.otiumweek.it/robots.txt\")",
+      "Bash(curl -s \"https://www.otiumweek.it/sitemap.xml\")",
+      "Bash(curl -sI \"https://www.otiumweek.it\")",
+      "Bash(curl -s \"https://www.otiumweek.it\")"
     ]
   }
 }
