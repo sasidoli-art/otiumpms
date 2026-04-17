@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useReducer, useCallback } from 'react'
+import { useRef, useReducer, useCallback, useEffect, useState } from 'react'
 import { CheckinLayout } from '@/components/checkin/checkin-layout'
 import { CheckinStepper, type StepConfig } from '@/components/checkin/checkin-stepper'
 import StepDatiPersonali, { type StepDatiPersonaliRef, type DatiPersonaliData } from '@/components/checkin/steps/step-dati-personali'
@@ -118,6 +118,63 @@ export default function CheckinFlow({ token, prenotazione: p, struttura, host }:
     firma: {},
   })
 
+  // ─── Persistenza localStorage ──────────────────────────────────────────
+  const STORAGE_KEY = `checkin-${token}`
+  const [savedStep, setSavedStep] = useState<number | null>(null)
+  const [showResume, setShowResume] = useState(false)
+  const [completed, setCompleted] = useState(false)
+
+  // Check localStorage al mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as { step: number; state: CheckInState }
+        if (saved.step > 0) {
+          setSavedStep(saved.step)
+          setShowResume(true)
+        }
+      }
+    } catch { /* ignore */ }
+  }, [STORAGE_KEY])
+
+  // Salva state ad ogni cambio
+  useEffect(() => {
+    if (completed) return
+    try {
+      // Non salviamo le foto (troppo pesanti per localStorage)
+      const toSave = {
+        ...state,
+        documento: { ...state.documento, fotoDocumentoFronte: null, fotoDocumentoRetro: null },
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ step: 0, state: toSave }))
+    } catch { /* quota exceeded, ignore */ }
+  }, [state, STORAGE_KEY, completed])
+
+  function resumeFromSaved() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const saved = JSON.parse(raw) as { step: number; state: CheckInState }
+        if (saved.state.datiPersonali) dispatch({ type: 'SET_DATI', payload: saved.state.datiPersonali })
+        if (saved.state.documento) dispatch({ type: 'SET_DOCUMENTO', payload: saved.state.documento })
+        if (saved.state.accompagnatori?.length) dispatch({ type: 'SET_ACCOMPAGNATORI', payload: saved.state.accompagnatori })
+        if (saved.state.firma) dispatch({ type: 'SET_FIRMA', payload: saved.state.firma })
+      }
+    } catch { /* ignore */ }
+    setShowResume(false)
+  }
+
+  function startFresh() {
+    localStorage.removeItem(STORAGE_KEY)
+    setShowResume(false)
+  }
+
+  function clearStorage() {
+    localStorage.removeItem(STORAGE_KEY)
+    setCompleted(true)
+  }
+
   // ─── Step config ────────────────────────────────────────────────────────
   const steps: StepConfig[] = [
     { id: 'dati', label: 'Dati personali', shortLabel: 'Dati', validate: () => datiRef.current?.validate() ?? false },
@@ -183,9 +240,32 @@ export default function CheckinFlow({ token, prenotazione: p, struttura, host }:
   }, [state, p])
 
   const handleComplete = useCallback(() => {
-    // Il submit viene gestito da StepConferma — non facciamo nulla qui
-    // perché StepConferma ha il suo bottone di submit interno
+    clearStorage()
   }, [])
+
+  // ─── Resume dialog ──────────────────────────────────────────────────────
+  if (showResume) {
+    return (
+      <CheckinLayout strutturaNome={struttura.nome} logo={struttura.logo} colorePrimario={struttura.colorePrimario} hostNome={host.nomeAzienda}>
+        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <p className="text-3xl mb-4">📝</p>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Vuoi riprendere da dove eri rimasto?</h2>
+          <p className="text-sm text-gray-500 mb-6">Abbiamo trovato dati salvati dal tuo ultimo tentativo.</p>
+          <div className="flex gap-3">
+            <button onClick={resumeFromSaved}
+              className="px-6 py-3 rounded-xl text-white font-semibold text-sm shadow-md"
+              style={{ backgroundColor: accent }}>
+              Riprendi
+            </button>
+            <button onClick={startFresh}
+              className="px-6 py-3 rounded-xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50">
+              Ricomincia
+            </button>
+          </div>
+        </div>
+      </CheckinLayout>
+    )
+  }
 
   return (
     <CheckinLayout
