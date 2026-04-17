@@ -9,6 +9,7 @@ import { PwaProvider } from '@/components/pwa-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
+import { ToastProvider } from '@/components/ui/toast'
 
 export const metadata: Metadata = {
   title: 'Otium Week — Gestionale',
@@ -47,6 +48,7 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
           <PwaProvider />
+          <ToastProvider />
         </NextIntlClientProvider>
       </body>
     </html>
