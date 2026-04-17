@@ -241,7 +241,17 @@ model Host {
   orePreCheckin Int @default(72) // ore prima dell'arrivo per inviare email check-in online
 
   // Onboarding
-  onboardingCompletato Boolean @default(false)
+  onboardingCompletato Boolean  @default(false) // legacy — true = fase 1 completata
+  onboardingStep       Int      @default(0)     // 0=non iniziato, 1-4=step in corso, 5=completato
+  onboardingData       Json?    @default("{}")  // dati parziali salvati tra step
+
+  // Checklist post-onboarding (fase 2)
+  configSmtp           Boolean  @default(false)
+  configBranding       Boolean  @default(false)
+  configTariffe        Boolean  @default(false)
+  configPasti          Boolean  @default(false)
+  configCheckin        Boolean  @default(false)
+  primaPrenotazione    Boolean  @default(false)
 
   // Registration Card HTML (personalizzabile dall'host)
   regCardTerminiHtml    String?

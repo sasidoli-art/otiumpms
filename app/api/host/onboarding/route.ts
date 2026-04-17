@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         partitaIva: d.partitaIva || undefined,
         moduliAttivi: d.moduliAttivi ?? {},
         onboardingCompletato: true,
+        onboardingStep: 5,
       },
     }),
     prisma.struttura.create({
@@ -83,11 +84,12 @@ export async function GET() {
 
   const host = await prisma.host.findUnique({
     where: { id: auth.user.hostId },
-    select: { onboardingCompletato: true, nomeAzienda: true },
+    select: { onboardingCompletato: true, onboardingStep: true, nomeAzienda: true },
   })
 
   return NextResponse.json({
     completato: host?.onboardingCompletato ?? false,
+    step: host?.onboardingStep ?? 0,
     nomeAzienda: host?.nomeAzienda ?? '',
   })
 }

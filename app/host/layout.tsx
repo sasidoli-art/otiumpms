@@ -14,9 +14,9 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   if (!allowedRoles.includes(session.user.role)) redirect('/login')
 
   const host = session.user.role === 'HOST' || session.user.role === 'DIREZIONE' || session.user.role === 'STAFF'
-    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
-      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
-    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
+    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
+      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
+    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
 
   // Check if we're on the onboarding page
   const headersList = await headers()
@@ -24,8 +24,9 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   const isOnboardingPage = pathname.startsWith('/host/onboarding')
   const isSelezionePage = pathname.startsWith('/host/seleziona-struttura')
 
-  // Redirect HOST to onboarding if not completed (skip if already on onboarding page)
-  if (session.user.role === 'HOST' && host && !host.onboardingCompletato && !isOnboardingPage) {
+  // Redirect HOST to onboarding if fase 1 not completed (step < 5)
+  const onboardingDone = host?.onboardingCompletato || (host?.onboardingStep ?? 0) >= 5
+  if (session.user.role === 'HOST' && host && !onboardingDone && !isOnboardingPage) {
     redirect('/host/onboarding')
   }
 

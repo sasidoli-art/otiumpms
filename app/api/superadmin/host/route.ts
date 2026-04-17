@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
         moduliAttivi: {},
         conciergeAttivo: d.conciergeAttivo,
         onboardingCompletato: true,
+        onboardingStep: 5,
       },
     })
 
