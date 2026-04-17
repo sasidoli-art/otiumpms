@@ -100,17 +100,19 @@ export default withAuth(
     }
 
     // Onboarding redirect for HOST users
+    // Note: onboardingStep is undefined for users whose JWT was issued before the field existed.
+    // Treat undefined as "completed" (5) to avoid redirect loops for existing users.
     if (pathname.startsWith('/host') && token?.role === 'HOST') {
-      const step = (token.onboardingStep as number | undefined) ?? 0
+      const step = token.onboardingStep as number | undefined
       const isOnboarding = pathname.startsWith('/host/onboarding')
       const isApi = pathname.startsWith('/api/')
 
-      // Not completed → force onboarding (skip if already there or if API call)
-      if (step < 5 && !isOnboarding && !isApi) {
+      // Only redirect if step is explicitly set to < 5 (new users who started onboarding)
+      if (step !== undefined && step < 5 && !isOnboarding && !isApi) {
         return NextResponse.redirect(new URL('/host/onboarding', req.url))
       }
       // Completed → redirect away from onboarding
-      if (step >= 5 && isOnboarding) {
+      if ((step === undefined || step >= 5) && isOnboarding) {
         return NextResponse.redirect(new URL('/host/dashboard', req.url))
       }
     }

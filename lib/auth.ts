@@ -197,7 +197,10 @@ export const authOptions: NextAuthOptions = {
           name: `${user.nome} ${user.cognome}`,
           role: user.role,
           hostId: user.host?.id ?? null,
-          onboardingStep: user.host?.onboardingStep ?? 5,
+          // Legacy compat: if onboardingCompletato=true but onboardingStep=0, treat as 5
+          onboardingStep: user.host
+            ? (user.host.onboardingCompletato && user.host.onboardingStep === 0 ? 5 : user.host.onboardingStep)
+            : 5,
         }
       },
     }),
