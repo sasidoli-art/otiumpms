@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { OnboardingWizard } from './onboarding-wizard'
+import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function OnboardingPage() {
