@@ -169,43 +169,62 @@ h1, h2, h3, h4, h5, h6 {
 @layer components {
   /* ── Card ────────────────────────────────────────────────────────────────── */
   .card {
-    background: var(--bg-primary);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
     padding: 1.25rem 1.5rem;
     box-shadow: var(--shadow-card);
-    transition: box-shadow var(--transition-normal);
   }
   .card:hover { box-shadow: var(--shadow-card-hover); }
 
+  .card-interactive {
+    @apply card cursor-pointer;
+    transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-hover);
+    transform: translateY(-1px);
+  }
+  .card-interactive:active { transform: translateY(0); }
+
   /* ── Buttons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply px-4 py-2.5 font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed;
-    background: var(--color-brand-600);
+    @apply px-4 py-2.5 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-700));
     color: var(--text-on-brand);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.2), var(--shadow-sm);
   }
-  .btn-primary:hover { background: var(--color-brand-700); box-shadow: var(--shadow-md); }
-  .btn-primary:active { background: var(--color-brand-800); }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-800));
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25), var(--shadow-md);
+    transform: translateY(-0.5px);
+  }
+  .btn-primary:active { transform: translateY(0); }
 
   .btn-secondary {
-    @apply px-4 py-2.5 font-semibold text-sm transition-all;
+    @apply px-4 py-2.5 font-semibold text-sm;
     background: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
   }
-  .btn-secondary:hover { background: var(--bg-secondary); border-color: var(--border-hover); }
-
-  .btn-danger {
-    @apply px-4 py-2.5 font-semibold text-sm transition-all;
-    background: var(--color-error);
-    color: var(--text-on-brand);
-    border-radius: var(--radius-lg);
+  .btn-secondary:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-hover);
     box-shadow: var(--shadow-sm);
   }
-  .btn-danger:hover { opacity: 0.9; }
+
+  .btn-danger {
+    @apply px-4 py-2.5 font-semibold text-sm;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: var(--text-on-brand);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.2), var(--shadow-sm);
+  }
+  .btn-danger:hover { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); transform: translateY(-0.5px); }
+  .btn-danger:active { transform: translateY(0); }
 
   .btn-ghost {
     @apply px-3 py-2 text-sm font-medium transition-all;
@@ -223,14 +242,16 @@ h1, h2, h3, h4, h5, h6 {
 
   /* ── Inputs ──────────────────────────────────────────────────────────────── */
   .input {
-    @apply w-full px-3.5 py-2.5 text-sm transition-all;
+    @apply w-full px-3.5 py-2.5 text-sm;
     background: var(--bg-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
   }
   .input::placeholder { color: var(--text-tertiary); }
-  .input:focus { outline: none; border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+  .input:hover { border-color: var(--border-hover); }
+  .input:focus { outline: none; border-color: var(--color-brand-500); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: var(--bg-elevated); }
   .input-error { border-color: var(--color-error); }
   .input-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
 

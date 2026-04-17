@@ -205,9 +205,10 @@ export function Topbar({
         <Link
           href="/host/prenotazioni/nuova"
           className={cn(
-            'flex items-center gap-1.5 rounded-lg font-semibold transition-colors',
-            'bg-blue-600 text-white hover:bg-blue-700',
-            'px-2 py-1.5 md:px-3 md:py-1.5 text-xs',
+            'flex items-center gap-1.5 rounded-lg font-semibold',
+            'bg-gradient-to-r from-brand-600 to-brand-700 text-white hover:from-brand-700 hover:to-brand-800',
+            'shadow-sm shadow-brand-600/20 hover:shadow-md hover:shadow-brand-600/25',
+            'px-2.5 py-1.5 md:px-3.5 md:py-2 text-xs',
           )}
         >
           <Plus size={14} className="shrink-0" />
@@ -253,7 +254,7 @@ export function Topbar({
             onClick={() => setUserMenuOpen(v => !v)}
             className="flex items-center gap-2 py-1 px-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold select-none shrink-0">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center text-xs font-bold select-none shrink-0 ring-2 ring-brand-500/10">
               {initials || <User size={14} />}
             </div>
           </button>

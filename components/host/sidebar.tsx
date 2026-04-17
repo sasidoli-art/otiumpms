@@ -266,8 +266,9 @@ export function HostSidebar({
   return (
     <aside
       className={cn(
-        'flex flex-col h-full bg-slate-900 text-white shrink-0 overflow-hidden',
+        'flex flex-col h-full text-white shrink-0 overflow-hidden',
         'transition-[width] duration-300 ease-in-out',
+        'bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950',
         collapsed ? 'w-16' : 'w-[260px]',
       )}
     >
@@ -279,9 +280,9 @@ export function HostSidebar({
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Logo */}
           {logo ? (
-            <img src={logo} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+            <img src={logo} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0 ring-1 ring-white/10" />
           ) : (
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 select-none">
+            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none shadow-lg shadow-brand-500/20">
               {nomeAzienda.charAt(0)}
             </div>
           )}
@@ -328,7 +329,7 @@ export function HostSidebar({
                 <div className="min-w-0">
                   <p className="font-bold text-white text-sm leading-tight truncate">{nomeAzienda}</p>
                   {piano && (
-                    <span className="inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-600/30 text-blue-300">
+                    <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-brand-500/20 to-brand-600/20 text-brand-300 border border-brand-500/20">
                       {PLAN_LABELS[piano] || piano}
                     </span>
                   )}
@@ -358,7 +359,7 @@ export function HostSidebar({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cerca..."
-              className="w-full pl-8 pr-8 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
+              className="w-full pl-8 pr-8 py-1.5 text-xs bg-white/[0.06] border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500/50 focus:bg-white/[0.08] transition-all"
             />
             {!search && (
               <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 font-mono pointer-events-none hidden lg:block">
@@ -438,7 +439,7 @@ export function HostSidebar({
         {!collapsed ? (
           <div className="px-2 py-1.5 mb-1">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold shrink-0 select-none">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-xs font-bold shrink-0 select-none ring-2 ring-brand-500/20">
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
@@ -449,7 +450,7 @@ export function HostSidebar({
           </div>
         ) : (
           <div className="flex justify-center py-1" title={nomeUtente}>
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold select-none">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-xs font-bold select-none ring-2 ring-brand-500/20">
               {initials}
             </div>
           </div>
@@ -588,8 +589,8 @@ const NavItem = memo(function NavItem({
         'relative flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all group',
         collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-[7px]',
         active
-          ? 'bg-blue-600/20 text-blue-400 border-l-[3px] border-blue-400'
-          : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
+          ? 'bg-brand-500/15 text-brand-300 border-l-[3px] border-brand-400 shadow-sm shadow-brand-500/5'
+          : 'text-slate-400 hover:bg-white/[0.06] hover:text-slate-200',
       )}
     >
       <Icon size={16} className="shrink-0" />
