@@ -237,6 +237,9 @@ model Host {
   emailRistorazione  String?  // room service/ristorante/colazione
   emailReception     String?  // fallback: tutto quello che non ha categoria specifica
 
+  // Check-in online — timing invio email pre-arrivo
+  orePreCheckin Int @default(72) // ore prima dell'arrivo per inviare email check-in online
+
   // Onboarding
   onboardingCompletato Boolean @default(false)
 

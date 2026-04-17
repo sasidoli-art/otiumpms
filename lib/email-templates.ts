@@ -4,6 +4,7 @@ export type LinguaTemplate = 'it' | 'en' | 'de' | 'fr' | 'es'
 export type TipoTemplate =
   | 'conferma_prenotazione'
   | 'richiesta_checkin'
+  | 'pre_checkin'
   | 'reminder_arrivo'
   | 'cancellazione'
   | 'preventivo'
@@ -152,6 +153,58 @@ const templates: Record<TipoTemplate, Record<LinguaTemplate, EmailTemplate>> = {
         + 'Tu llegada se acerca! Completa tu check-in online:\n\n'
         + '{checkInUrl}\n\n'
         + 'Nos vemos el {dataArrivo} en {strutturaNome}.\n\nHasta pronto,\n{hostNome}',
+    },
+  },
+
+  pre_checkin: {
+    it: {
+      oggetto: 'Preparati per il soggiorno a {strutturaNome}',
+      corpo: 'Ciao {guestNome},\n\nil tuo soggiorno a {strutturaNome} si avvicina!\n\n'
+        + '📅 Arrivo: {dataArrivo}\n'
+        + '🏠 {unitaNome} — {numOspiti} ospiti\n\n'
+        + 'Per velocizzare il tuo arrivo, puoi completare il check-in online adesso. '
+        + 'Ti chiederemo i dati di tutti gli ospiti e la firma — così in reception sarà questione di un minuto.\n\n'
+        + '{checkInUrl}\n\n'
+        + 'Se preferisci, puoi completare il check-in direttamente in struttura al tuo arrivo.\n\n'
+        + 'A presto,\n{hostNome}\n{hostTelefono}',
+    },
+    en: {
+      oggetto: 'Get ready for your stay at {strutturaNome}',
+      corpo: 'Hi {guestNome},\n\nyour stay at {strutturaNome} is almost here!\n\n'
+        + '📅 Arrival: {dataArrivo}\n'
+        + '🏠 {unitaNome} — {numOspiti} guests\n\n'
+        + 'To speed up your arrival, you can complete your online check-in now. '
+        + 'We will ask for the details of all guests and a signature — so at reception it will only take a minute.\n\n'
+        + '{checkInUrl}\n\n'
+        + 'If you prefer, you can also check in directly at the property on arrival.\n\n'
+        + 'See you soon,\n{hostNome}\n{hostTelefono}',
+    },
+    de: {
+      oggetto: 'Bereiten Sie sich auf Ihren Aufenthalt in {strutturaNome} vor',
+      corpo: 'Hallo {guestNome},\n\nIhr Aufenthalt in {strutturaNome} steht bevor!\n\n'
+        + '📅 Anreise: {dataArrivo}\n'
+        + '🏠 {unitaNome} — {numOspiti} Gaeste\n\n'
+        + 'Um Ihre Ankunft zu beschleunigen, koennen Sie jetzt Ihren Online-Check-in abschliessen.\n\n'
+        + '{checkInUrl}\n\n'
+        + 'Bis bald,\n{hostNome}\n{hostTelefono}',
+    },
+    fr: {
+      oggetto: 'Preparez votre sejour a {strutturaNome}',
+      corpo: 'Bonjour {guestNome},\n\nvotre sejour a {strutturaNome} approche !\n\n'
+        + '📅 Arrivee : {dataArrivo}\n'
+        + '🏠 {unitaNome} — {numOspiti} personnes\n\n'
+        + 'Pour accelerer votre arrivee, vous pouvez effectuer votre check-in en ligne des maintenant.\n\n'
+        + '{checkInUrl}\n\n'
+        + 'A bientot,\n{hostNome}',
+    },
+    es: {
+      oggetto: 'Preparate para tu estancia en {strutturaNome}',
+      corpo: 'Hola {guestNome},\n\ntu estancia en {strutturaNome} esta cerca!\n\n'
+        + '📅 Llegada: {dataArrivo}\n'
+        + '🏠 {unitaNome} — {numOspiti} huespedes\n\n'
+        + 'Para agilizar tu llegada, puedes completar tu check-in online ahora.\n\n'
+        + '{checkInUrl}\n\n'
+        + 'Hasta pronto,\n{hostNome}',
     },
   },
 

@@ -4,6 +4,7 @@ import {
   sendEmailReminderPreArrivo,
   sendEmailFollowUpPostSoggiorno,
   sendEmailReminderAppuntamentoSpa,
+  sendEmailPreCheckin,
 } from '@/lib/email'
 import { logger } from '@/lib/logger'
 
@@ -36,10 +37,87 @@ export async function GET(req: NextRequest) {
   const oggi = new Date(now)
   oggi.setHours(0, 0, 0, 0)
 
-  const results = { reminderArrivo: 0, followUp: 0, reminderSpa: 0, errori: 0 }
+  const results = { preCheckin: 0, reminderArrivo: 0, followUp: 0, reminderSpa: 0, errori: 0 }
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
-  // ─── 1. Pre-arrival reminders ───────────────────────────────────────────────
-  // Bookings arriving tomorrow, confirmed, with email, not yet sent
+  // ─── 0. Pre-Check-in Online (X ore prima, configurabile per host) ──────────
+  // Invia email branded con CTA "Completa il check-in" a ospiti che arrivano
+  // entro orePreCheckin ore. Genera checkInToken se non esiste.
+  // NON invia se: statoCheckIn !== NON_INIZIATO, stato !== CONFERMATA
+  const hosts = await prisma.host.findMany({
+    where: { moduliAttivi: { not: null } },
+    select: { id: true, orePreCheckin: true },
+  })
+
+  for (const host of hosts) {
+    const ore = host.orePreCheckin || 72
+    const arrivoEntro = new Date(now.getTime() + ore * 60 * 60 * 1000)
+
+    const prenotazioni = await prisma.prenotazione.findMany({
+      where: {
+        hostId: host.id,
+        stato: 'CONFERMATA',
+        statoCheckIn: 'NON_INIZIATO',
+        reminderInviato: false,
+        dataArrivo: { gte: oggi, lte: arrivoEntro },
+        guestEmail: { not: '' },
+      },
+      include: {
+        struttura: { select: { id: true, nome: true, indirizzo: true, citta: true } },
+        unita: { select: { nome: true } },
+        host: { select: { id: true, nomeAzienda: true, telefono: true } },
+      },
+    })
+
+    for (const p of prenotazioni) {
+      try {
+        // Genera checkInToken se non esiste
+        let token = p.checkInToken
+        if (!token) {
+          token = crypto.randomUUID()
+          await prisma.prenotazione.update({
+            where: { id: p.id },
+            data: { checkInToken: token },
+          })
+        }
+
+        const checkInUrl = `${baseUrl}/checkin/${token}`
+
+        await sendEmailPreCheckin({
+          guestEmail: p.guestEmail,
+          guestNome: p.guestNome,
+          strutturaNome: p.struttura?.nome ?? 'La struttura',
+          strutturaIndirizzo: p.struttura?.indirizzo,
+          strutturaCitta: p.struttura?.citta,
+          unitaNome: p.unita?.nome,
+          hostNome: p.host.nomeAzienda,
+          hostTelefono: p.host.telefono,
+          dataArrivo: p.dataArrivo,
+          dataPartenza: p.dataPartenza,
+          numOspiti: p.numOspiti,
+          checkInUrl,
+          lingua: p.guestLingua,
+          hostId: p.host.id,
+          strutturaId: p.struttura?.id,
+          pin: p.pin,
+        })
+
+        await prisma.prenotazione.update({
+          where: { id: p.id },
+          data: { reminderInviato: true },
+        })
+        results.preCheckin++
+      } catch (err) {
+        logger.error('Cron: pre-checkin email fallita', 'cron/email-automatiche', {
+          prenotazioneId: p.id,
+          error: String(err),
+        })
+        results.errori++
+      }
+    }
+  }
+
+  // ─── 1. Pre-arrival reminders (legacy — 1 giorno prima per chi non ha ricevuto pre-checkin) ─
   const prenotazioniDomani = await prisma.prenotazione.findMany({
     where: {
       stato: 'CONFERMATA',
@@ -56,10 +134,9 @@ export async function GET(req: NextRequest) {
 
   for (const p of prenotazioniDomani) {
     try {
-      // Generate check-in link if not completed
       let checkInUrl: string | null = null
       if (!p.checkInCompletato && p.checkInToken) {
-        checkInUrl = `${process.env.NEXTAUTH_URL}/checkin/${p.checkInToken}`
+        checkInUrl = `${baseUrl}/checkin/${p.checkInToken}`
       }
 
       await sendEmailReminderPreArrivo({

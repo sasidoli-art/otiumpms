@@ -798,3 +798,116 @@ export async function sendEmailConfermaRicezione(params: {
     html: base(htmlBody),
   }, hostId)
 }
+
+// ─── Pre-Check-in Online (per ospite) ─────────────────────────────────────────
+// Email branded con CTA grande per completare il check-in prima dell'arrivo.
+
+export async function sendEmailPreCheckin(params: {
+  guestEmail: string
+  guestNome: string
+  strutturaNome: string
+  strutturaIndirizzo?: string | null
+  strutturaCitta?: string | null
+  unitaNome?: string | null
+  hostNome: string
+  hostTelefono?: string | null
+  dataArrivo: Date
+  dataPartenza?: Date | null
+  numOspiti: number
+  checkInUrl: string
+  lingua?: string | null
+  hostId?: string | null
+  strutturaId?: string | null
+  pin?: string | null
+}) {
+  const {
+    guestEmail, guestNome, strutturaNome, strutturaIndirizzo, strutturaCitta,
+    unitaNome, hostNome, hostTelefono, dataArrivo, dataPartenza,
+    numOspiti, checkInUrl, lingua, hostId, strutturaId, pin,
+  } = params
+
+  const lang = (lingua || 'it') as 'it' | 'en' | 'de' | 'fr'
+  const fmtArrivo = dataArrivo.toLocaleDateString(lang === 'it' ? 'it-IT' : lang === 'de' ? 'de-DE' : lang === 'fr' ? 'fr-FR' : 'en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  })
+  const fmtPartenza = dataPartenza?.toLocaleDateString(lang === 'it' ? 'it-IT' : lang === 'de' ? 'de-DE' : lang === 'fr' ? 'fr-FR' : 'en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
+
+  const subjects: Record<string, string> = {
+    it: `Preparati per il soggiorno a ${strutturaNome}`,
+    en: `Get ready for your stay at ${strutturaNome}`,
+    de: `Bereiten Sie sich auf Ihren Aufenthalt vor – ${strutturaNome}`,
+    fr: `Préparez votre séjour à ${strutturaNome}`,
+  }
+
+  const ctaLabels: Record<string, string> = {
+    it: 'Completa il check-in',
+    en: 'Complete check-in',
+    de: 'Online einchecken',
+    fr: 'Effectuer le check-in',
+  }
+
+  const intros: Record<string, string> = {
+    it: `Ciao <strong>${guestNome}</strong>,<br>il tuo soggiorno a <strong>${strutturaNome}</strong> si avvicina!`,
+    en: `Hi <strong>${guestNome}</strong>,<br>your stay at <strong>${strutturaNome}</strong> is almost here!`,
+    de: `Hallo <strong>${guestNome}</strong>,<br>Ihr Aufenthalt in <strong>${strutturaNome}</strong> steht bevor!`,
+    fr: `Bonjour <strong>${guestNome}</strong>,<br>votre séjour à <strong>${strutturaNome}</strong> approche !`,
+  }
+
+  const bodies: Record<string, string> = {
+    it: 'Per velocizzare il tuo arrivo, puoi completare il check-in online adesso. Ti chiederemo i dati di tutti gli ospiti e la firma — così in reception sarà questione di un minuto.',
+    en: 'To speed up your arrival, you can complete your online check-in now. We\'ll ask for guest details and a signature — so at reception it will only take a minute.',
+    de: 'Um Ihre Ankunft zu beschleunigen, können Sie jetzt Ihren Online-Check-in abschließen. An der Rezeption dauert es dann nur eine Minute.',
+    fr: 'Pour accélérer votre arrivée, vous pouvez effectuer votre check-in en ligne maintenant. À la réception, ce sera l\'affaire d\'une minute.',
+  }
+
+  const footerNotes: Record<string, string> = {
+    it: 'Se preferisci, puoi completare il check-in direttamente in struttura al tuo arrivo.',
+    en: 'If you prefer, you can also check in directly at the property on arrival.',
+    de: 'Sie können den Check-in auch direkt bei Ihrer Ankunft durchführen.',
+    fr: 'Si vous préférez, vous pouvez effectuer le check-in directement sur place.',
+  }
+
+  const camera = unitaNome || ''
+  const ospiti = numOspiti > 1 ? `${numOspiti} ${lang === 'it' ? 'ospiti' : lang === 'en' ? 'guests' : lang === 'de' ? 'Gäste' : 'personnes'}` : ''
+  const pinBlock = pin ? `<tr><th>PIN</th><td style="font-size:18px;letter-spacing:4px;font-weight:700;color:#4f46e5;">${pin}</td></tr>` : ''
+
+  const htmlBody = `
+    <p>${intros[lang] || intros.it}</p>
+
+    <table class="table">
+      <tr><th>📅 ${lang === 'it' ? 'Arrivo' : lang === 'en' ? 'Arrival' : lang === 'de' ? 'Anreise' : 'Arrivée'}</th><td>${fmtArrivo}</td></tr>
+      ${fmtPartenza ? `<tr><th>${lang === 'it' ? 'Partenza' : lang === 'en' ? 'Departure' : lang === 'de' ? 'Abreise' : 'Départ'}</th><td>${fmtPartenza}</td></tr>` : ''}
+      ${camera ? `<tr><th>🏠 ${lang === 'it' ? 'Camera' : 'Room'}</th><td>${camera}</td></tr>` : ''}
+      ${ospiti ? `<tr><th>${lang === 'it' ? 'Ospiti' : 'Guests'}</th><td>${ospiti}</td></tr>` : ''}
+      ${pinBlock}
+    </table>
+
+    <p style="margin-top:8px;">${bodies[lang] || bodies.it}</p>
+
+    <p style="text-align:center;margin:24px 0;">
+      <a class="btn" href="${checkInUrl}" style="font-size:16px;padding:16px 36px;">
+        ${ctaLabels[lang] || ctaLabels.it} →
+      </a>
+    </p>
+
+    <p style="font-size:12px;color:#9ca3af;margin-top:20px;">
+      ${footerNotes[lang] || footerNotes.it}
+    </p>
+
+    ${strutturaIndirizzo || strutturaCitta ? `
+      <p style="font-size:12px;color:#9ca3af;margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px;">
+        📍 ${[strutturaIndirizzo, strutturaCitta].filter(Boolean).join(', ')}
+        ${hostTelefono ? `<br>📞 ${hostTelefono}` : ''}
+      </p>
+    ` : ''}
+  `
+
+  const branding = await getBranding(strutturaId)
+  await dispatchMail({
+    to: guestEmail,
+    subject: subjects[lang] || subjects.it,
+    html: base(htmlBody, branding),
+  }, hostId)
+}

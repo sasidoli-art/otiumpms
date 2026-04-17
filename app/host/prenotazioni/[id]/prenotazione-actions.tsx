@@ -299,6 +299,30 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
           </div>
         )}
 
+        {/* Invia email pre-checkin */}
+        {prenotazione.stato === 'CONFERMATA' && !prenotazione.checkInCompletato && (
+          <button
+            onClick={async () => {
+              setLoading('send-checkin')
+              try {
+                const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}/send-checkin`, { method: 'POST' })
+                const data = await res.json()
+                if (res.ok) {
+                  alert(`Email inviata a ${data.email}`)
+                } else {
+                  alert(data.error || 'Errore invio')
+                }
+              } catch { alert('Errore di rete') }
+              setLoading(null)
+            }}
+            disabled={loading === 'send-checkin'}
+            className="w-full flex items-center gap-2 py-2 px-3 text-sm text-emerald-600 hover:bg-emerald-50 rounded-lg border border-emerald-200 disabled:opacity-50 transition-colors"
+          >
+            {loading === 'send-checkin' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Invia link check-in via email
+          </button>
+        )}
+
         {/* Email template */}
         <button
           onClick={apriEmailModal}
