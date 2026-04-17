@@ -294,6 +294,15 @@ h1, h2, h3, h4, h5, h6 {
 
   /* ── Skeleton ────────────────────────────────────────────────────────────── */
   .skeleton { @apply animate-pulse; background: var(--bg-tertiary); border-radius: var(--radius-md); }
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--color-gray-200) 50%, var(--bg-tertiary) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  .dark .skeleton-shimmer {
+    background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--color-gray-600) 50%, var(--bg-tertiary) 100%);
+    background-size: 200% 100%;
+  }
   .skeleton-text { @apply skeleton h-4 w-3/4; }
   .skeleton-text-sm { @apply skeleton h-3 w-1/2; }
   .skeleton-card { @apply skeleton h-24; border-radius: var(--radius-lg); }
