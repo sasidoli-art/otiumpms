@@ -376,7 +376,7 @@ export function HostSidebar({
       )}
 
       {/* ═══ NAVIGATION ═══════════════════════════════════════════════════ */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1 sidebar-scroll">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1 sidebar-scroll" role="navigation" aria-label="Menu principale">
         {/* Search results (flat list) */}
         {searchResults !== null ? (
           <div className="px-2 py-1">
@@ -522,6 +522,7 @@ const NavGroup = memo(function NavGroup({
       {/* Group header */}
       <button
         onClick={onToggle}
+        aria-expanded={open}
         className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors group"
       >
         <motion.div
@@ -582,6 +583,7 @@ const NavItem = memo(function NavItem({
       href={item.href}
       onClick={onNavigate}
       title={collapsed ? label : undefined}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'relative flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all group',
         collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-[7px]',

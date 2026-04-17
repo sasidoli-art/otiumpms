@@ -243,7 +243,7 @@ export function ChatGuest({
       )}
 
       {/* ═══ Messages area ═══ */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4" role="log" aria-live="polite" aria-label="Messaggi">
         {isEmpty ? (
           /* Empty state */
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
@@ -328,6 +328,7 @@ export function ChatGuest({
             onKeyDown={onKeyDown}
             onBlur={() => setLocalTyping(false)}
             placeholder="Scrivi un messaggio..."
+            aria-label="Scrivi un messaggio"
             rows={1}
             className="flex-1 resize-none border border-slate-200 rounded-2xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-300 transition-colors bg-slate-50"
             style={{ maxHeight: 120 }}

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useId, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useFocusTrap } from '@/hooks/use-focus-trap'
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
@@ -12,7 +13,6 @@ interface Props {
   onClose: () => void
   title?: string
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
-  /** On mobile (< 768px): render as bottom sheet instead of centered dialog */
   mobileSheet?: boolean
   footer?: ReactNode
   children: ReactNode
@@ -31,6 +31,10 @@ const SIZES: Record<string, string> = {
 
 export function Modal({ open, onClose, title, size = 'md', mobileSheet, footer, children, className }: Props) {
   const contentRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+
+  // Focus trap (handles Tab cycling + focus restore on close)
+  useFocusTrap(contentRef, open)
 
   // Escape to close
   useEffect(() => {
@@ -41,29 +45,6 @@ export function Modal({ open, onClose, title, size = 'md', mobileSheet, footer, 
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
-
-  // Focus trap
-  useEffect(() => {
-    if (!open || !contentRef.current) return
-    const el = contentRef.current
-    const focusable = el.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    )
-    if (focusable.length > 0) focusable[0].focus()
-
-    function trap(e: KeyboardEvent) {
-      if (e.key !== 'Tab' || focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus() }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus() }
-      }
-    }
-    document.addEventListener('keydown', trap)
-    return () => document.removeEventListener('keydown', trap)
-  }, [open])
 
   // Lock body scroll
   useEffect(() => {
@@ -111,17 +92,13 @@ export function Modal({ open, onClose, title, size = 'md', mobileSheet, footer, 
             )}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-labelledby={title ? titleId : undefined}
           >
             {/* Header */}
             {title && (
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
-                <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
-                <button
-                  onClick={onClose}
-                  className="btn-icon -mr-1"
-                  aria-label="Chiudi"
-                >
+                <h2 id={titleId} className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+                <button onClick={onClose} className="btn-icon -mr-1" aria-label="Chiudi dialogo">
                   <X size={18} />
                 </button>
               </div>
@@ -141,11 +118,7 @@ export function Modal({ open, onClose, title, size = 'md', mobileSheet, footer, 
 
             {/* Close button (no title variant) */}
             {!title && (
-              <button
-                onClick={onClose}
-                className="absolute top-3 right-3 btn-icon"
-                aria-label="Chiudi"
-              >
+              <button onClick={onClose} className="absolute top-3 right-3 btn-icon" aria-label="Chiudi dialogo">
                 <X size={18} />
               </button>
             )}

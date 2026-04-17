@@ -166,6 +166,7 @@ export function DataTable<T extends { id?: string }>({
                   className={cn('table-th', prioClass(col.priority), col.sortable && 'cursor-pointer select-none hover:text-[var(--text-primary)]')}
                   style={col.width ? { width: col.width } : undefined}
                   onClick={() => col.sortable && toggleSort(col.key)}
+                  aria-sort={col.sortable ? (sort?.key === col.key ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
                 >
                   <div className="flex items-center gap-1">
                     {col.label}
@@ -219,7 +220,7 @@ export function DataTable<T extends { id?: string }>({
       </div>
 
       {/* ── Mobile cards ── */}
-      <div className="md:hidden space-y-2">
+      <div className="md:hidden space-y-2" role="list">
         {sorted.map((row, i) => {
           const key = getKey(row, i)
           const highCols = columns.filter(c => c.priority !== 'low' && c.priority !== 'medium')
@@ -228,6 +229,7 @@ export function DataTable<T extends { id?: string }>({
           return (
             <div
               key={key}
+              role="listitem"
               onClick={() => onRowClick?.(row)}
               className={cn(
                 'rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-elevated)] p-3.5',
