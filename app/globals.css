@@ -312,6 +312,35 @@ h1, h2, h3, h4, h5, h6 {
   /* ── Named shadows ───────────────────────────────────────────────────────── */
   .shadow-topbar { box-shadow: var(--shadow-topbar); }
   .shadow-dropdown { box-shadow: var(--shadow-dropdown); }
+
+  /* ── Layout utilities ──────────────────────────────────────────────────── */
+  .page-container {
+    @apply px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 max-w-7xl mx-auto;
+  }
+
+  .section-gap {
+    @apply mt-8 first:mt-0;
+  }
+
+  .card-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6;
+  }
+
+  .form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4;
+  }
+
+  .stack {
+    @apply flex flex-col gap-4;
+  }
+
+  .stack-sm {
+    @apply flex flex-col gap-2;
+  }
+
+  .stack-lg {
+    @apply flex flex-col gap-6;
+  }
 }
 
 @layer utilities {
