@@ -1,82 +1,145 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { signOut } from 'next-auth/react'
-import { LogOut, ChevronDown, User, Settings, Search, BookOpen, Users, Building2, Moon, Sun, Menu } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { signOut } from 'next-auth/react'
+import {
+  Menu, Plus, ChevronRight, LogOut, User, Settings,
+  MessageSquare, Moon, Sun,
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { SIDEBAR_GROUPS } from '@/lib/sidebar-config'
+import type { BadgeCounts } from '@/hooks/use-sidebar-badges'
 import { NotificheBell } from '@/components/layout/notifiche-bell'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
 import { StrutturaSwitcher } from '@/components/layout/struttura-switcher'
 import { ConciergeToggle } from '@/components/layout/concierge-toggle'
 import { useTheme } from '@/components/theme-provider'
 
-interface TopbarProps {
+// ─── Breadcrumb path → label mapping ────────────────────────────────────────
+
+const PATH_LABELS: Record<string, string> = {}
+for (const group of SIDEBAR_GROUPS) {
+  for (const item of group.items) {
+    PATH_LABELS[item.href] = item.label
+  }
+}
+
+// Extra labels not in sidebar config
+const EXTRA_LABELS: Record<string, string> = {
+  '/host/prenotazioni/nuova': 'Nuova prenotazione',
+  '/host/profilo': 'Profilo',
+  '/host/impostazioni-regcard': 'Registration Card',
+  '/host/integrazione': 'Widget & Integrazioni',
+  '/host/onboarding': 'Onboarding',
+  '/host/seleziona-struttura': 'Seleziona struttura',
+  '/host/ristorazione/menu': 'Menu & Piatti',
+  '/host/housekeeping/biancheria': 'Biancheria',
+  '/host/concierge/impostazioni': 'Impostazioni Concierge',
+  '/host/concierge/test': 'Simulatore Concierge',
+  '/host/spa/percorsi': 'Percorsi benessere',
+}
+
+// i18n label fallback (same map as sidebar.tsx — TODO: centralize)
+const I18N_LABELS: Record<string, string> = {
+  'sidebar.dashboard': 'Dashboard',
+  'sidebar.oggi': 'Front desk',
+  'sidebar.calendario': 'Calendario',
+  'sidebar.prenotazioni': 'Prenotazioni',
+  'sidebar.crm': 'CRM Ospiti',
+  'sidebar.canali': 'Channel Manager',
+  'sidebar.pacchetti': 'Pacchetti',
+  'sidebar.housekeeping': 'Housekeeping',
+  'sidebar.manutenzione': 'Manutenzione',
+  'sidebar.ristorazione': 'Ristorazione',
+  'sidebar.magazzino': 'Magazzino',
+  'sidebar.oggettiSmarriti': 'Lost & Found',
+  'sidebar.spaDashboard': 'Dashboard SPA',
+  'sidebar.spaAppuntamenti': 'Appuntamenti',
+  'sidebar.spaCalendario': 'Calendario SPA',
+  'sidebar.spaTrattamenti': 'Trattamenti',
+  'sidebar.spaTerapisti': 'Terapisti',
+  'sidebar.spaCabine': 'Cabine',
+  'sidebar.spaGiftCard': 'Gift Card',
+  'sidebar.spaLoyalty': 'Fedeltà',
+  'sidebar.spaWaitingList': 'Waiting List',
+  'sidebar.spaReport': 'Report SPA',
+  'sidebar.pos': 'POS',
+  'sidebar.cassa': 'Cassa / Incassi',
+  'sidebar.fatture': 'Fatture',
+  'sidebar.reportRevenue': 'Report Revenue',
+  'sidebar.staff': 'Bacheca staff',
+  'sidebar.notifiche': 'Notifiche',
+  'sidebar.emailAuto': 'Email automatiche',
+  'sidebar.concierge': 'AI Concierge',
+  'sidebar.promemoria': 'Promemoria',
+  'sidebar.strutture': 'Strutture',
+  'sidebar.utenti': 'Utenti & Staff',
+  'sidebar.moduli': 'Moduli attivi',
+  'sidebar.abbonamento': 'Abbonamento',
+  'sidebar.upselling': 'Upselling',
+  'sidebar.alloggiati': 'Alloggiati Web',
+  'sidebar.gdpr': 'Privacy & GDPR',
+  'sidebar.analytics': 'Analytics',
+  'sidebar.audit': 'Registro attività',
+  'sidebar.help': 'Help Center',
+}
+
+function resolveLabel(i18nKey: string): string {
+  return I18N_LABELS[i18nKey] || i18nKey.split('.').pop() || i18nKey
+}
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface Props {
   nomeUtente: string
+  email?: string | null
   ruolo: string
-  settingsHref: string
   onMenuClick?: () => void
   strutture?: { id: string; nome: string }[]
   strutturaAttivaId?: string | null
+  badges?: BadgeCounts | null
 }
 
-type SearchResult = {
-  type: 'prenotazione' | 'ospite' | 'struttura'
-  id: string
-  label: string
-  sub: string
-  href: string
-}
+// ─── Component ──────────────────────────────────────────────────────────────
 
-const TYPE_ICON: Record<string, React.ReactNode> = {
-  prenotazione: <BookOpen className="w-4 h-4 text-indigo-500" />,
-  ospite: <Users className="w-4 h-4 text-green-500" />,
-  struttura: <Building2 className="w-4 h-4 text-amber-500" />,
-}
+export function Topbar({
+  nomeUtente, email, ruolo, onMenuClick,
+  strutture, strutturaAttivaId, badges,
+}: Props) {
+  const pathname = usePathname()
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const userRef = useRef<HTMLDivElement>(null)
 
-export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick, strutture, strutturaAttivaId }: TopbarProps) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  const router = useRouter()
-
-  // Search state
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [searchOpen, setSearchOpen] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
-
-  const doSearch = useCallback(async (q: string) => {
-    if (q.length < 2) { setResults([]); setSearchOpen(false); return }
-    const res = await fetch(`/api/host/search?q=${encodeURIComponent(q)}`)
-    if (res.ok) {
-      const data = await res.json()
-      setResults(data.results)
-      setSearchOpen(data.results.length > 0)
+  // Shadow on scroll
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (!main) return
+    function onScroll() {
+      setScrolled(main!.scrollTop > 10)
     }
+    main.addEventListener('scroll', onScroll, { passive: true })
+    return () => main.removeEventListener('scroll', onScroll)
   }, [])
 
-  function onSearchChange(val: string) {
-    setQuery(val)
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => doSearch(val), 300)
-  }
-
-  function pickResult(href: string) {
-    setQuery('')
-    setResults([])
-    setSearchOpen(false)
-    router.push(href)
-  }
-
+  // Close user menu on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false)
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserMenuOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // ── Breadcrumb ──
+  const breadcrumbs = useMemo(() => buildBreadcrumbs(pathname), [pathname])
+
+  // ── Unread message count (for chat icon badge) ──
+  const unreadMessages = badges?.messaggiNonLetti ?? 0
+
+  const chatHref = ruolo === 'STAFF' ? '/host/staff' : '/host/concierge'
 
   const initials = nomeUtente
     .split(' ')
@@ -84,110 +147,145 @@ export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick, strutture
     .slice(0, 2)
     .join('')
 
+  const roleLabel = ROLE_LABELS[ruolo] || ruolo
+
   return (
-    <div className="bg-white dark:bg-slate-900 h-14 flex items-center justify-between px-5 border-b border-slate-200 dark:border-slate-700 shadow-topbar shrink-0 sticky top-0 z-30">
-      {/* Left — hamburger + search */}
-      <div className="flex items-center gap-3 flex-1 max-w-md">
-        {/* Hamburger menu — mobile only */}
+    <div className={cn(
+      'bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700',
+      'h-14 md:h-14 flex items-center px-3 md:px-5 shrink-0 sticky top-0 z-30',
+      'transition-shadow duration-200',
+      scrolled && 'shadow-sm',
+    )}>
+      {/* Left — hamburger + breadcrumb */}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {/* Hamburger — mobile only */}
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+            className="lg:hidden p-2 -ml-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
             aria-label="Menu"
           >
             <Menu size={20} />
           </button>
         )}
-        {strutture && strutture.length >= 2 && (
-          <StrutturaSwitcher strutture={strutture} attivaId={strutturaAttivaId ?? null} />
-        )}
-        {ruolo === 'HOST' && (
-          <div className="relative flex-1" ref={searchRef}>
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              value={query}
-              onChange={e => onSearchChange(e.target.value)}
-              onFocus={() => results.length > 0 && setSearchOpen(true)}
-              placeholder="Cerca prenotazioni, ospiti, strutture..."
-              className="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 transition-colors dark:text-slate-200 dark:placeholder-slate-500"
-            />
-            {searchOpen && results.length > 0 && (
-              <div className="absolute top-full mt-1 left-0 right-0 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-600 overflow-hidden z-50 max-h-80 overflow-y-auto">
-                {results.map(r => (
-                  <button
-                    key={`${r.type}-${r.id}`}
-                    onClick={() => pickResult(r.href)}
-                    className="w-full text-left px-4 py-2.5 flex items-center gap-3 hover:bg-gray-50 transition-colors"
+
+        {/* Breadcrumb */}
+        <nav className="hidden sm:flex items-center gap-1 min-w-0 text-sm" aria-label="Breadcrumb">
+          {breadcrumbs.map((crumb, i) => {
+            const isLast = i === breadcrumbs.length - 1
+            return (
+              <span key={crumb.href} className="flex items-center gap-1 min-w-0">
+                {i > 0 && <ChevronRight size={12} className="text-slate-300 dark:text-slate-600 shrink-0" />}
+                {isLast ? (
+                  <span className="font-semibold text-slate-800 dark:text-slate-100 truncate">
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    href={crumb.href}
+                    className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 truncate transition-colors"
                   >
-                    <div className="p-1.5 rounded-lg bg-gray-50 shrink-0">
-                      {TYPE_ICON[r.type]}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{r.label}</p>
-                      <p className="text-xs text-gray-400 truncate">{r.sub}</p>
-                    </div>
-                    <span className="text-[10px] text-gray-300 uppercase shrink-0">{r.type}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {ruolo === 'ADMIN' && (
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest hidden sm:block">
-            Amministrazione
-          </span>
-        )}
+                    {crumb.label}
+                  </Link>
+                )}
+              </span>
+            )
+          })}
+        </nav>
+
+        {/* Mobile: show only current page name */}
+        <span className="sm:hidden text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+          {breadcrumbs[breadcrumbs.length - 1]?.label}
+        </span>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-3" ref={ref}>
-        {/* Dark mode toggle */}
-        <ThemeToggle />
+      {/* Right — actions */}
+      <div className="flex items-center gap-1 md:gap-2 shrink-0">
+        {/* + Nuova prenotazione */}
+        <Link
+          href="/host/prenotazioni/nuova"
+          className={cn(
+            'flex items-center gap-1.5 rounded-lg font-semibold transition-colors',
+            'bg-blue-600 text-white hover:bg-blue-700',
+            'px-2 py-1.5 md:px-3 md:py-1.5 text-xs',
+          )}
+        >
+          <Plus size={14} className="shrink-0" />
+          <span className="hidden md:inline">Nuova prenotazione</span>
+        </Link>
+
+        {/* Chat / messages */}
+        <Link
+          href={chatHref}
+          className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
+          title="Messaggi"
+        >
+          <MessageSquare size={18} />
+          {unreadMessages > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center px-0.5">
+              {unreadMessages > 99 ? '99+' : unreadMessages}
+            </span>
+          )}
+        </Link>
+
+        {/* Notifications bell (self-contained, fetches its own data) */}
+        <NotificheBell />
+
+        {/* AI Concierge toggle */}
+        {ruolo === 'HOST' && <ConciergeToggle />}
+
+        {/* Structure switcher */}
+        {strutture && strutture.length >= 2 && (
+          <div className="hidden md:block">
+            <StrutturaSwitcher strutture={strutture} attivaId={strutturaAttivaId ?? null} />
+          </div>
+        )}
 
         {/* Language switcher */}
-        <LanguageSwitcher className="hidden sm:block" />
+        <LanguageSwitcher className="hidden md:block" />
 
-        {ruolo === 'HOST' && <ConciergeToggle />}
-        {ruolo === 'HOST' && <NotificheBell />}
+        {/* Dark mode */}
+        <ThemeToggle />
 
-        {/* User Dropdown */}
-        <div className="relative">
+        {/* User avatar + dropdown */}
+        <div className="relative" ref={userRef}>
           <button
-            onClick={() => setOpen(v => !v)}
-            className="flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg hover:bg-slate-50 transition-colors"
+            onClick={() => setUserMenuOpen(v => !v)}
+            className="flex items-center gap-2 py-1 px-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold select-none">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold select-none shrink-0">
               {initials || <User size={14} />}
             </div>
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 hidden sm:block max-w-[120px] truncate">
-              {nomeUtente}
-            </span>
-            <ChevronDown size={13} className="text-slate-400" />
           </button>
 
-          {open && (
-            <div className="absolute right-0 top-12 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 py-1 z-50">
+          {userMenuOpen && (
+            <div className="absolute right-0 top-11 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-600 py-1 z-50">
+              {/* User info header */}
               <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700">
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{nomeUtente}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {ruolo === 'ADMIN' ? 'Amministratore' : 'Host'}
-                </p>
+                {email && <p className="text-[11px] text-slate-400 truncate mt-0.5">{email}</p>}
+                <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">
+                  {roleLabel}
+                </span>
               </div>
+
+              {/* Menu items */}
               <Link
-                href={settingsHref}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                href="/host/profilo"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
-                <Settings size={14} />
-                Impostazioni
+                <Settings size={14} className="text-slate-400" />
+                Profilo & Impostazioni
               </Link>
+
+              <div className="border-t border-slate-100 dark:border-slate-700 mt-1" />
+
               <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 transition-colors border-t border-slate-100 mt-1"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
-                <LogOut size={14} />
+                <LogOut size={14} className="text-slate-400" />
                 Esci
               </button>
             </div>
@@ -197,6 +295,101 @@ export function Topbar({ nomeUtente, ruolo, settingsHref, onMenuClick, strutture
     </div>
   )
 }
+
+// ─── Breadcrumb builder ─────────────────────────────────────────────────────
+
+interface Crumb {
+  label: string
+  href: string
+}
+
+function buildBreadcrumbs(pathname: string): Crumb[] {
+  // Try exact match first
+  const exactLabel = PATH_LABELS[pathname] || EXTRA_LABELS[pathname]
+  if (exactLabel) {
+    return [{ label: resolveLabel(exactLabel), href: pathname }]
+  }
+
+  // Try parent + detail pattern: /host/prenotazioni/[id] → ["Prenotazioni", "Dettaglio"]
+  // Split path and try to find a parent match
+  const segments = pathname.split('/').filter(Boolean) // ["host", "prenotazioni", "abc123"]
+  if (segments.length < 2) return [{ label: 'Dashboard', href: '/host/dashboard' }]
+
+  // Build potential parent paths from longest to shortest
+  const crumbs: Crumb[] = []
+
+  // Try 2-segment parent: /host/prenotazioni
+  const parentPath2 = '/' + segments.slice(0, 2).join('/')
+  const parentLabel2 = PATH_LABELS[parentPath2] || EXTRA_LABELS[parentPath2]
+
+  // Try 3-segment parent: /host/spa/trattamenti
+  const parentPath3 = segments.length >= 3 ? '/' + segments.slice(0, 3).join('/') : null
+  const parentLabel3 = parentPath3 ? (PATH_LABELS[parentPath3] || EXTRA_LABELS[parentPath3]) : null
+
+  if (parentLabel3 && segments.length > 3) {
+    // e.g. /host/spa/trattamenti/[id] → ["Trattamenti", "Dettaglio"]
+    crumbs.push({ label: resolveLabel(parentLabel3), href: parentPath3! })
+    crumbs.push({ label: formatDetailLabel(segments[segments.length - 1]), href: pathname })
+  } else if (parentLabel2 && segments.length > 2) {
+    // e.g. /host/prenotazioni/[id] → ["Prenotazioni", "Dettaglio #ABC"]
+    // Check if the 3rd segment is a known sub-page
+    const subPath = '/' + segments.slice(0, 3).join('/')
+    const subLabel = PATH_LABELS[subPath] || EXTRA_LABELS[subPath]
+    if (subLabel) {
+      // Known sub-page like /host/prenotazioni/nuova
+      crumbs.push({ label: resolveLabel(parentLabel2), href: parentPath2 })
+      crumbs.push({ label: resolveLabel(subLabel), href: subPath })
+      // If there's a 4th segment, add detail
+      if (segments.length > 3) {
+        crumbs.push({ label: formatDetailLabel(segments[segments.length - 1]), href: pathname })
+      }
+    } else {
+      // Dynamic ID like /host/prenotazioni/clxyz123
+      crumbs.push({ label: resolveLabel(parentLabel2), href: parentPath2 })
+      crumbs.push({ label: formatDetailLabel(segments[segments.length - 1]), href: pathname })
+    }
+  } else if (parentLabel2) {
+    crumbs.push({ label: resolveLabel(parentLabel2), href: parentPath2 })
+  } else {
+    // Fallback: capitalize the path segment
+    crumbs.push({ label: capitalize(segments[1]), href: parentPath2 })
+    if (segments.length > 2) {
+      crumbs.push({ label: formatDetailLabel(segments[segments.length - 1]), href: pathname })
+    }
+  }
+
+  // Max 2 levels for cleanliness
+  return crumbs.slice(0, 2)
+}
+
+function formatDetailLabel(segment: string): string {
+  // If it looks like an ID (cuid, uuid), show "Dettaglio"
+  if (segment.length > 15 || /^[a-z0-9]{20,}$/i.test(segment) || /^[0-9a-f-]{36}$/i.test(segment)) {
+    return 'Dettaglio'
+  }
+  // If it looks like a short ID, show truncated
+  if (/^[a-z0-9]+$/i.test(segment) && segment.length > 8) {
+    return `#${segment.slice(0, 8).toUpperCase()}`
+  }
+  // Named segment: "nuova", "menu", etc.
+  return capitalize(segment.replace(/-/g, ' '))
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+// ─── Role labels ────────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPERADMIN: 'Super Admin',
+  ADMIN: 'Amministratore',
+  DIREZIONE: 'Direzione',
+  HOST: 'Manager',
+  STAFF: 'Staff',
+}
+
+// ─── Theme toggle ───────────────────────────────────────────────────────────
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme()

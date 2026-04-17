@@ -3,10 +3,10 @@ import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { headers } from 'next/headers'
-import { HostShell } from '@/components/host/host-shell'
+import { HostLayout } from '@/components/layout/host-layout'
 import { getStruttureHost } from '@/lib/struttura-attiva'
 
-export default async function HostLayout({ children }: { children: React.ReactNode }) {
+export default async function HostRootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
 
   if (!session) redirect('/login')
@@ -14,9 +14,9 @@ export default async function HostLayout({ children }: { children: React.ReactNo
   if (!allowedRoles.includes(session.user.role)) redirect('/login')
 
   const host = session.user.role === 'HOST' || session.user.role === 'DIREZIONE' || session.user.role === 'STAFF'
-    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
-      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
-    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true } })
+    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
+      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
+    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, logo: true, piano: true } })
 
   // Check if we're on the onboarding page
   const headersList = await headers()
@@ -42,18 +42,20 @@ export default async function HostLayout({ children }: { children: React.ReactNo
     redirect('/host/seleziona-struttura')
   }
 
-  // La pagina di selezione si renderizza con la shell standard ma ignora la verifica
   return (
-    <HostShell
+    <HostLayout
       nomeUtente={session.user.name ?? ''}
+      email={session.user.email}
       nomeAzienda={host?.nomeAzienda ?? 'La mia azienda'}
       moduliAttivi={host?.moduliAttivi ?? {}}
       logo={host?.logo}
       ruolo={session.user.role}
+      piano={host?.piano ?? null}
+      hostId={host?.id ?? null}
       strutture={strutture}
       strutturaAttivaId={attiva?.id ?? null}
     >
       {children}
-    </HostShell>
+    </HostLayout>
   )
 }

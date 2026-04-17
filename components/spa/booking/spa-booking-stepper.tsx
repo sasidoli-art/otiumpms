@@ -12,11 +12,7 @@ export interface SpaBookingState {
   percorso: { id: string; nome: string; durata: number; prezzo: number } | null
   slot: { data: string; oraInizio: string; terapistaId?: string; terapistaNome?: string } | null
   guest: { nome: string; cognome: string; email: string; telefono: string } | null
-  waiver: {
-    incinta: boolean; allergie: string; patologie: string; farmaci: string
-    zoneTrattate: string[]; zoneEvitare: string[]
-    firmaBase64: string | null; accettazioneTermini: boolean
-  } | null
+  waiver: Record<string, unknown> | null
   pagamento: { metodo: string; note?: string } | null
 }
 

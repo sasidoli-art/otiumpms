@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useImperativeHandle, forwardRef, type ForwardedRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, AlertTriangle, Shield, Heart, X } from 'lucide-react'
-import { BodyMap } from '@/components/spa/body-map'
+import { Check, AlertTriangle, Shield, Heart } from 'lucide-react'
+import { BodyMapSimple } from '@/components/spa/body-map-simple'
 import { SignaturePad } from '@/components/spa/signature-pad'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -286,16 +286,7 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
               <div>
                 <p className="text-sm font-bold text-gray-900 mb-2">Zone da evitare</p>
                 <p className="text-xs text-gray-500 mb-3">Tocca le zone del corpo dove preferisci non essere toccato.</p>
-                <BodyMap zoneSelezionate={zoneEvitare} onChange={setZoneEvitare} tipo="evitare" />
-                {zoneEvitare.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {zoneEvitare.map(z => (
-                      <span key={z} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 text-[10px] font-medium rounded-full">
-                        {z} <button type="button" onClick={() => setZoneEvitare(prev => prev.filter(x => x !== z))}><X className="w-2.5 h-2.5" /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <BodyMapSimple selectedZones={zoneEvitare} onZonesChange={setZoneEvitare} />
               </div>
             )}
 
