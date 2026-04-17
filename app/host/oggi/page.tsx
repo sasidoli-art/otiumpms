@@ -10,6 +10,7 @@ import {
   LogIn, LogOut as LogOutIcon, Home, Users, Phone,
   Calendar, AlertCircle, CheckCircle2, MessageSquare,
 } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { isHostAuthorized } from '@/lib/permissions'
 import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 import { VerificaCheckinButton } from './verifica-checkin-button'
@@ -86,32 +87,32 @@ export default async function OggiPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="stack-lg">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Front Desk</h1>
-          <p className="text-sm text-gray-500 capitalize">{dataFormatted}</p>
+          <h1 className="text-xl font-bold text-[var(--text-primary)] font-heading">Front Desk</h1>
+          <p className="text-sm text-[var(--text-secondary)] capitalize mt-0.5">{dataFormatted}</p>
         </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-semibold">{arrivi.length} arrivi</span>
-          <span className="px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-semibold">{partenze.length} partenze</span>
-          <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full font-semibold">{inCasa.length} in casa</span>
+        <div className="flex items-center gap-2">
+          <Badge variant="status" color="success" dot>{arrivi.length} arrivi</Badge>
+          <Badge variant="status" color="warning" dot>{partenze.length} partenze</Badge>
+          <Badge variant="status" color="info" dot>{inCasa.length} in casa</Badge>
         </div>
       </div>
 
-      {/* ═══ ARRIVI — Stile Opera ═══ */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
-          <LogIn className="w-5 h-5 text-green-600" />
-          <h2 className="text-sm font-bold text-green-800 dark:text-green-300">ARRIVI OGGI</h2>
-          <span className="ml-auto text-xs font-semibold text-green-600 bg-green-100 px-2 py-0.5 rounded">{arrivi.length}</span>
+      {/* ═══ ARRIVI ═══ */}
+      <div className="bg-[var(--bg-elevated)] rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-4 border-l-emerald-500 overflow-hidden shadow-[var(--shadow-card)]">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border-default)]">
+          <LogIn className="w-5 h-5 text-emerald-500" />
+          <h2 className="text-sm font-bold text-[var(--text-primary)]">Arrivi oggi</h2>
+          <Badge variant="count" color="success" className="ml-auto">{arrivi.length}</Badge>
         </div>
 
         {arrivi.length === 0 ? (
-          <div className="py-10 text-center text-gray-500">
-            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nessun arrivo previsto per oggi</p>
+          <div className="py-10 text-center">
+            <Calendar className="w-8 h-8 mx-auto mb-2 text-[var(--text-tertiary)] opacity-30" />
+            <p className="text-sm text-[var(--text-secondary)]">Nessun arrivo previsto per oggi</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -256,17 +257,17 @@ export default async function OggiPage() {
       </div>
 
       {/* ═══ PARTENZE ═══ */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
-          <LogOutIcon className="w-5 h-5 text-amber-600" />
-          <h2 className="text-sm font-bold text-amber-800 dark:text-amber-300">PARTENZE OGGI</h2>
-          <span className="ml-auto text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded">{partenze.length}</span>
+      <div className="bg-[var(--bg-elevated)] rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-4 border-l-amber-500 overflow-hidden shadow-[var(--shadow-card)]">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border-default)]">
+          <LogOutIcon className="w-5 h-5 text-amber-500" />
+          <h2 className="text-sm font-bold text-[var(--text-primary)]">Partenze oggi</h2>
+          <Badge variant="count" color="warning" className="ml-auto">{partenze.length}</Badge>
         </div>
 
         {partenze.length === 0 ? (
-          <div className="py-10 text-center text-gray-500">
-            <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nessuna partenza prevista per oggi</p>
+          <div className="py-10 text-center">
+            <Calendar className="w-8 h-8 mx-auto mb-2 text-[var(--text-tertiary)] opacity-30" />
+            <p className="text-sm text-[var(--text-secondary)]">Nessuna partenza prevista per oggi</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -328,17 +329,17 @@ export default async function OggiPage() {
       </div>
 
       {/* ═══ IN CASA ═══ */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="flex items-center gap-2 px-5 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">
-          <Home className="w-5 h-5 text-blue-600" />
-          <h2 className="text-sm font-bold text-blue-800 dark:text-blue-300">OSPITI IN CASA</h2>
-          <span className="ml-auto text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded">{inCasa.length}</span>
+      <div className="bg-[var(--bg-elevated)] rounded-[var(--radius-lg)] border border-[var(--border-default)] border-l-4 border-l-blue-500 overflow-hidden shadow-[var(--shadow-card)]">
+        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border-default)]">
+          <Home className="w-5 h-5 text-blue-500" />
+          <h2 className="text-sm font-bold text-[var(--text-primary)]">Ospiti in casa</h2>
+          <Badge variant="count" color="info" className="ml-auto">{inCasa.length}</Badge>
         </div>
 
         {inCasa.length === 0 ? (
-          <div className="py-10 text-center text-gray-500">
-            <Home className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Nessun ospite in casa</p>
+          <div className="py-10 text-center">
+            <Home className="w-8 h-8 mx-auto mb-2 text-[var(--text-tertiary)] opacity-30" />
+            <p className="text-sm text-[var(--text-secondary)]">Nessun ospite in casa</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">

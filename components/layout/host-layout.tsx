@@ -11,6 +11,7 @@ import { Topbar } from '@/components/layout/topbar'
 import { BugReportButton } from '@/components/layout/bug-report-button'
 import { QuickSwitcher } from '@/components/layout/quick-switcher'
 import { MobileNav } from '@/components/layout/mobile-nav'
+import { PageLoader } from '@/components/ui/page-loader'
 import { useSidebarBadges, type BadgeCounts } from '@/hooks/use-sidebar-badges'
 
 // ─── Sidebar context ────────────────────────────────────────────────────────
@@ -171,6 +172,9 @@ export function HostLayout({
   return (
     <SidebarContext.Provider value={sidebarValue}>
       <StrutturaContext.Provider value={strutturaValue}>
+        {/* Progress bar for page navigation */}
+        <PageLoader />
+
         {/* Skip link — hidden, visible on focus */}
         <a
           href="#main-content"
@@ -179,7 +183,7 @@ export function HostLayout({
           Vai al contenuto
         </a>
 
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)]">
           {/* ── Mobile backdrop ──────────────────────────────── */}
           <AnimatePresence>
             {isOpen && (
@@ -235,9 +239,11 @@ export function HostLayout({
             <main
               id="main-content"
               ref={mainRef}
-              className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8"
+              className="flex-1 overflow-y-auto bg-[var(--bg-secondary)] p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8"
             >
-              {children}
+              <div className="max-w-7xl mx-auto animate-fadeIn">
+                {children}
+              </div>
             </main>
           </div>
 
