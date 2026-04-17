@@ -53,4 +53,3 @@ bakup.file
 *-backup.*
 dump*.sql
 *.pg_dump
-OTIUM/
