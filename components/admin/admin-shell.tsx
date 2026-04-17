@@ -33,7 +33,6 @@ export function AdminShell({ nomeUtente, children }: Props) {
         <Topbar
           nomeUtente={nomeUtente}
           ruolo="ADMIN"
-          settingsHref="/admin/impostazioni"
           onMenuClick={() => setMobileOpen(v => !v)}
         />
         <main className="flex-1 overflow-y-auto bg-[#f5f6f8] dark:bg-slate-950 p-4 md:p-6">

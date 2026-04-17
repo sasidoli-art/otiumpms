@@ -32,7 +32,6 @@ export function SuperAdminShell({ nomeUtente, children }: Props) {
         <Topbar
           nomeUtente={nomeUtente}
           ruolo="ADMIN"
-          settingsHref="/superadmin/impostazioni"
           onMenuClick={() => setMobileOpen(v => !v)}
         />
         <main className="flex-1 overflow-y-auto bg-gray-100 dark:bg-slate-950 p-4 md:p-6">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { Prisma } from '@prisma/client'
 import {
   sendEmailReminderPreArrivo,
   sendEmailFollowUpPostSoggiorno,
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
   // entro orePreCheckin ore. Genera checkInToken se non esiste.
   // NON invia se: statoCheckIn !== NON_INIZIATO, stato !== CONFERMATA
   const hosts = await prisma.host.findMany({
-    where: { moduliAttivi: { not: null } },
+    where: { moduliAttivi: { not: Prisma.DbNull } },
     select: { id: true, orePreCheckin: true },
   })
 
