@@ -10,6 +10,7 @@ import { HostSidebar } from '@/components/host/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 import { BugReportButton } from '@/components/layout/bug-report-button'
 import { QuickSwitcher } from '@/components/layout/quick-switcher'
+import { MobileNav } from '@/components/layout/mobile-nav'
 import { useSidebarBadges, type BadgeCounts } from '@/hooks/use-sidebar-badges'
 
 // ─── Sidebar context ────────────────────────────────────────────────────────
@@ -234,11 +235,14 @@ export function HostLayout({
             <main
               id="main-content"
               ref={mainRef}
-              className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-4 md:p-6 lg:p-8"
+              className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-950 p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8"
             >
               {children}
             </main>
           </div>
+
+          {/* Mobile bottom nav (< 768px) */}
+          <MobileNav onMenuClick={toggleSidebar} badges={badges} />
 
           <BugReportButton />
         </div>

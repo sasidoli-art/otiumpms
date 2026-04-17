@@ -12,6 +12,8 @@ interface Props {
   onClose: () => void
   title?: string
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  /** On mobile (< 768px): render as bottom sheet instead of centered dialog */
+  mobileSheet?: boolean
   footer?: ReactNode
   children: ReactNode
   className?: string
@@ -27,7 +29,7 @@ const SIZES: Record<string, string> = {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function Modal({ open, onClose, title, size = 'md', footer, children, className }: Props) {
+export function Modal({ open, onClose, title, size = 'md', mobileSheet, footer, children, className }: Props) {
   const contentRef = useRef<HTMLDivElement>(null)
 
   // Escape to close
@@ -74,7 +76,12 @@ export function Modal({ open, onClose, title, size = 'md', footer, children, cla
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+        <div className={cn(
+          'fixed inset-0 z-[80]',
+          mobileSheet
+            ? 'flex items-end md:items-center md:justify-center md:p-4'
+            : 'flex items-center justify-center p-4',
+        )}>
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -89,13 +96,17 @@ export function Modal({ open, onClose, title, size = 'md', footer, children, cla
           {/* Dialog */}
           <motion.div
             ref={contentRef}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            initial={mobileSheet ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95 }}
+            animate={mobileSheet ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1 }}
+            exit={mobileSheet ? { opacity: 0, y: 100 } : { opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className={cn(
-              'relative w-full bg-[var(--bg-elevated)] rounded-[var(--radius-xl)] shadow-[var(--shadow-xl)] border border-[var(--border-default)] overflow-hidden',
-              SIZES[size],
+              'relative w-full bg-[var(--bg-elevated)] shadow-[var(--shadow-xl)] border border-[var(--border-default)] overflow-hidden',
+              mobileSheet
+                ? 'rounded-t-[var(--radius-2xl)] md:rounded-[var(--radius-xl)] max-h-[85vh]'
+                : 'rounded-[var(--radius-xl)]',
+              mobileSheet ? cn('md:' + SIZES[size].replace('max-w-', 'max-w-')) : SIZES[size],
+              !mobileSheet && SIZES[size],
               className,
             )}
             role="dialog"
