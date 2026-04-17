@@ -99,23 +99,9 @@ export default withAuth(
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    // Onboarding redirect for HOST users
-    // Note: onboardingStep is undefined for users whose JWT was issued before the field existed.
-    // Treat undefined as "completed" (5) to avoid redirect loops for existing users.
-    if (pathname.startsWith('/host') && token?.role === 'HOST') {
-      const step = token.onboardingStep as number | undefined
-      const isOnboarding = pathname.startsWith('/host/onboarding')
-      const isApi = pathname.startsWith('/api/')
-
-      // Only redirect if step is explicitly set to < 5 (new users who started onboarding)
-      if (step !== undefined && step < 5 && !isOnboarding && !isApi) {
-        return NextResponse.redirect(new URL('/host/onboarding', req.url))
-      }
-      // Completed → redirect away from onboarding
-      if ((step === undefined || step >= 5) && isOnboarding) {
-        return NextResponse.redirect(new URL('/host/dashboard', req.url))
-      }
-    }
+    // Onboarding redirect is handled by app/host/layout.tsx (server-side DB check).
+    // Middleware does NOT redirect for onboarding — it caused redirect loops with
+    // stale JWT tokens that lack onboardingStep.
     // ADMIN + SUPERADMIN possono accedere a /admin/*
     if (pathname.startsWith('/admin') && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN') {
       return NextResponse.redirect(new URL('/login', req.url))
