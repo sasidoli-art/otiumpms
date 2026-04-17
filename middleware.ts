@@ -95,8 +95,24 @@ export default withAuth(
       console.log(`[SUPERADMIN AUDIT] ${token.email ?? token.id} | ${req.method} ${pathname} | IP: ${ip}`)
     }
     // HOST + ADMIN + SUPERADMIN possono accedere a /host/*
-    if (pathname.startsWith('/host') && token?.role !== 'HOST' && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN') {
+    if (pathname.startsWith('/host') && token?.role !== 'HOST' && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN' && token?.role !== 'DIREZIONE' && token?.role !== 'STAFF') {
       return NextResponse.redirect(new URL('/login', req.url))
+    }
+
+    // Onboarding redirect for HOST users
+    if (pathname.startsWith('/host') && token?.role === 'HOST') {
+      const step = (token.onboardingStep as number | undefined) ?? 0
+      const isOnboarding = pathname.startsWith('/host/onboarding')
+      const isApi = pathname.startsWith('/api/')
+
+      // Not completed → force onboarding (skip if already there or if API call)
+      if (step < 5 && !isOnboarding && !isApi) {
+        return NextResponse.redirect(new URL('/host/onboarding', req.url))
+      }
+      // Completed → redirect away from onboarding
+      if (step >= 5 && isOnboarding) {
+        return NextResponse.redirect(new URL('/host/dashboard', req.url))
+      }
     }
     // ADMIN + SUPERADMIN possono accedere a /admin/*
     if (pathname.startsWith('/admin') && token?.role !== 'ADMIN' && token?.role !== 'SUPERADMIN') {

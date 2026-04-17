@@ -197,16 +197,29 @@ export const authOptions: NextAuthOptions = {
           name: `${user.nome} ${user.cognome}`,
           role: user.role,
           hostId: user.host?.id ?? null,
+          onboardingStep: user.host?.onboardingStep ?? 5,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.role = user.role
         token.hostId = user.hostId
+        token.onboardingStep = user.onboardingStep ?? 5
+      }
+      // On session update (e.g. after onboarding complete), refresh onboardingStep
+      if (trigger === 'update' && token.hostId) {
+        try {
+          const { prisma: db } = await import('@/lib/db')
+          const host = await db.host.findUnique({
+            where: { id: token.hostId as string },
+            select: { onboardingStep: true },
+          })
+          if (host) token.onboardingStep = host.onboardingStep
+        } catch {}
       }
       return token
     },

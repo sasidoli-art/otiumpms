@@ -5,6 +5,7 @@ declare module 'next-auth' {
   interface User {
     role: 'SUPERADMIN' | 'ADMIN' | 'DIREZIONE' | 'HOST' | 'STAFF'
     hostId: string | null
+    onboardingStep?: number
   }
 
   interface Session {
@@ -23,5 +24,6 @@ declare module 'next-auth/jwt' {
     id: string
     role: 'SUPERADMIN' | 'ADMIN' | 'DIREZIONE' | 'HOST' | 'STAFF'
     hostId: string | null
+    onboardingStep?: number
   }
 }

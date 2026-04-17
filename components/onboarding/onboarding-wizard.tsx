@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronRight, ChevronLeft, Check, Loader2,
@@ -61,6 +62,7 @@ export function OnboardingWizard({
   savedData, savedStep,
 }: Props) {
   const router = useRouter()
+  const { update: updateSession } = useSession()
   const initialStep = savedData?.step || (savedStep && savedStep > 0 && savedStep < 5 ? savedStep : 1)
   const [step, setStep] = useState(initialStep)
   const [direction, setDirection] = useState(1)
@@ -204,6 +206,8 @@ export function OnboardingWizard({
         return
       }
 
+      // Refresh JWT token so middleware picks up onboardingStep = 5
+      await updateSession()
       router.push('/host/dashboard')
       router.refresh()
     } catch {

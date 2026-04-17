@@ -1498,48 +1498,100 @@
 
   "onboarding": {
     "steps": {
-      "welcome": "Welcome",
-      "company": "Company",
-      "structure": "Property",
-      "modules": "Modules"
+      "struttura": "Property",
+      "camere": "Rooms",
+      "spazi": "Spaces",
+      "dati": "Details",
+      "conferma": "Confirm"
     },
     "stepOf": "Step {current} of {total}",
-    "finish": "Complete setup",
-    "welcome": {
-      "title": "Welcome, {name}!",
-      "subtitle": "Set up your account in just a few minutes. We'll guide you step by step through creating your profile, your first property, and choosing your modules.",
-      "start": "Let's go",
-      "feature1": "Company profile",
-      "feature2": "First property",
-      "feature3": "Active modules"
-    },
-    "company": {
-      "title": "Your company",
-      "subtitle": "Enter your business details",
-      "companyName": "Company / organization name",
-      "companyPlaceholder": "e.g. Villa Otium, B&B The Garden...",
-      "vatNumber": "VAT number"
-    },
-    "structure": {
-      "title": "Your first property",
-      "subtitle": "Create a property to start receiving bookings",
-      "typeLabel": "Property type",
-      "types": {
-        "ALLOGGIO": "Accommodation",
-        "EVENTO": "Event",
-        "VENUE": "Venue",
+    "finish": "Go to dashboard",
+    "back": "Back",
+    "next": "Next",
+    "saving": "Saving...",
+    "canEditLater": "You can change everything later in settings.",
+    "struttura": {
+      "title": "Your property",
+      "subtitle": "What's it called and what type of business do you run?",
+      "nome": "Property name",
+      "nomePlaceholder": "e.g. Villa Margherita, B&B Sunflower",
+      "tipo": "Property type",
+      "tipi": {
+        "ALLOGGIO": "Hotel / B&B",
+        "VENUE": "Venue / Location",
         "ESPERIENZA": "Experience",
-        "SERVIZIO": "Service"
+        "EVENTO": "Event"
       },
-      "name": "Property name",
-      "namePlaceholder": "e.g. Deluxe Room, Event Hall...",
-      "capacity": "Total capacity",
-      "basePrice": "Base price (€)",
-      "descPlaceholder": "Briefly describe your property..."
+      "indirizzo": "Address",
+      "citta": "City",
+      "regione": "Region"
+    },
+    "unita": {
+      "titleCamere": "Add your rooms",
+      "titleSpazi": "Add your spaces",
+      "subtitleCamere": "Enter the rooms you want to make bookable. You can edit them later.",
+      "subtitleSpazi": "Enter available spaces or time slots for booking.",
+      "addCamera": "Add room",
+      "addSpazio": "Add space",
+      "suggerimento": "Have more {label}? Add them now, you can edit later.",
+      "limiteRaggiunto": "Limit of {max} {label} reached. Contact us for a higher plan.",
+      "ospiti": "guests",
+      "erroreMinima": "Add at least one {label} with name and price"
+    },
+    "datiHost": {
+      "title": "Your details",
+      "subtitle": "Contact and company information. Just the essentials to get started.",
+      "nomeAzienda": "Company name",
+      "partitaIva": "VAT number",
+      "partitaIvaHint": "Required for electronic invoicing",
+      "telefono": "Phone number",
+      "email": "Contact email",
+      "fattToggle": "Different billing details",
+      "fattRagioneSociale": "Legal name",
+      "fattPartitaIva": "Billing VAT number",
+      "fattIndirizzo": "Address",
+      "fattCitta": "City",
+      "fattCap": "Postal code",
+      "fattProvincia": "Province",
+      "moduliAttivi": "Active modules",
+      "moduliPersonalizza": "Customize"
+    },
+    "conferma": {
+      "title": "Your property is ready, {name}!",
+      "subtitle": "Review the summary, then head to your dashboard.",
+      "sezioneStruttura": "Property",
+      "sezioneCamere": "Rooms",
+      "sezioneSpazi": "Spaces",
+      "sezioneAzienda": "Company",
+      "sezioneModuli": "Active modules",
+      "prezzoRange": "from €{min} to €{max} / night",
+      "prossimiPassi": "Next steps (you'll find them in the dashboard)",
+      "prossimoLook": "Customize the look",
+      "prossimoLookDesc": "Logo, colors, and branding for your property",
+      "prossimoEmail": "Set up emails",
+      "prossimoEmailDesc": "To send confirmations and reminders to guests",
+      "prossimoPrenotazione": "Create your first booking",
+      "prossimoPrenotazioneDesc": "Enter a test booking"
+    },
+    "checklist": {
+      "title": "Complete your setup",
+      "percentuale": "{value}%",
+      "completata": "Setup complete!",
+      "completataDesc": "Your property is 100% ready.",
+      "collapsed": "Setup: {value}%",
+      "mostraDettagli": "Show details",
+      "configura": "Configure",
+      "nascondi": "Don't show again"
+    },
+    "hint": {
+      "prenotazioniVuote": "Create your first booking or share the booking link with your guests",
+      "logoMancante": "Add your property logo to personalize guest emails",
+      "sdiNonConfigurato": "Set up the electronic invoicing provider to send invoices to the Italian tax system",
+      "hkVuoto": "Housekeeping tasks are created automatically when guests check out"
     },
     "modules": {
       "title": "Choose your modules",
-      "subtitle": "Enable only the features you need. You can change them at any time.",
+      "subtitle": "Enable only what you need. You can always add more later.",
       "categories": {
         "base": "Core",
         "operativo": "Operations",

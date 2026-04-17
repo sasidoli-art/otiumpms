@@ -1498,50 +1498,102 @@
 
   "onboarding": {
     "steps": {
-      "welcome": "Benvenuto",
-      "company": "Azienda",
-      "structure": "Struttura",
-      "modules": "Moduli"
+      "struttura": "Struttura",
+      "camere": "Camere",
+      "spazi": "Spazi",
+      "dati": "Dati",
+      "conferma": "Conferma"
     },
     "stepOf": "Passo {current} di {total}",
-    "finish": "Completa configurazione",
-    "welcome": {
-      "title": "Benvenuto, {name}!",
-      "subtitle": "Configura il tuo account in pochi minuti. Ti guideremo passo dopo passo nella creazione del tuo profilo, della tua prima struttura e nella scelta dei moduli.",
-      "start": "Iniziamo",
-      "feature1": "Profilo azienda",
-      "feature2": "Prima struttura",
-      "feature3": "Moduli attivi"
-    },
-    "company": {
-      "title": "La tua azienda",
-      "subtitle": "Inserisci i dati della tua attività",
-      "companyName": "Nome azienda / organizzazione",
-      "companyPlaceholder": "es. Villa Otium, B&B Il Giardino...",
-      "vatNumber": "Partita IVA"
-    },
-    "structure": {
-      "title": "La tua prima struttura",
-      "subtitle": "Crea la struttura per iniziare a ricevere prenotazioni",
-      "typeLabel": "Tipo di struttura",
-      "types": {
-        "ALLOGGIO": "Struttura ricettiva",
-        "EVENTO": "Evento",
-        "VENUE": "Venue",
+    "finish": "Vai alla dashboard",
+    "back": "Indietro",
+    "next": "Avanti",
+    "saving": "Salvataggio...",
+    "canEditLater": "Potrai modificare tutto in seguito dalle impostazioni.",
+    "struttura": {
+      "title": "La tua struttura",
+      "subtitle": "Come si chiama e che tipo di attività gestisci?",
+      "nome": "Nome struttura",
+      "nomePlaceholder": "es. Villa Margherita, B&B Il Girasole",
+      "tipo": "Tipo di struttura",
+      "tipi": {
+        "ALLOGGIO": "Hotel / B&B",
+        "VENUE": "Venue / Location",
         "ESPERIENZA": "Esperienza",
-        "SERVIZIO": "Servizio"
+        "EVENTO": "Evento"
       },
-      "name": "Nome struttura",
-      "namePlaceholder": "es. Camera Deluxe, Sala Eventi...",
-      "capacity": "Capacità totale",
-      "basePrice": "Prezzo base (€)",
-      "descPlaceholder": "Descrivi brevemente la tua struttura..."
+      "indirizzo": "Indirizzo",
+      "citta": "Città",
+      "regione": "Regione"
+    },
+    "unita": {
+      "titleCamere": "Aggiungi le tue camere",
+      "titleSpazi": "Aggiungi i tuoi spazi",
+      "subtitleCamere": "Inserisci le camere che vuoi rendere prenotabili. Potrai modificarle in seguito.",
+      "subtitleSpazi": "Inserisci gli spazi o slot disponibili per la prenotazione.",
+      "addCamera": "Aggiungi camera",
+      "addSpazio": "Aggiungi spazio",
+      "suggerimento": "Hai altre {label}? Aggiungile ora, potrai modificarle dopo.",
+      "limiteRaggiunto": "Limite di {max} {label} raggiunto. Contattaci per un piano superiore.",
+      "ospiti": "ospiti",
+      "erroreMinima": "Aggiungi almeno una {label} con nome e prezzo"
+    },
+    "datiHost": {
+      "title": "I tuoi dati",
+      "subtitle": "Informazioni di contatto e azienda. Solo l'essenziale per iniziare.",
+      "nomeAzienda": "Nome azienda",
+      "partitaIva": "Partita IVA",
+      "partitaIvaHint": "Necessaria per la fatturazione elettronica",
+      "telefono": "Telefono struttura",
+      "email": "Email di contatto",
+      "fattToggle": "Dati fatturazione diversi dall'azienda",
+      "fattRagioneSociale": "Ragione sociale",
+      "fattPartitaIva": "P.IVA fatturazione",
+      "fattIndirizzo": "Indirizzo",
+      "fattCitta": "Città",
+      "fattCap": "CAP",
+      "fattProvincia": "Provincia",
+      "moduliAttivi": "Moduli attivi",
+      "moduliPersonalizza": "Personalizza"
+    },
+    "conferma": {
+      "title": "La tua struttura è pronta, {name}!",
+      "subtitle": "Controlla il riepilogo, poi vai alla dashboard.",
+      "sezioneStruttura": "Struttura",
+      "sezioneCamere": "Camere",
+      "sezioneSpazi": "Spazi",
+      "sezioneAzienda": "Azienda",
+      "sezioneModuli": "Moduli attivi",
+      "prezzoRange": "da €{min} a €{max} / notte",
+      "prossimiPassi": "Prossimi passi (li troverai nella dashboard)",
+      "prossimoLook": "Personalizza il look",
+      "prossimoLookDesc": "Logo, colori e branding della tua struttura",
+      "prossimoEmail": "Configura le email",
+      "prossimoEmailDesc": "Per inviare conferme e reminder agli ospiti",
+      "prossimoPrenotazione": "Crea la prima prenotazione",
+      "prossimoPrenotazioneDesc": "Inserisci una prenotazione di prova"
+    },
+    "checklist": {
+      "title": "Completa la configurazione",
+      "percentuale": "{value}%",
+      "completata": "Configurazione completata!",
+      "completataDesc": "La tua struttura è pronta al 100%.",
+      "collapsed": "Configurazione: {value}%",
+      "mostraDettagli": "Mostra dettagli",
+      "configura": "Configura",
+      "nascondi": "Non mostrare più"
+    },
+    "hint": {
+      "prenotazioniVuote": "Crea la tua prima prenotazione o condividi il link di booking con i tuoi ospiti",
+      "logoMancante": "Aggiungi il logo della tua struttura per personalizzare le email agli ospiti",
+      "sdiNonConfigurato": "Configura il provider di fatturazione elettronica per inviare fatture al Sistema di Interscambio",
+      "hkVuoto": "I task di housekeeping si creano automaticamente quando gli ospiti partono"
     },
     "modules": {
       "title": "Scegli i moduli",
-      "subtitle": "Attiva solo le funzionalità di cui hai bisogno. Potrai modificarle in qualsiasi momento.",
+      "subtitle": "Attiva solo quello che ti serve. Potrai sempre aggiungerne altri.",
       "categories": {
-        "base": "Base",
+        "base": "Moduli base",
         "operativo": "Operativi",
         "avanzato": "Avanzati",
         "integrazioni": "Integrazioni"

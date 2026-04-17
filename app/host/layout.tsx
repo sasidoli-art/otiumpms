@@ -24,8 +24,8 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   const isOnboardingPage = pathname.startsWith('/host/onboarding')
   const isSelezionePage = pathname.startsWith('/host/seleziona-struttura')
 
-  // Redirect HOST to onboarding if fase 1 not completed (step < 5)
-  const onboardingDone = host?.onboardingCompletato || (host?.onboardingStep ?? 0) >= 5
+  // Fallback redirect (middleware handles this primarily via JWT token)
+  const onboardingDone = (host?.onboardingStep ?? 0) >= 5 || host?.onboardingCompletato
   if (session.user.role === 'HOST' && host && !onboardingDone && !isOnboardingPage) {
     redirect('/host/onboarding')
   }

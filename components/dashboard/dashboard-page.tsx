@@ -10,12 +10,16 @@ import { SezioneAzioni } from './sezione-azioni'
 import { SezioneOggi } from './sezione-oggi'
 import { SezioneSpaOggi } from './sezione-spa-oggi'
 import { SezioneAttivita } from './sezione-attivita'
+import { OnboardingChecklistBanner } from '@/components/onboarding/onboarding-checklist'
+import type { OnboardingChecklist } from '@/lib/onboarding'
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
   nomeUtente: string
   moduliAttivi: Record<string, boolean>
+  checklist?: OnboardingChecklist | null
+  hostId?: string | null
 }
 
 // ─── Greeting ───────────────────────────────────────────────────────────────
@@ -29,7 +33,7 @@ function getGreeting(): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function DashboardPage({ nomeUtente, moduliAttivi }: Props) {
+export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: Props) {
   const { strutturaCorrente } = useStruttura()
   const strutturaId = strutturaCorrente?.id ?? undefined
   const { data, isLoading, error, refresh } = useDashboard(strutturaId)
@@ -122,6 +126,11 @@ export function DashboardPage({ nomeUtente, moduliAttivi }: Props) {
     <div className="space-y-6">
       {/* 1. Header */}
       <DashboardHeader greeting={greeting} firstName={firstName} />
+
+      {/* Onboarding checklist (only if not 100% and not dismissed) */}
+      {checklist && hostId && checklist.percentualeCompletamento < 100 && (
+        <OnboardingChecklistBanner checklist={checklist} hostId={hostId} />
+      )}
 
       {/* 2. Quick actions */}
       <section aria-label="Azioni rapide">
