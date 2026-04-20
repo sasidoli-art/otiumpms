@@ -1,9 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
+import { auditFromAuth, logAccessoAsync } from '@/lib/audit'
+import { getClientIp } from '@/lib/rate-limit'
 import { prisma } from '@/lib/db'
 import { sendEmailConfermaAppuntamentoSpa, sendEmailCancellazioneAppuntamentoSpa } from '@/lib/email'
 import { logger } from '@/lib/logger'
+
+/**
+ * GET /api/host/spa/appuntamenti/[id] — dettaglio appuntamento con waiver.
+ * Se il waiver contiene dati sanitari (dichiarazioneNessuna=false), logga
+ * l'accesso come 'waiver_spa' (dati Art. 9).
+ */
+export async function GET(req: NextRequest, { params: p }: { params: Promise<{ id: string }> }) {
+  const { id } = await p
+  const auth = await requireHostOrAdmin()
+  if (isUnauthorized(auth)) return auth
+
+  const appuntamento = await prisma.appuntamentoSpa.findFirst({
+    where: { id, hostId: auth.user.hostId },
+    include: {
+      terapista: true,
+      cabina: true,
+      trattamento: true,
+      percorso: true,
+      ospite: true,
+      waiver: true,
+      pagamento: true,
+    },
+  })
+  if (!appuntamento) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
+
+  // GDPR: log accesso. Se waiver contiene dati sanitari → entità waiver_spa,
+  // altrimenti accesso all'appuntamento (dati personali standard).
+  const hasDatiSanitari = appuntamento.waiver && !appuntamento.waiver.dichiarazioneNessuna
+  if (hasDatiSanitari && appuntamento.waiver) {
+    logAccessoAsync({
+      hostId: auth.user.hostId!,
+      userId: auth.user.id,
+      userEmail: auth.user.email,
+      entita: 'waiver_spa',
+      entitaId: appuntamento.waiver.id,
+      tipoAccesso: 'visualizzazione',
+      ip: getClientIp(req),
+      userAgent: req.headers.get('user-agent'),
+    })
+  }
+
+  return NextResponse.json(appuntamento)
+}
 
 export async function PUT(req: NextRequest, { params: p }: { params: Promise<{ id: string }> }) {
   const { id } = await p

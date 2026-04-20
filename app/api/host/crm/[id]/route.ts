@@ -1,13 +1,14 @@
 ﻿import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
+import { auditFromAuth, logAccessoAsync } from '@/lib/audit'
+import { getClientIp } from '@/lib/rate-limit'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
 // GET /api/host/crm/[id]  — dettaglio ospite + prenotazioni collegate (by email)
 export async function GET(
-  _req: Request,
+  req: Request,
   { params: paramsPromise }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireHostOrAdmin()
@@ -32,6 +33,18 @@ export async function GET(
     },
     orderBy: { dataArrivo: 'desc' },
     take: 20,
+  })
+
+  // GDPR: log accesso scheda ospite
+  logAccessoAsync({
+    hostId: auth.user.hostId!,
+    userId: auth.user.id,
+    userEmail: auth.user.email,
+    entita: 'ospite_crm',
+    entitaId: ospite.id,
+    tipoAccesso: 'visualizzazione',
+    ip: getClientIp(req),
+    userAgent: req.headers.get('user-agent'),
   })
 
   return NextResponse.json({ ospite, prenotazioni })

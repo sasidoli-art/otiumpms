@@ -2,14 +2,15 @@
 import { prisma } from '@/lib/db'
 import { sendEmailConfermaPrenotazione, sendEmailCancellazionePrenotazione } from '@/lib/email'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
+import { auditFromAuth, logAccessoAsync } from '@/lib/audit'
+import { getClientIp } from '@/lib/rate-limit'
 import { parseBody, prenotazioneUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { incrementStatsOnCheckout } from '@/lib/crm'
 
 // GET /api/host/prenotazioni/[id]
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   { params: paramsPromise }: { params: Promise<{ id: string }> },
 ) {
   const params = await paramsPromise
@@ -30,6 +31,19 @@ export async function GET(
   })
 
   if (!prenotazione) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
+
+  // GDPR: log accesso dati personali (fire-and-forget)
+  logAccessoAsync({
+    hostId: auth.user.hostId!,
+    userId: auth.user.id,
+    userEmail: auth.user.email,
+    entita: 'prenotazione',
+    entitaId: prenotazione.id,
+    tipoAccesso: 'visualizzazione',
+    ip: getClientIp(req),
+    userAgent: req.headers.get('user-agent'),
+  })
+
   return NextResponse.json(prenotazione)
 }
 

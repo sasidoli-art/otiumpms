@@ -76,6 +76,66 @@ export async function logAuditAction(params: {
   })
 }
 
+// ─── GDPR: log degli ACCESSI ai dati personali ─────────────────────────────
+// Differenza da `audit()` generico: questo tracciamento e' specifico per il
+// registro degli accessi ai dati personali (Art. 32 GDPR — misure di sicurezza).
+// Permette di rispondere a "chi ha visto i dati di X il giorno Y?".
+
+export type EntitaDatiPersonali =
+  | 'prenotazione'
+  | 'ospite_crm'
+  | 'waiver_spa'
+  | 'fattura'
+  | 'accompagnatore'
+  | 'conversazione_wa'
+
+export type TipoAccesso = 'visualizzazione' | 'export' | 'modifica' | 'cancellazione'
+
+const TIPO_ACCESSO_VERB: Record<TipoAccesso, string> = {
+  visualizzazione: 'visualizzato',
+  export: 'esportato',
+  modifica: 'modificato',
+  cancellazione: 'cancellato',
+}
+
+/**
+ * Registra un accesso a dati personali. Progettato per essere chiamato
+ * fire-and-forget (senza await) dentro le API route, per non rallentare
+ * la risposta. Gli errori sono silenziati.
+ *
+ * Prefix `dati_personali.{tipoAccesso}` per filtraggio in /host/audit.
+ */
+export async function logAccesso(params: {
+  hostId: string
+  userId: string
+  userEmail: string
+  entita: EntitaDatiPersonali
+  entitaId: string
+  tipoAccesso: TipoAccesso
+  ip?: string | null
+  userAgent?: string | null
+}): Promise<void> {
+  await audit({
+    hostId: params.hostId,
+    userId: params.userId,
+    userEmail: params.userEmail,
+    azione: `dati_personali.${params.tipoAccesso}`,
+    entita: params.entita,
+    entitaId: params.entitaId,
+    dettagli: `${params.userEmail} ha ${TIPO_ACCESSO_VERB[params.tipoAccesso]} ${params.entita} ${params.entitaId}`,
+    ip: params.ip,
+    userAgent: params.userAgent,
+  })
+}
+
+/**
+ * Variante fire-and-forget esplicita: non throw, non attende, non logga
+ * nulla in caso di errore. Usa questa nelle hot path read-heavy.
+ */
+export function logAccessoAsync(params: Parameters<typeof logAccesso>[0]): void {
+  void logAccesso(params).catch(() => { /* silenzioso */ })
+}
+
 /**
  * Helper per audit da API route autenticata.
  * Estrae userId/email/hostId dalla sessione auth.

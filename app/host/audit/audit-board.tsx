@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { Loader2, Search, Filter, Clock, User, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, Search, Clock, User, FileText, ChevronLeft, ChevronRight, Shield, Download } from 'lucide-react'
 
 type LogEntry = {
   id: string
@@ -26,13 +26,15 @@ export default function AuditBoard() {
   const [offset, setOffset] = useState(0)
   const [entita, setEntita] = useState('')
   const [azione, setAzione] = useState('')
+  const [soloAccessi, setSoloAccessi] = useState(false)
   const limit = 50
 
   const carica = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
     if (entita) params.set('entita', entita)
-    if (azione) params.set('azione', azione)
+    if (azione && !soloAccessi) params.set('azione', azione)
+    if (soloAccessi) params.set('soloAccessi', 'true')
     const res = await fetch(`/api/host/audit?${params}`)
     if (res.ok) {
       const d = await res.json()
@@ -40,7 +42,15 @@ export default function AuditBoard() {
       setTotale(d.totale)
     }
     setLoading(false)
-  }, [offset, entita, azione])
+  }, [offset, entita, azione, soloAccessi])
+
+  const exportHref = (() => {
+    const params = new URLSearchParams({ export: 'csv' })
+    if (entita) params.set('entita', entita)
+    if (azione && !soloAccessi) params.set('azione', azione)
+    if (soloAccessi) params.set('soloAccessi', 'true')
+    return `/api/host/audit?${params}`
+  })()
 
   useEffect(() => { carica() }, [carica])
 
@@ -62,7 +72,7 @@ export default function AuditBoard() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[150px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input type="text" value={azione} onChange={e => { setAzione(e.target.value); setOffset(0) }} placeholder="Cerca azione..." className={`w-full pl-9 ${inp}`} />
+          <input type="text" value={azione} onChange={e => { setAzione(e.target.value); setOffset(0) }} disabled={soloAccessi} placeholder="Cerca azione..." className={`w-full pl-9 ${inp} disabled:opacity-50`} />
         </div>
         <select value={entita} onChange={e => { setEntita(e.target.value); setOffset(0) }} className={inp}>
           <option value="">Tutte le entità</option>
@@ -73,6 +83,13 @@ export default function AuditBoard() {
           <option value="spa">SPA</option>
           <option value="sistema">Sistema</option>
         </select>
+        <label className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${soloAccessi ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}>
+          <input type="checkbox" checked={soloAccessi} onChange={e => { setSoloAccessi(e.target.checked); setOffset(0) }} className="sr-only" />
+          <Shield className="w-3.5 h-3.5" /> Solo accessi dati personali
+        </label>
+        <a href={exportHref} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50">
+          <Download className="w-3.5 h-3.5" /> Esporta CSV
+        </a>
         <span className="text-xs text-gray-400">{totale} voci</span>
       </div>
 

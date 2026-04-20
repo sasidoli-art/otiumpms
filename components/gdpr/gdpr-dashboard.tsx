@@ -598,15 +598,29 @@ function ConsensiTab() {
 
 // ─── TAB 4: ART. 30 ─────────────────────────────────────────────────────────
 
+type AccessiStats = {
+  totaleAccessi: number
+  totaleOperatori: number
+  topOperatori: { userId: string; email: string; count: number }[]
+  anomalie: { userId: string; email: string; giorno: string; count: number }[]
+  periodoGiorni: number
+}
+
 function Art30Tab() {
   const [policies, setPolicies] = useState<PolicyStatus[]>([])
+  const [accessi, setAccessi] = useState<AccessiStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch('/api/host/gdpr/retention-status')
-      const data = await res.json()
-      setPolicies(data.policies ?? [])
+      const [policiesRes, accessiRes] = await Promise.all([
+        fetch('/api/host/gdpr/retention-status'),
+        fetch('/api/host/gdpr/accessi-stats'),
+      ])
+      const pData = await policiesRes.json()
+      const aData = await accessiRes.json()
+      setPolicies(pData.policies ?? [])
+      setAccessi(aData)
       setLoading(false)
     })()
   }, [])
@@ -615,6 +629,69 @@ function Art30Tab() {
 
   return (
     <div className="space-y-4">
+      {/* Widget accessi dati personali */}
+      {accessi && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-900">Accessi dati personali — ultimi {accessi.periodoGiorni} giorni</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Tracciamento Art. 32 GDPR (misure di sicurezza)
+              </p>
+            </div>
+            <a
+              href="/host/audit?soloAccessi=true"
+              className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              Registro completo →
+            </a>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{accessi.totaleAccessi}</p>
+              <p className="text-xs text-gray-500">accessi totali</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{accessi.totaleOperatori}</p>
+              <p className="text-xs text-gray-500">operatori coinvolti</p>
+            </div>
+          </div>
+
+          {accessi.topOperatori.length > 0 && (
+            <div className="border-t border-gray-100 pt-3">
+              <p className="text-xs text-gray-500 mb-2">Top operatori</p>
+              <ul className="space-y-1">
+                {accessi.topOperatori.map((o, i) => (
+                  <li key={o.userId} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-700">
+                      <span className="inline-block w-5 text-gray-400">{i + 1}.</span>{o.email}
+                    </span>
+                    <span className="font-semibold text-gray-900">{o.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {accessi.anomalie.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-amber-100 bg-amber-50 -mx-5 -mb-5 px-5 py-3 rounded-b-xl">
+              <p className="text-xs font-semibold text-amber-900 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> Anomalie — &gt; 100 accessi/giorno
+              </p>
+              <ul className="mt-2 space-y-1">
+                {accessi.anomalie.slice(0, 5).map((a, i) => (
+                  <li key={i} className="text-xs text-amber-900">
+                    {a.email} — <strong>{a.count}</strong> accessi il {a.giorno}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Banner registro Art. 30 */}
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
         <div className="flex-1">

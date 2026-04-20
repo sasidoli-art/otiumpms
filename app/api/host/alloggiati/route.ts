@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
+import { auditFromAuth, logAccessoAsync } from '@/lib/audit'
+import { getClientIp } from '@/lib/rate-limit'
 import { generateAlloggiatiFile, validateGuest, type AlloggiatiGuestWithAcc } from '@/lib/alloggiati'
 
 // GET /api/host/alloggiati?strutturaId=xxx&da=2026-03-01&a=2026-03-31
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
       dataArrivo: { gte: new Date(da), lte: new Date(a) },
     },
     select: {
+      id: true,
       dataArrivo: true,
       dataPartenza: true,
       guestNome: true,
@@ -171,6 +173,22 @@ export async function POST(req: NextRequest) {
     struttura.alloggiatiCodiceStruttura,
     validi as AlloggiatiGuestWithAcc[],
   )
+
+  // GDPR: log accesso (export) per ogni prenotazione esportata
+  const ip = getClientIp(req)
+  const ua = req.headers.get('user-agent')
+  for (const p of validi) {
+    logAccessoAsync({
+      hostId: auth.user.hostId,
+      userId: auth.user.id,
+      userEmail: auth.user.email,
+      entita: 'prenotazione',
+      entitaId: (p as { id: string }).id,
+      tipoAccesso: 'export',
+      ip,
+      userAgent: ua,
+    })
+  }
 
   const filename = `alloggiati_${struttura.alloggiatiCodiceStruttura}_${da}_${a}.txt`
 
