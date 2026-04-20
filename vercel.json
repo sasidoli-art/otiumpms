@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/email-automatiche",
-      "schedule": "0 * * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/wifi-heartbeat-check",
