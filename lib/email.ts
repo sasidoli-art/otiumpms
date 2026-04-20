@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/db'
 import { emailQueue } from '@/lib/email-queue'
 import { revealSecret } from '@/lib/secrets'
+import { buildPrivacyFooterHtml, type PrivacyFooterContext } from '@/lib/email-privacy-footer'
 
 /**
  * Restituisce un transporter Nodemailer e l'indirizzo "from" da usare.
@@ -97,10 +98,35 @@ export interface EmailBranding {
   linkSitoWeb?: string | null
 }
 
+/**
+ * Helper: costruisce privacy footer context se tutti i campi necessari ci sono.
+ * Usato nelle email ospite-facing.
+ */
+function privacyCtxFrom(params: {
+  guestEmail?: string | null
+  hostId?: string | null
+  strutturaNome?: string | null
+  nomeStruttura?: string | null
+  marketing?: boolean
+}): PrivacyFooterContext | null {
+  const nome = params.strutturaNome ?? params.nomeStruttura
+  if (!params.guestEmail || !params.hostId || !nome) return null
+  return {
+    guestEmail: params.guestEmail,
+    hostId: params.hostId,
+    nomeStruttura: nome,
+    marketing: params.marketing ?? false,
+  }
+}
+
 /** Genera HTML con branding caricato dalla struttura. */
-async function baseWithBranding(contenuto: string, strutturaId?: string | null): Promise<string> {
+async function baseWithBranding(
+  contenuto: string,
+  strutturaId?: string | null,
+  privacy?: PrivacyFooterContext | null,
+): Promise<string> {
   const branding = await getBranding(strutturaId)
-  return base(contenuto, branding)
+  return base(contenuto, branding, privacy)
 }
 
 /** Carica branding della struttura per le email. */
@@ -119,7 +145,7 @@ async function getBranding(strutturaId?: string | null): Promise<EmailBranding |
  * Genera HTML email con branding struttura.
  * Se branding è null, usa template standard OtiumPMS.
  */
-function base(contenuto: string, branding?: EmailBranding | null): string {
+function base(contenuto: string, branding?: EmailBranding | null, privacy?: PrivacyFooterContext | null): string {
   const color = branding?.colorePrimario ?? '#4f46e5'
   const nome = branding?.nome ?? 'Otium Week'
   const logo = branding?.logo
@@ -163,7 +189,7 @@ function base(contenuto: string, branding?: EmailBranding | null): string {
     <body>
       <div class="wrapper">
         <div class="header">${headerContent}</div>
-        <div class="body">${contenuto}</div>
+        <div class="body">${contenuto}${privacy ? buildPrivacyFooterHtml(privacy) : ''}</div>
         ${hero ? `<img src="${hero}" alt="${nome}" style="width:100%;height:auto;display:block;" />` : ''}
         <div class="footer">
           ${chiusura ? `<p style="font-style:italic;color:#6b7280;margin:0 0 8px;">${chiusura}</p>` : ''}
@@ -281,7 +307,7 @@ export async function sendEmailConfermaPrenotazione(params: {
   await dispatchMail({
     to: guestEmail,
     subject: `Prenotazione confermata – ${strutturaNome}`,
-    html: await baseWithBranding(htmlBody, strutturaId),
+    html: await baseWithBranding(htmlBody, strutturaId, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -327,7 +353,7 @@ export async function sendEmailCancellazionePrenotazione(params: {
   await dispatchMail({
     to: guestEmail,
     subject: t.subject,
-    html: base(t.body),
+    html: base(t.body, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -366,7 +392,7 @@ export async function sendEmailNuovoMessaggio(params: {
   await dispatchMail({
     to: destinatarioEmail,
     subject: `Nuovo messaggio da ${mittenteNome} – ${strutturaNome}${tag}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail: destinatarioEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -407,7 +433,7 @@ export async function sendEmailConfermaAppuntamentoSpa(params: {
   await dispatchMail({
     to: guestEmail,
     subject: `Appuntamento SPA confermato – ${servizioNome}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome: hostNome })),
   }, hostId)
 }
 
@@ -529,7 +555,7 @@ export async function sendEmailReminderPreArrivo(params: {
     subject: isEN
       ? `Reminder: your stay at ${strutturaNome} is tomorrow!`
       : `Promemoria: il tuo soggiorno a ${strutturaNome} è domani!`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -588,7 +614,7 @@ export async function sendEmailFollowUpPostSoggiorno(params: {
     subject: isEN
       ? `Thank you for your stay at ${strutturaNome}!`
       : `Grazie per il tuo soggiorno a ${strutturaNome}!`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome, marketing: true })),
   }, hostId)
 }
 
@@ -625,7 +651,7 @@ export async function sendEmailCancellazioneAppuntamentoSpa(params: {
   await dispatchMail({
     to: guestEmail,
     subject: `Appuntamento SPA cancellato – ${servizioNome}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome: hostNome })),
   }, hostId)
 }
 
@@ -706,7 +732,7 @@ export async function sendEmailReminderAppuntamentoSpa(params: {
   await dispatchMail({
     to: guestEmail,
     subject: `${t.subject} – ${servizioNome}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome: hostNome })),
   }, hostId)
 }
 
@@ -744,7 +770,7 @@ export async function sendEmailConfermaPasti(params: {
   queueMail(`conferma-pasti:${guestEmail}`, {
     to: guestEmail,
     subject: `Conferma scelte pasto – ${strutturaNome}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -796,7 +822,7 @@ export async function sendEmailConfermaRicezione(params: {
   queueMail(`conferma-ricezione:${guestEmail}`, {
     to: guestEmail,
     subject: `Richiesta ricevuta – ${strutturaNome}`,
-    html: base(htmlBody),
+    html: base(htmlBody, null, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }
 
@@ -909,6 +935,6 @@ export async function sendEmailPreCheckin(params: {
   await dispatchMail({
     to: guestEmail,
     subject: subjects[lang] || subjects.it,
-    html: base(htmlBody, branding),
+    html: base(htmlBody, branding, privacyCtxFrom({ guestEmail, hostId, strutturaNome })),
   }, hostId)
 }

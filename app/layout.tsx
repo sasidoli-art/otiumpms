@@ -10,6 +10,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { ToastProvider } from '@/components/ui/toast'
+import PublicCookieBanner from '@/components/privacy/public-cookie-banner'
 
 export const metadata: Metadata = {
   title: 'Otium Week — Gestionale',
@@ -49,6 +50,7 @@ export default async function RootLayout({
           <Providers><ThemeProvider>{children}</ThemeProvider></Providers>
           <PwaProvider />
           <ToastProvider />
+          <PublicCookieBanner />
         </NextIntlClientProvider>
       </body>
     </html>
