@@ -308,6 +308,71 @@ export function verificaGuestToken(token: string, email: string, hostId: string)
   }
 }
 
+// ─── Portale ospite token (reversibile, firmato) ─────────────────────────────
+//
+// Formato: {payload_b64url}.{hmac_b64url}
+// Payload: JSON { email, hostId, iat } — è ricavabile dal token senza DB
+// (firma garantisce tamper-proof). L'URL del portale ha solo il token.
+
+type PortalePayload = { email: string; hostId: string; iat: number }
+
+function b64urlEncode(buf: Buffer): string {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function b64urlDecode(s: string): Buffer {
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4))
+  return Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/') + pad, 'base64')
+}
+
+function signPayload(payloadB64: string): string {
+  const h = crypto.createHmac('sha256', getHmacKey())
+  h.update(payloadB64)
+  return b64urlEncode(h.digest())
+}
+
+/** Genera un token firmato che contiene email + hostId (reversibile via verifica HMAC). */
+export function generaPortaleToken(email: string, hostId: string): string {
+  const payload: PortalePayload = {
+    email: email.trim().toLowerCase(),
+    hostId,
+    iat: Math.floor(Date.now() / 1000),
+  }
+  const payloadB64 = b64urlEncode(Buffer.from(JSON.stringify(payload), 'utf8'))
+  const sig = signPayload(payloadB64)
+  return `${payloadB64}.${sig}`
+}
+
+/**
+ * Verifica e decodifica un portale token. Ritorna null se invalido o scaduto.
+ * Scadenza opzionale — di default il token non scade (link email permanenti
+ * sono comodi, la sicurezza è nell'HMAC che richiede ENCRYPTION_KEY).
+ */
+export function verificaPortaleToken(
+  token: string,
+  opts: { maxAgeSec?: number } = {},
+): { email: string; hostId: string } | null {
+  try {
+    const [payloadB64, sig] = token.split('.')
+    if (!payloadB64 || !sig) return null
+    const expectedSig = signPayload(payloadB64)
+    if (
+      expectedSig.length !== sig.length ||
+      !crypto.timingSafeEqual(Buffer.from(expectedSig), Buffer.from(sig))
+    ) {
+      return null
+    }
+    const payload = JSON.parse(b64urlDecode(payloadB64).toString('utf8')) as PortalePayload
+    if (opts.maxAgeSec && Date.now() / 1000 - payload.iat > opts.maxAgeSec) {
+      return null
+    }
+    if (!payload.email || !payload.hostId) return null
+    return { email: payload.email, hostId: payload.hostId }
+  } catch {
+    return null
+  }
+}
+
 // ─── Side effect: revoca spa_art9 ────────────────────────────────────────────
 
 /**

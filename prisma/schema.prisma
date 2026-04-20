@@ -397,6 +397,9 @@ model Host {
   wifiConfig      HostWifiConfig?
   billingInfo     HostBillingInfo?
 
+  // GDPR — richieste di cancellazione (Art. 17)
+  richiesteCancellazione RichiestaCancellazione[]
+
   @@map("hosts")
 }
 
@@ -1909,6 +1912,42 @@ model UserConsent {
   @@index([userId])
   @@index([tipo, createdAt])
   @@map("user_consents")
+}
+
+/// Richiesta di cancellazione dati da parte dell'ospite (Art. 17 GDPR — diritto
+/// all'oblio). L'host ha 30 giorni per eseguirla o motivare il rifiuto.
+/// I dati sotto obbligo legale (fatture 10 anni, Alloggiati 5 anni) non sono
+/// cancellabili e l'host deve documentarlo nel motivoRifiuto.
+model RichiestaCancellazione {
+  id         String @id @default(cuid())
+  hostId     String
+  host       Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  guestEmail String
+  guestNome  String
+
+  motivo String?
+
+  // PENDENTE | IN_LAVORAZIONE | COMPLETATA | RIFIUTATA
+  stato         String  @default("PENDENTE")
+  motivoRifiuto String? // obbligatorio se stato=RIFIUTATA
+
+  // Report di cosa è stato cancellato/anonimizzato
+  // Es: { prenotazioni: 3, waiverSpa: 2, crm: true, fatture: 0 (obbligo legale) }
+  datiCancellati Json?
+
+  // Timeline
+  richiestaAt  DateTime  @default(now())
+  scadenzaAt   DateTime // richiestaAt + 30 giorni (Art. 17)
+  completataAt DateTime?
+  completataDa String? // userId operatore
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, stato])
+  @@index([guestEmail])
+  @@index([scadenzaAt])
+  @@map("richieste_cancellazione")
 }
 
 // ─── SPA Module ────────────────────────────────────────────────────────────────
