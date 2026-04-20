@@ -253,6 +253,11 @@ model Host {
   onboardingStep       Int      @default(0)     // 0=non iniziato, 1-4=step in corso, 5=completato
   onboardingData       Json?    @default("{}")  // dati parziali salvati tra step
 
+  // DPA (Art. 28 GDPR) — contratto trattamento dati tra host (Titolare) e Otium (Responsabile)
+  // Se false, l'host non può accedere a /host/* (redirect a /host/dpa)
+  // La storia delle accettazioni è in DPAAccettazione[] (cambio versione → ri-accettazione)
+  dpaAccettato    Boolean           @default(false)
+
   // Checklist post-onboarding (fase 2)
   configSmtp           Boolean  @default(false)
   configBranding       Boolean  @default(false)
@@ -399,6 +404,9 @@ model Host {
 
   // GDPR — richieste di cancellazione (Art. 17)
   richiesteCancellazione RichiestaCancellazione[]
+
+  // GDPR — storico accettazioni DPA (Art. 28)
+  dpaAccettazioni DPAAccettazione[]
 
   @@map("hosts")
 }
@@ -1948,6 +1956,28 @@ model RichiestaCancellazione {
   @@index([guestEmail])
   @@index([scadenzaAt])
   @@map("richieste_cancellazione")
+}
+
+/// Accettazione DPA (Data Processing Agreement) da parte dell'host (Art. 28 GDPR).
+/// Ogni cambio versione del template DPA richiede una nuova accettazione.
+/// La firma è digitale (canvas base64), con IP/userAgent come prova legale.
+model DPAAccettazione {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  versione    String // es. "2026-04-01"
+  firmaBase64 String? // PNG data URL canvas
+  firmaNome   String // nome firmatario
+  firmaRuolo  String? // "Titolare" | "Legale rappresentante" | "Amministratore"
+  ip          String?
+  userAgent   String?
+
+  accettatoAt DateTime @default(now())
+
+  @@index([hostId])
+  @@index([versione])
+  @@map("dpa_accettazioni")
 }
 
 // ─── SPA Module ────────────────────────────────────────────────────────────────

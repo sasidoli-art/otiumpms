@@ -13,16 +13,23 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   const allowedRoles = ['HOST', 'ADMIN', 'SUPERADMIN', 'DIREZIONE', 'STAFF']
   if (!allowedRoles.includes(session.user.role)) redirect('/login')
 
-  const host = session.user.role === 'HOST' || session.user.role === 'DIREZIONE' || session.user.role === 'STAFF'
-    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
-      ?? await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
-    : await prisma.host.findFirst({ select: { nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true, onboardingStep: true, logo: true, piano: true } })
+  const hostSelect = {
+    nomeAzienda: true, id: true, moduliAttivi: true, onboardingCompletato: true,
+    onboardingStep: true, logo: true, piano: true, dpaAccettato: true,
+    dpaAccettazioni: { orderBy: { accettatoAt: 'desc' as const }, take: 1, select: { versione: true } },
+  }
 
-  // Check if we're on the onboarding page
+  const host = session.user.role === 'HOST' || session.user.role === 'DIREZIONE' || session.user.role === 'STAFF'
+    ? await prisma.host.findUnique({ where: { userId: session.user.id }, select: hostSelect })
+      ?? await prisma.host.findFirst({ select: hostSelect })
+    : await prisma.host.findFirst({ select: hostSelect })
+
+  // Check if we're on the onboarding/DPA pages
   const headersList = await headers()
   const pathname = headersList.get('x-pathname') || ''
   const isOnboardingPage = pathname.startsWith('/host/onboarding')
   const isSelezionePage = pathname.startsWith('/host/seleziona-struttura')
+  const isDpaPage = pathname === '/host/dpa' || pathname.startsWith('/host/dpa/')
 
   // Fallback redirect (middleware handles this primarily via JWT token)
   const onboardingDone = (host?.onboardingStep ?? 0) >= 5 || host?.onboardingCompletato
@@ -30,8 +37,16 @@ export default async function HostRootLayout({ children }: { children: React.Rea
     redirect('/host/onboarding')
   }
 
-  // Onboarding page renders without sidebar/topbar (full-screen wizard)
-  if (isOnboardingPage) {
+  // DPA guard (Art. 28 GDPR): HOST deve aver accettato l'ultima versione
+  if (session.user.role === 'HOST' && host && !isDpaPage && !isOnboardingPage) {
+    const { DPA_VERSIONE } = await import('@/lib/dpa-template')
+    const ultimaVer = host.dpaAccettazioni[0]?.versione ?? null
+    const dpaOk = host.dpaAccettato && ultimaVer === DPA_VERSIONE
+    if (!dpaOk) redirect('/host/dpa')
+  }
+
+  // Full-screen pages (onboarding, DPA): rendering senza sidebar/topbar
+  if (isOnboardingPage || isDpaPage) {
     return <>{children}</>
   }
 
