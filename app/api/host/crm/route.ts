@@ -19,7 +19,7 @@ const createOspiteSchema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
-// GET /api/host/crm?q=&vip=&blacklist=&tag=&nazionalita=&page=&sort=&dir=&perPage=
+// GET /api/host/crm?q=&vip=&blacklist=&ricorrenti=&ultimoSoggiorno=30|90|365&tag=&nazionalita=&page=&sort=&dir=&perPage=
 export async function GET(req: Request) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
@@ -28,10 +28,13 @@ export async function GET(req: Request) {
   const q = searchParams.get('q') ?? ''
   const vip = searchParams.get('vip')
   const blacklist = searchParams.get('blacklist')
+  const ricorrenti = searchParams.get('ricorrenti')
+  const ultimoSoggiorno = searchParams.get('ultimoSoggiorno') // '30' | '90' | '365'
   const tag = searchParams.get('tag')
+  const tags = searchParams.getAll('tags') // multi
   const nazionalita = searchParams.get('nazionalita')
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1'))
-  const perPage = Math.min(50, Math.max(10, parseInt(searchParams.get('perPage') ?? '20')))
+  const perPage = Math.min(100, Math.max(10, parseInt(searchParams.get('perPage') ?? '20')))
 
   // Sorting
   const sortField = searchParams.get('sort') ?? 'cognome'
@@ -41,11 +44,28 @@ export async function GET(req: Request) {
     ? [{ [sortField]: sortDir }]
     : [{ vip: 'desc' as const }, { cognome: 'asc' as const }]
 
+  // Filtro data ultimo soggiorno
+  let dataSoglia: Date | null = null
+  if (ultimoSoggiorno) {
+    const giorni = parseInt(ultimoSoggiorno)
+    if (!isNaN(giorni) && giorni > 0) {
+      dataSoglia = new Date()
+      dataSoglia.setDate(dataSoglia.getDate() - giorni)
+    }
+  }
+
+  // Tags: supporta ?tag=X (legacy, single) e ?tags=A&tags=B (multi, hasEvery)
+  const tagsFilter: Record<string, unknown> = {}
+  if (tag) tagsFilter.tags = { has: tag }
+  if (tags.length > 0) tagsFilter.tags = { hasEvery: tags }
+
   const where: Record<string, unknown> = {
     hostId: auth.user.hostId,
     ...(vip === 'true' ? { vip: true } : {}),
     ...(blacklist === 'true' ? { blacklist: true } : {}),
-    ...(tag ? { tags: { has: tag } } : {}),
+    ...(ricorrenti === 'true' ? { numSoggiorni: { gte: 2 } } : {}),
+    ...(dataSoglia ? { dataUltimoSoggiorno: { gte: dataSoglia } } : {}),
+    ...tagsFilter,
     ...(nazionalita ? { nazionalita: { contains: nazionalita, mode: 'insensitive' } } : {}),
     ...(q
       ? {

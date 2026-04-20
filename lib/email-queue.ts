@@ -1,20 +1,27 @@
 import { logger } from '@/lib/logger'
 
 /**
- * In-memory email queue with retry logic.
+ * In-memory email queue con retry a backoff esponenziale.
  *
- * - Retries failed emails up to MAX_RETRIES times with exponential backoff
- * - Logs all failures for debugging
- * - Dead letter queue for permanently failed emails (accessible via API)
- * - Singleton: persists across hot reloads in dev
+ *  - Tentativi: immediato → 5 minuti → 30 minuti (default)
+ *  - Log in AuditLog ogni invio (success/fail)
+ *  - Se fallisce definitivamente crea una Notifica per l'host
+ *  - Dead-letter queue per monitoraggio
+ *  - Singleton persistente tra hot reloads in dev
  *
- * For production at scale, replace with Bull/BullMQ + Redis.
+ * Per produzione a scala, sostituire con Bull/BullMQ + Redis.
  */
 
-interface EmailJob {
+interface EmailJobMeta {
+  hostId?: string | null
+  templateId?: string | null
+  to?: string | null
+  label: string
+}
+
+interface EmailJob extends EmailJobMeta {
   id: string
   fn: () => Promise<void>
-  label: string
   retries: number
   maxRetries: number
   nextRetry: number
@@ -22,14 +29,16 @@ interface EmailJob {
   createdAt: number
 }
 
-interface DeadLetterEntry {
+interface DeadLetterEntry extends EmailJobMeta {
   id: string
-  label: string
   error: string
   retries: number
   createdAt: number
   failedAt: number
 }
+
+// Ritardi per tentativo (ms): 0 (immediato), 5 minuti, 30 minuti
+const RETRY_DELAYS_MS = [0, 5 * 60 * 1000, 30 * 60 * 1000]
 
 class EmailQueue {
   private queue: EmailJob[] = []
@@ -39,34 +48,36 @@ class EmailQueue {
   private idCounter = 0
 
   readonly MAX_DEAD_LETTER = 100
-  readonly DEFAULT_MAX_RETRIES = 3
-  readonly BASE_DELAY_MS = 5000 // 5s, 10s, 20s exponential
+  readonly DEFAULT_MAX_RETRIES = 3 // tentativi totali (retries = n° fallimenti pregressi)
 
   constructor() {
     this.startProcessing()
   }
 
-  /** Enqueue an email job for delivery with automatic retry. */
-  enqueue(label: string, fn: () => Promise<void>, maxRetries?: number) {
+  /** Accoda un job email. `label` e` una descrizione breve (usata nei log). */
+  enqueue(
+    label: string,
+    fn: () => Promise<void>,
+    opts?: { maxRetries?: number; hostId?: string | null; templateId?: string | null; to?: string | null },
+  ) {
     const id = `email-${Date.now()}-${++this.idCounter}`
     this.queue.push({
       id,
       fn,
       label,
       retries: 0,
-      maxRetries: maxRetries ?? this.DEFAULT_MAX_RETRIES,
-      nextRetry: Date.now(), // immediate first attempt
+      maxRetries: opts?.maxRetries ?? this.DEFAULT_MAX_RETRIES,
+      nextRetry: Date.now(),
       createdAt: Date.now(),
+      hostId: opts?.hostId ?? null,
+      templateId: opts?.templateId ?? null,
+      to: opts?.to ?? null,
     })
     logger.info(`Email queued: ${label}`, 'email-queue', { id })
   }
 
-  /** Get dead letter entries (for monitoring/debugging). */
-  getDeadLetters(): DeadLetterEntry[] {
-    return [...this.deadLetter]
-  }
+  getDeadLetters(): DeadLetterEntry[] { return [...this.deadLetter] }
 
-  /** Get queue stats. */
   getStats() {
     return {
       queued: this.queue.length,
@@ -75,23 +86,24 @@ class EmailQueue {
     }
   }
 
-  /** Retry a dead letter entry. */
   retryDeadLetter(id: string, fn: () => Promise<void>) {
-    const idx = this.deadLetter.findIndex(d => d.id === id)
+    const idx = this.deadLetter.findIndex((d) => d.id === id)
     if (idx >= 0) {
+      const entry = this.deadLetter[idx]
       this.deadLetter.splice(idx, 1)
-      this.enqueue(`retry:${id}`, fn, 1)
+      this.enqueue(`retry:${entry.label}`, fn, {
+        maxRetries: 1,
+        hostId: entry.hostId,
+        templateId: entry.templateId,
+        to: entry.to,
+      })
     }
   }
 
-  /** Clear all dead letter entries. */
-  clearDeadLetters() {
-    this.deadLetter = []
-  }
+  clearDeadLetters() { this.deadLetter = [] }
 
   private startProcessing() {
     if (this.timer) return
-    // Process queue every 2 seconds
     this.timer = setInterval(() => this.processNext(), 2000)
   }
 
@@ -99,24 +111,23 @@ class EmailQueue {
     if (this.processing || this.queue.length === 0) return
 
     const now = Date.now()
-    const idx = this.queue.findIndex(j => j.nextRetry <= now)
-    if (idx < 0) return // all jobs waiting for retry delay
+    const idx = this.queue.findIndex((j) => j.nextRetry <= now)
+    if (idx < 0) return
 
     this.processing = true
     const job = this.queue.splice(idx, 1)[0]
 
     try {
       await job.fn()
-      logger.info(`Email sent: ${job.label}`, 'email-queue', {
-        id: job.id,
-        retries: job.retries,
-      })
+      logger.info(`Email sent: ${job.label}`, 'email-queue', { id: job.id, retries: job.retries })
+      // Audit log success (fire and forget)
+      void logAuditSuccess(job)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err)
       job.retries++
 
       if (job.retries >= job.maxRetries) {
-        // Move to dead letter
+        // Esaurito → dead letter + audit + notifica host
         this.deadLetter.push({
           id: job.id,
           label: job.label,
@@ -124,34 +135,92 @@ class EmailQueue {
           retries: job.retries,
           createdAt: job.createdAt,
           failedAt: Date.now(),
+          hostId: job.hostId ?? null,
+          templateId: job.templateId ?? null,
+          to: job.to ?? null,
         })
-
-        // Trim dead letter queue
         if (this.deadLetter.length > this.MAX_DEAD_LETTER) {
           this.deadLetter = this.deadLetter.slice(-this.MAX_DEAD_LETTER)
         }
 
         logger.error(`Email permanently failed: ${job.label}`, 'email-queue', {
-          id: job.id,
-          retries: job.retries,
-          error: errorMsg,
+          id: job.id, retries: job.retries, error: errorMsg,
         })
+
+        void logAuditFailure(job, errorMsg)
+        void notifyHostFailure(job, errorMsg)
       } else {
-        // Schedule retry with exponential backoff
-        const delay = this.BASE_DELAY_MS * Math.pow(2, job.retries - 1)
+        // Retry con backoff tabellare (0/5m/30m)
+        const delay = RETRY_DELAYS_MS[Math.min(job.retries, RETRY_DELAYS_MS.length - 1)]
         job.nextRetry = Date.now() + delay
         job.error = errorMsg
         this.queue.push(job)
 
         logger.warn(`Email retry ${job.retries}/${job.maxRetries}: ${job.label}`, 'email-queue', {
-          id: job.id,
-          nextRetryMs: delay,
-          error: errorMsg,
+          id: job.id, nextRetryMs: delay, error: errorMsg,
         })
       }
     } finally {
       this.processing = false
     }
+  }
+}
+
+// ─── Audit / Notifica helpers (dynamic import per evitare cicli) ───────────
+
+async function logAuditSuccess(job: EmailJob): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/db')
+    await prisma.auditLog.create({
+      data: {
+        hostId: job.hostId ?? null,
+        azione: 'email.inviata',
+        entita: 'email',
+        entitaId: job.id,
+        dettagli: job.to
+          ? `Email "${job.label}" inviata a ${job.to}${job.templateId ? ` (template: ${job.templateId})` : ''}`
+          : `Email "${job.label}" inviata`,
+      },
+    })
+  } catch {
+    // non bloccante
+  }
+}
+
+async function logAuditFailure(job: EmailJob, error: string): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/db')
+    await prisma.auditLog.create({
+      data: {
+        hostId: job.hostId ?? null,
+        azione: 'email.fallita',
+        entita: 'email',
+        entitaId: job.id,
+        dettagli: `Email "${job.label}"${job.to ? ` a ${job.to}` : ''} fallita dopo ${job.retries} tentativi: ${error.slice(0, 300)}`,
+      },
+    })
+  } catch {
+    // non bloccante
+  }
+}
+
+async function notifyHostFailure(job: EmailJob, error: string): Promise<void> {
+  if (!job.hostId) return
+  try {
+    const { prisma } = await import('@/lib/db')
+    await prisma.notifica.create({
+      data: {
+        hostId: job.hostId,
+        tipo: 'sistema',
+        titolo: 'Email non inviata',
+        messaggio: job.to
+          ? `Email "${job.label}" non inviata a ${job.to} dopo ${job.retries} tentativi. Verifica la configurazione SMTP.\n\nErrore: ${error.slice(0, 300)}`
+          : `Email "${job.label}" non inviata dopo ${job.retries} tentativi. Verifica la configurazione SMTP.\n\nErrore: ${error.slice(0, 300)}`,
+        linkUrl: '/host/profilo',
+      },
+    })
+  } catch {
+    // non bloccante
   }
 }
 

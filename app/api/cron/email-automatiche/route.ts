@@ -2,22 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import {
-  sendEmailReminderPreArrivo,
-  sendEmailFollowUpPostSoggiorno,
-  sendEmailReminderAppuntamentoSpa,
-  sendEmailPreCheckin,
-} from '@/lib/email'
+  triggerEmailPreCheckin,
+  triggerEmailReminderArrivo,
+  triggerEmailFollowUp,
+  triggerEmailReminderSpa,
+} from '@/lib/email-triggers'
+import { isModuloAttivo } from '@/lib/moduli'
 import { logger } from '@/lib/logger'
 
 /**
- * Cron endpoint for automated emails.
- * Call daily (e.g., via Vercel Cron, external scheduler, or manual trigger).
- * Protected by CRON_SECRET env variable.
+ * Cron email automatiche — chiamato ogni ora.
  *
- * Sends:
- * 1. Pre-arrival reminders (1 day before check-in)
- * 2. Post-stay follow-ups (1 day after check-out)
- * 3. SPA appointment reminders (1 day before appointment)
+ *  Per ogni host con modulo `emailAuto` attivo esegue in sequenza:
+ *   a) PRE CHECK-IN  — arrivi entro orePreCheckin (default 72h), reminderInviato=false
+ *   b) REMINDER ARR. — arrivi domani, reminderArrivoInviato=false
+ *   c) FOLLOW UP      — partenze ieri, stato COMPLETATA, followUpInviato=false
+ *   d) REMINDER SPA   — appuntamenti domani, reminderInviato=false
+ *
+ *  Ogni trigger gia` gestisce:
+ *   - check ConfigEmail.attiva
+ *   - early-return se flag gia` true
+ *   - enqueue + update flag
+ *   - audit log per success/fail tramite email-queue
+ *
+ *  Protezione: Bearer token = CRON_SECRET
  */
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
@@ -26,246 +34,153 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
-  const domani = new Date(now)
-  domani.setDate(domani.getDate() + 1)
-  domani.setHours(0, 0, 0, 0)
-  const dopodomani = new Date(domani)
-  dopodomani.setDate(dopodomani.getDate() + 1)
+  const domani = new Date(now); domani.setDate(domani.getDate() + 1); domani.setHours(0, 0, 0, 0)
+  const dopodomani = new Date(domani); dopodomani.setDate(dopodomani.getDate() + 1)
+  const oggi = new Date(now); oggi.setHours(0, 0, 0, 0)
+  const ieri = new Date(oggi); ieri.setDate(ieri.getDate() - 1)
 
-  const ieri = new Date(now)
-  ieri.setDate(ieri.getDate() - 1)
-  ieri.setHours(0, 0, 0, 0)
-  const oggi = new Date(now)
-  oggi.setHours(0, 0, 0, 0)
+  const results = { hosts: 0, preCheckin: 0, reminderArrivo: 0, followUp: 0, reminderSpa: 0, errori: 0 }
 
-  const results = { preCheckin: 0, reminderArrivo: 0, followUp: 0, reminderSpa: 0, errori: 0 }
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
-
-  // ─── 0. Pre-Check-in Online (X ore prima, configurabile per host) ──────────
-  // Invia email branded con CTA "Completa il check-in" a ospiti che arrivano
-  // entro orePreCheckin ore. Genera checkInToken se non esiste.
-  // NON invia se: statoCheckIn !== NON_INIZIATO, stato !== CONFERMATA
+  // Hosts con modulo emailAuto attivo
   const hosts = await prisma.host.findMany({
     where: { moduliAttivi: { not: Prisma.DbNull } },
-    select: { id: true, orePreCheckin: true },
+    select: { id: true, orePreCheckin: true, moduliAttivi: true },
   })
 
   for (const host of hosts) {
-    const ore = host.orePreCheckin || 72
-    const arrivoEntro = new Date(now.getTime() + ore * 60 * 60 * 1000)
+    if (!isModuloAttivo(host.moduliAttivi, 'emailAuto')) continue
+    results.hosts++
 
-    const prenotazioni = await prisma.prenotazione.findMany({
-      where: {
-        hostId: host.id,
-        stato: 'CONFERMATA',
-        statoCheckIn: 'NON_INIZIATO',
-        reminderInviato: false,
-        dataArrivo: { gte: oggi, lte: arrivoEntro },
-        guestEmail: { not: '' },
-      },
-      include: {
-        struttura: { select: { id: true, nome: true, indirizzo: true, citta: true } },
-        unita: { select: { nome: true } },
-        host: { select: { id: true, nomeAzienda: true, telefono: true } },
-      },
-    })
-
-    for (const p of prenotazioni) {
-      try {
-        // Genera checkInToken se non esiste
-        let token = p.checkInToken
-        if (!token) {
-          token = crypto.randomUUID()
-          await prisma.prenotazione.update({
-            where: { id: p.id },
-            data: { checkInToken: token },
-          })
+    // ── a) PRE CHECK-IN ───────────────────────────────────────────────────
+    try {
+      const ore = host.orePreCheckin || 72
+      const soglia = new Date(now.getTime() + ore * 60 * 60 * 1000)
+      const preCheckinList = await prisma.prenotazione.findMany({
+        where: {
+          hostId: host.id,
+          stato: 'CONFERMATA',
+          statoCheckIn: 'NON_INIZIATO',
+          reminderInviato: false,
+          dataArrivo: { gte: oggi, lte: soglia },
+          guestEmail: { not: '' },
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      for (const p of preCheckinList) {
+        try {
+          await triggerEmailPreCheckin(p.id)
+          results.preCheckin++
+        } catch (err) {
+          logger.error('pre_checkin trigger failed', 'cron/email-automatiche', { prenotazioneId: p.id, error: String(err) })
+          results.errori++
         }
+      }
+    } catch (err) {
+      logger.error('pre_checkin query failed', 'cron/email-automatiche', { hostId: host.id, error: String(err) })
+      results.errori++
+    }
 
-        const checkInUrl = `${baseUrl}/checkin/${token}`
+    // ── b) REMINDER ARRIVO (24h prima) ────────────────────────────────────
+    try {
+      const reminderList = await prisma.prenotazione.findMany({
+        where: {
+          hostId: host.id,
+          stato: 'CONFERMATA',
+          dataArrivo: { gte: domani, lt: dopodomani },
+          reminderArrivoInviato: false,
+          emailInviata: true,
+          guestEmail: { not: '' },
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      for (const p of reminderList) {
+        try {
+          await triggerEmailReminderArrivo(p.id)
+          results.reminderArrivo++
+        } catch (err) {
+          logger.error('reminder_arrivo trigger failed', 'cron/email-automatiche', { prenotazioneId: p.id, error: String(err) })
+          results.errori++
+        }
+      }
+    } catch (err) {
+      logger.error('reminder_arrivo query failed', 'cron/email-automatiche', { hostId: host.id, error: String(err) })
+      results.errori++
+    }
 
-        await sendEmailPreCheckin({
-          guestEmail: p.guestEmail,
-          guestNome: p.guestNome,
-          strutturaNome: p.struttura?.nome ?? 'La struttura',
-          strutturaIndirizzo: p.struttura?.indirizzo,
-          strutturaCitta: p.struttura?.citta,
-          unitaNome: p.unita?.nome,
-          hostNome: p.host.nomeAzienda,
-          hostTelefono: p.host.telefono,
-          dataArrivo: p.dataArrivo,
-          dataPartenza: p.dataPartenza,
-          numOspiti: p.numOspiti,
-          checkInUrl,
-          lingua: p.guestLingua,
-          hostId: p.host.id,
-          strutturaId: p.struttura?.id,
-          pin: p.pin,
+    // ── c) FOLLOW UP (dopo checkout) ──────────────────────────────────────
+    try {
+      const followUpList = await prisma.prenotazione.findMany({
+        where: {
+          hostId: host.id,
+          stato: 'COMPLETATA',
+          dataPartenza: { gte: ieri, lt: oggi },
+          followUpInviato: false,
+          guestEmail: { not: '' },
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      for (const p of followUpList) {
+        try {
+          await triggerEmailFollowUp(p.id)
+          results.followUp++
+        } catch (err) {
+          logger.error('follow_up trigger failed', 'cron/email-automatiche', { prenotazioneId: p.id, error: String(err) })
+          results.errori++
+        }
+      }
+    } catch (err) {
+      logger.error('follow_up query failed', 'cron/email-automatiche', { hostId: host.id, error: String(err) })
+      results.errori++
+    }
+
+    // ── d) REMINDER SPA (24h prima) ───────────────────────────────────────
+    if (isModuloAttivo(host.moduliAttivi, 'spa')) {
+      try {
+        const spaList = await prisma.appuntamentoSpa.findMany({
+          where: {
+            hostId: host.id,
+            stato: { in: ['CONFERMATO', 'PRENOTATO'] },
+            dataOra: { gte: domani, lt: dopodomani },
+            reminderInviato: false,
+            guestEmail: { not: null },
+          },
+          select: { id: true },
         })
-
-        await prisma.prenotazione.update({
-          where: { id: p.id },
-          data: { reminderInviato: true },
-        })
-        results.preCheckin++
+        for (const a of spaList) {
+          try {
+            await triggerEmailReminderSpa(a.id)
+            results.reminderSpa++
+          } catch (err) {
+            logger.error('reminder_spa trigger failed', 'cron/email-automatiche', { appuntamentoId: a.id, error: String(err) })
+            results.errori++
+          }
+        }
       } catch (err) {
-        logger.error('Cron: pre-checkin email fallita', 'cron/email-automatiche', {
-          prenotazioneId: p.id,
-          error: String(err),
-        })
+        logger.error('reminder_spa query failed', 'cron/email-automatiche', { hostId: host.id, error: String(err) })
         results.errori++
       }
     }
   }
 
-  // ─── 1. Pre-arrival reminders (legacy — 1 giorno prima per chi non ha ricevuto pre-checkin) ─
-  const prenotazioniDomani = await prisma.prenotazione.findMany({
-    where: {
-      stato: 'CONFERMATA',
-      dataArrivo: { gte: domani, lt: dopodomani },
-      reminderInviato: false,
-      guestEmail: { not: '' },
-    },
-    include: {
-      struttura: { select: { nome: true, indirizzo: true, citta: true } },
-      unita: { select: { nome: true } },
-      host: { select: { nomeAzienda: true, telefono: true } },
-    },
-  })
+  const totale = results.preCheckin + results.reminderArrivo + results.followUp + results.reminderSpa
 
-  for (const p of prenotazioniDomani) {
-    try {
-      let checkInUrl: string | null = null
-      if (!p.checkInCompletato && p.checkInToken) {
-        checkInUrl = `${baseUrl}/checkin/${p.checkInToken}`
-      }
-
-      await sendEmailReminderPreArrivo({
-        guestEmail: p.guestEmail,
-        guestNome: p.guestNome,
-        hostNome: p.host.nomeAzienda,
-        strutturaNome: p.struttura?.nome ?? 'La struttura',
-        strutturaIndirizzo: p.struttura?.indirizzo,
-        strutturaCitta: p.struttura?.citta,
-        hostTelefono: p.host.telefono,
-        dataArrivo: p.dataArrivo,
-        dataPartenza: p.dataPartenza,
-        numOspiti: p.numOspiti,
-        unitaNome: p.unita?.nome,
-        checkInUrl,
-        lingua: p.guestLingua,
-      })
-
-      await prisma.prenotazione.update({
-        where: { id: p.id },
-        data: { reminderInviato: true },
-      })
-      results.reminderArrivo++
-    } catch (err) {
-      logger.error('Cron: reminder pre-arrivo fallito', 'cron/email-automatiche', {
-        prenotazioneId: p.id,
-        error: String(err),
-      })
-      results.errori++
-    }
-  }
-
-  // ─── 2. Post-stay follow-ups ────────────────────────────────────────────────
-  // Bookings that checked out yesterday, completed, not yet sent
-  const partiteIeri = await prisma.prenotazione.findMany({
-    where: {
-      stato: 'COMPLETATA',
-      dataPartenza: { gte: ieri, lt: oggi },
-      followUpInviato: false,
-      guestEmail: { not: '' },
-    },
-    include: {
-      struttura: { select: { id: true, nome: true } },
-      host: { select: { nomeAzienda: true } },
-    },
-  })
-
-  for (const p of partiteIeri) {
-    try {
-      const bookingUrl = p.struttura
-        ? `${process.env.NEXTAUTH_URL}/book/${p.struttura.id}`
-        : null
-
-      await sendEmailFollowUpPostSoggiorno({
-        guestEmail: p.guestEmail,
-        guestNome: p.guestNome,
-        hostNome: p.host.nomeAzienda,
-        strutturaNome: p.struttura?.nome ?? 'La struttura',
-        dataArrivo: p.dataArrivo,
-        dataPartenza: p.dataPartenza!,
-        bookingUrl,
-        lingua: p.guestLingua,
-      })
-
-      await prisma.prenotazione.update({
-        where: { id: p.id },
-        data: { followUpInviato: true },
-      })
-      results.followUp++
-    } catch (err) {
-      logger.error('Cron: follow-up post-soggiorno fallito', 'cron/email-automatiche', {
-        prenotazioneId: p.id,
-        error: String(err),
-      })
-      results.errori++
-    }
-  }
-
-  // ─── 3. SPA appointment reminders ──────────────────────────────────────────
-  // Appointments tomorrow, confirmed/prenotato, with email, not yet sent
-  const appuntamentiDomani = await prisma.appuntamentoSpa.findMany({
-    where: {
-      stato: { in: ['CONFERMATO', 'PRENOTATO'] },
-      dataOra: { gte: domani, lt: dopodomani },
-      reminderInviato: false,
-      guestEmail: { not: null },
-    },
-    include: {
-      trattamento: { select: { nome: true } },
-      percorso: { select: { nome: true } },
-      host: { select: { id: true, nomeAzienda: true } },
-      prenotazione: { select: { guestLingua: true } },
-    },
-  })
-
-  for (const a of appuntamentiDomani) {
-    if (!a.guestEmail) continue
-    try {
-      await sendEmailReminderAppuntamentoSpa({
-        guestEmail: a.guestEmail,
-        guestNome: a.guestNome,
-        hostNome: a.host.nomeAzienda,
-        servizioNome: a.trattamento?.nome ?? a.percorso?.nome ?? 'Trattamento SPA',
-        dataOra: a.dataOra,
-        durata: a.durata,
-        lingua: a.prenotazione?.guestLingua ?? null,
-        hostId: a.host.id,
-      })
-
-      await prisma.appuntamentoSpa.update({
-        where: { id: a.id },
-        data: { reminderInviato: true },
-      })
-      results.reminderSpa++
-    } catch (err) {
-      logger.error('Cron: reminder SPA fallito', 'cron/email-automatiche', {
-        appuntamentoId: a.id,
-        error: String(err),
-      })
-      results.errori++
-    }
-  }
+  // Log in AuditLog (aggregato, host-less)
+  try {
+    await prisma.auditLog.create({
+      data: {
+        hostId: null,
+        azione: 'cron.email_automatiche.eseguito',
+        entita: 'cron',
+        entitaId: null,
+        dettagli: `Cron email: ${totale} email accodate per ${results.hosts} host (pre=${results.preCheckin}, reminder=${results.reminderArrivo}, followup=${results.followUp}, spa=${results.reminderSpa}, errori=${results.errori})`,
+      },
+    })
+  } catch { /* non bloccante */ }
 
   logger.info('Cron email automatiche completato', 'cron/email-automatiche', results)
 
-  return NextResponse.json({
-    ok: true,
-    ...results,
-    totale: results.reminderArrivo + results.followUp + results.reminderSpa,
-  })
+  return NextResponse.json({ ok: true, totale, ...results })
 }

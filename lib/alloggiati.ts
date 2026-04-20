@@ -1,6 +1,13 @@
 /**
  * Generatore file Alloggiati Web — formato Polizia di Stato
  *
+ * IMPORTANTE sul formato:
+ *   La documentazione Alloggiati Web PS descrive un tracciato a larghezza fissa,
+ *   ma il portale ufficiale https://alloggiatiweb.poliziadistato.it accetta (ed
+ *   e` il formato utilizzato in produzione da gran parte dei PMS) il tracciato
+ *   TAB-delimited con "Tipo 1" header e "Tipo 2" per ogni alloggiato.
+ *   Manteniamo questo formato perche' e` quello effettivamente accettato.
+ *
  * Tracciato record:
  *   Tipo 2 (Schedina alloggiato) — campi separati da tabulazione (\t)
  *
@@ -149,6 +156,106 @@ function buildRecord(
     provinciaRilascio ?? '',
     tipoAlloggiato,
   ].join('\t')
+}
+
+// ─── Wrapper Prisma-friendly ──────────────────────────────────────────────────
+
+type PrenotazioneAlloggiati = {
+  dataArrivo: Date
+  dataPartenza: Date | null
+  guestNome: string
+  guestCognome: string
+  guestSesso: string | null
+  guestDataNascita: Date | null
+  guestLuogoNascita?: string | null
+  guestComuneNascitaIstat: string | null
+  guestProvinciaNascita: string | null
+  guestStatoNascitaIstat: string | null
+  guestCittadinanzaIstat: string | null
+  guestTipoDocumento: string | null
+  guestNumeroDocumento: string | null
+  guestLuogoRilascio?: string | null
+  guestComuneRilascioIstat: string | null
+  guestProvinciaRilascio: string | null
+  accompagnatori?: {
+    nome: string
+    cognome: string
+    sesso: string | null
+    dataNascita: Date | null
+    luogoNascita: string | null
+    provinciaNascita: string | null
+    comuneNascitaIstat: string | null
+    statoNascitaIstat: string | null
+    cittadinanzaIstat: string | null
+    tipoDocumento: string | null
+    numeroDocumento: string | null
+    comuneRilascioIstat: string | null
+    provinciaRilascio: string | null
+  }[]
+}
+
+type StrutturaAlloggiati = {
+  alloggiatiCodiceStruttura: string | null
+}
+
+/**
+ * Validazione di una prenotazione per Alloggiati Web.
+ * Ritorna `valido=true` se tutti i campi obbligatori sono presenti per generare
+ * il record PS, altrimenti lista dei campi mancanti in italiano.
+ */
+export function validaPrenotazioneAlloggiati(p: PrenotazioneAlloggiati): {
+  valido: boolean
+  campiMancanti: string[]
+} {
+  const mancanti: string[] = []
+  if (!p.guestCognome?.trim()) mancanti.push('Cognome')
+  if (!p.guestNome?.trim()) mancanti.push('Nome')
+  if (!p.guestSesso) mancanti.push('Sesso')
+  if (!p.guestDataNascita) mancanti.push('Data di nascita')
+  if (!p.guestComuneNascitaIstat && !p.guestStatoNascitaIstat) {
+    mancanti.push('Luogo di nascita')
+  }
+  if (!p.guestCittadinanzaIstat) mancanti.push('Cittadinanza')
+  if (!p.guestTipoDocumento) mancanti.push('Tipo documento')
+  if (!p.guestNumeroDocumento?.trim()) mancanti.push('Numero documento')
+  return { valido: mancanti.length === 0, campiMancanti: mancanti }
+}
+
+/**
+ * Validazione di un accompagnatore. Piu` permissiva (sesso/data/doc sono
+ * richiesti, indirizzo di nascita no perche` gestito come "stato" estero).
+ */
+export function validaAccompagnatoreAlloggiati(a: NonNullable<PrenotazioneAlloggiati['accompagnatori']>[number]): {
+  valido: boolean
+  campiMancanti: string[]
+} {
+  const mancanti: string[] = []
+  if (!a.cognome?.trim()) mancanti.push('Cognome')
+  if (!a.nome?.trim()) mancanti.push('Nome')
+  if (!a.sesso) mancanti.push('Sesso')
+  if (!a.dataNascita) mancanti.push('Data di nascita')
+  if (!a.cittadinanzaIstat) mancanti.push('Cittadinanza')
+  if (!a.tipoDocumento) mancanti.push('Tipo documento')
+  if (!a.numeroDocumento?.trim()) mancanti.push('Numero documento')
+  return { valido: mancanti.length === 0, campiMancanti: mancanti }
+}
+
+/**
+ * Wrapper che accetta direttamente oggetti Struttura + Prenotazione (shape Prisma)
+ * e produce il file Alloggiati Web completo (testata + ospiti + accompagnatori).
+ *
+ * Salta automaticamente le prenotazioni con campi obbligatori mancanti.
+ * Lancia eccezione se struttura non ha `alloggiatiCodiceStruttura`.
+ */
+export function generaFileAlloggiati(
+  struttura: StrutturaAlloggiati,
+  prenotazioni: PrenotazioneAlloggiati[],
+): string {
+  if (!struttura.alloggiatiCodiceStruttura) {
+    throw new Error('Codice struttura Alloggiati Web non configurato sulla struttura')
+  }
+  const validi = prenotazioni.filter((p) => validaPrenotazioneAlloggiati(p).valido)
+  return generateAlloggiatiFile(struttura.alloggiatiCodiceStruttura, validi)
 }
 
 export function generateAlloggiatiFile(

@@ -408,6 +408,12 @@ model Host {
   // GDPR — storico accettazioni DPA (Art. 28)
   dpaAccettazioni DPAAccettazione[]
 
+  // Email automatiche — personalizzazioni per template
+  configEmail ConfigEmail[]
+
+  // Alloggiati Web — storico export
+  exportAlloggiati ExportAlloggiati[]
+
   @@map("hosts")
 }
 
@@ -743,6 +749,7 @@ model Struttura {
   menuGiornalieri   MenuGiornaliero[]
   contrattiAllotment ContrattoAllotment[]
   wifiDevices       WifiDevice[]
+  exportAlloggiati  ExportAlloggiati[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -940,9 +947,10 @@ model Prenotazione {
   fotoDocumentoRetro       String?
 
   // Notifiche / Email automatiche
-  emailInviata    Boolean @default(false)
-  reminderInviato Boolean @default(false) // reminder pre-arrivo inviato
-  followUpInviato Boolean @default(false) // follow-up post-soggiorno inviato
+  emailInviata          Boolean @default(false)
+  reminderInviato       Boolean @default(false) // pre_checkin (X ore prima, default 72h)
+  reminderArrivoInviato Boolean @default(false) // reminder_arrivo (24h prima)
+  followUpInviato       Boolean @default(false) // follow-up post-soggiorno inviato
 
   // Lingua preferita ospite (per email multilingua)
   guestLingua String? @default("it") // "it", "en", "de", "fr", "es"
@@ -1618,6 +1626,32 @@ model Accompagnatore {
   @@map("accompagnatori")
 }
 
+// ─── Export Alloggiati Web (PS / Questura) ───────────────────────────────────
+//
+// Log degli export eseguiti + file generato, per re-download e audit legale.
+
+model ExportAlloggiati {
+  id          String   @id @default(cuid())
+  hostId      String
+  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+  dataExport  DateTime @db.Date // giorno degli arrivi esportati
+
+  numOspiti         Int
+  numAccompagnatori Int
+  numIncompleti     Int
+  fileNome          String
+  fileContenuto     String // contenuto del file (testo, qualche KB)
+
+  esportatoDa String? // userId operatore
+  createdAt   DateTime @default(now())
+
+  @@index([hostId, dataExport])
+  @@index([strutturaId, dataExport])
+  @@map("export_alloggiati")
+}
+
 // ─── Chat ──────────────────────────────────────────────────────────────────────
 
 model Chat {
@@ -1859,6 +1893,30 @@ model Notifica {
   createdAt DateTime @default(now())
 
   @@map("notifiche")
+}
+
+// ─── Config Email automatiche ────────────────────────────────────────────────
+//
+// Personalizzazioni host dei template email definiti in lib/email-templates.ts.
+// Un record per (hostId, templateId). Se assente: template attivo con default.
+
+model ConfigEmail {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  templateId      String // "conferma_prenotazione", "pre_checkin", ecc.
+  attiva          Boolean @default(true)
+  oggettoCustom   String?
+  messaggioCustom String? // HTML safe, aggiunto in coda al body del template standard
+  ritardoOre      Int? // override del ritardo default del template (in ore)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([hostId, templateId])
+  @@index([hostId])
+  @@map("config_email")
 }
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────

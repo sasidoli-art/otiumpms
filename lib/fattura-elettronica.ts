@@ -1,3 +1,5 @@
+import { prisma } from '@/lib/db'
+
 /**
  * Generatore XML FatturaPA (Fattura Elettronica italiana)
  *
@@ -242,4 +244,136 @@ export function generateFatturaPA(dati: DatiFattura): string {
     </DatiBeniServizi>${pagamentoXml}
   </FatturaElettronicaBody>
 </p:FatturaElettronica>`
+}
+
+// ─── Wrapper high-level: genera XML FatturaPA a partire da fatturaId ─────────
+
+/**
+ * Carica la fattura dal DB con dati host e produce il XML FatturaPA pronto per SDI.
+ *
+ * Applica le regole business:
+ *  - CodiceDestinatario = clienteSDI (7 char) o "0000000" se assente
+ *  - Se cliente estero (paese != Italia): CodiceDestinatario = "XXXXXXX"
+ *  - Se cliente privato senza P.IVA: usa solo CF
+ *  - Righe IVA 0 con naturaEsenzione da RigaFattura.naturaEsenzione
+ *  - RegimeFiscale da host.regimeFiscale (default RF01)
+ *  - ProgressivoInvio: alfanumerico max 10 char derivato dal numero
+ */
+export async function generaFatturaPA(fatturaId: string): Promise<string> {
+  const fattura = await prisma.fattura.findUnique({
+    where: { id: fatturaId },
+    include: {
+      host: {
+        select: {
+          nomeAzienda: true, partitaIva: true, codiceFiscale: true,
+          indirizzo: true, citta: true, cap: true, provincia: true,
+          regimeFiscale: true,
+          fattNomeAzienda: true, fattPartitaIva: true, fattIndirizzo: true,
+          fattCitta: true, fattCap: true, fattProvincia: true, fattPaese: true,
+        },
+      },
+      rigeRel: { orderBy: { ordine: 'asc' } },
+    },
+  })
+
+  if (!fattura) throw new Error(`Fattura ${fatturaId} non trovata`)
+
+  const h = fattura.host
+  const partitaIva = (h.fattPartitaIva || h.partitaIva || '').replace(/^IT/i, '')
+  if (!partitaIva) {
+    throw new Error('Partita IVA host mancante: impossibile generare XML FatturaPA')
+  }
+
+  const emittente: DatiEmittente = {
+    denominazione: h.fattNomeAzienda || h.nomeAzienda,
+    partitaIva,
+    codiceFiscale: h.codiceFiscale || undefined,
+    regimeFiscale: h.regimeFiscale || 'RF01',
+    indirizzo: h.fattIndirizzo || h.indirizzo || '',
+    cap: h.fattCap || h.cap || '00000',
+    comune: h.fattCitta || h.citta || '',
+    provincia: h.fattProvincia || h.provincia || '',
+    nazione: 'IT',
+  }
+
+  // Gestione cliente: CodiceDestinatario in base a P.IVA/SDI/estero
+  const isEstero = fattura.clientePaese && fattura.clientePaese !== 'Italia' && fattura.clientePaese !== 'IT'
+  let codiceSDI = fattura.clienteSDI || '0000000'
+  if (isEstero) codiceSDI = 'XXXXXXX'
+
+  const nazioneCliente = isEstero
+    ? mappaPaeseACodiceIso(fattura.clientePaese)
+    : 'IT'
+
+  const cliente: DatiCliente = {
+    denominazione: fattura.clienteNome,
+    partitaIva: fattura.clientePIva ? fattura.clientePIva.replace(/^IT/i, '') : undefined,
+    codiceFiscale: fattura.clienteCF || undefined,
+    indirizzo: fattura.clienteIndirizzo || undefined,
+    cap: fattura.clienteCap || undefined,
+    comune: fattura.clienteCitta || undefined,
+    provincia: isEstero ? undefined : (fattura.clienteProvincia || undefined),
+    nazione: nazioneCliente,
+    pec: fattura.clientePec || undefined,
+    codiceSDI,
+  }
+
+  // Righe: preferisci rigeRel (canonico), altrimenti JSON legacy
+  type RigaLegacy = { descrizione: string; quantita: number; prezzoUnitario: number; iva?: number; totale: number }
+  const righe: RigaFattura[] = fattura.rigeRel.length > 0
+    ? fattura.rigeRel.map((r) => ({
+        descrizione: r.descrizione,
+        quantita: r.quantita,
+        prezzoUnitario: r.prezzoUnitario,
+        aliquotaIva: r.aliquotaIva,
+        natura: r.naturaEsenzione ?? (r.aliquotaIva === 0 ? 'N4' : undefined),
+      }))
+    : (Array.isArray(fattura.righe) ? (fattura.righe as RigaLegacy[]) : []).map((r) => ({
+        descrizione: r.descrizione,
+        quantita: r.quantita,
+        prezzoUnitario: r.prezzoUnitario,
+        aliquotaIva: r.iva ?? fattura.aliquotaIva,
+        natura: (r.iva ?? fattura.aliquotaIva) === 0 ? 'N4' : undefined,
+      }))
+
+  if (righe.length === 0) {
+    throw new Error('Fattura senza righe: impossibile generare XML')
+  }
+
+  // ProgressivoInvio: alfanumerico max 10 char
+  const progressivoInvio = fattura.numero.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || String(Date.now()).slice(-10)
+
+  return generateFatturaPA({
+    progressivoInvio,
+    numero: fattura.numero,
+    data: fattura.dataEmissione.toISOString().split('T')[0],
+    tipoDocumento: fattura.tipoDocumento || 'TD01',
+    emittente,
+    cliente,
+    righe,
+    dataScadenza: fattura.dataScadenza?.toISOString().split('T')[0],
+    importoPagamento: fattura.totale,
+  })
+}
+
+/** Mappa nome paese → codice ISO 3166-1 alpha-2 per FatturaPA. */
+function mappaPaeseACodiceIso(paese: string | null | undefined): string {
+  if (!paese) return 'IT'
+  const p = paese.trim().toUpperCase()
+  if (p.length === 2) return p
+  const MAP: Record<string, string> = {
+    'ITALIA': 'IT', 'ITALY': 'IT',
+    'FRANCIA': 'FR', 'FRANCE': 'FR',
+    'GERMANIA': 'DE', 'GERMANY': 'DE', 'DEUTSCHLAND': 'DE',
+    'SPAGNA': 'ES', 'SPAIN': 'ES',
+    'REGNO UNITO': 'GB', 'UK': 'GB', 'UNITED KINGDOM': 'GB',
+    'STATI UNITI': 'US', 'USA': 'US',
+    'SVIZZERA': 'CH', 'SWITZERLAND': 'CH',
+    'AUSTRIA': 'AT',
+    'OLANDA': 'NL', 'PAESI BASSI': 'NL', 'NETHERLANDS': 'NL',
+    'BELGIO': 'BE', 'BELGIUM': 'BE',
+    'CINA': 'CN', 'CHINA': 'CN',
+    'GIAPPONE': 'JP', 'JAPAN': 'JP',
+  }
+  return MAP[p] ?? 'XX'
 }

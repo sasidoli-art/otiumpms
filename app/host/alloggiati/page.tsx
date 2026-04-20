@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
-import AlloggiatiClient from './alloggiati-client'
-import { getTranslations } from 'next-intl/server'
+import AlloggiatiExport from '@/components/alloggiati/alloggiati-export'
 
 export default async function AlloggiatiPage() {
   const hostId = await getHostId()
@@ -13,7 +12,6 @@ export default async function AlloggiatiPage() {
     select: {
       id: true,
       nome: true,
-      citta: true,
       alloggiatiAbilitato: true,
       alloggiatiCodiceStruttura: true,
       alloggiatiComuneIstat: true,
@@ -22,18 +20,18 @@ export default async function AlloggiatiPage() {
     orderBy: { nome: 'asc' },
   })
 
-  const t = await getTranslations('host.alloggiati')
-
   return (
     <div className="space-y-6">
       <div className="page-title-box">
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="text-sm text-gray-500">
-          {t('subtitle')}
-        </p>
+        <div>
+          <h1 className="page-title">Alloggiati Web</h1>
+          <p className="text-sm text-gray-500">
+            Comunicazione quotidiana alla Questura (art. 109 TULPS) — invio entro 24h dall&apos;arrivo.
+          </p>
+        </div>
       </div>
 
-      <AlloggiatiClient strutture={JSON.parse(JSON.stringify(strutture))} />
+      <AlloggiatiExport strutture={strutture} />
     </div>
   )
 }
