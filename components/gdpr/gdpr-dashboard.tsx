@@ -179,8 +179,25 @@ function RichiesteTab() {
     )
   }
 
+  const scadute = richieste.filter(
+    (r) => r.stato === 'PENDENTE' && daysUntil(r.scadenzaAt) < 0,
+  )
+
   return (
     <div className="space-y-4">
+      {scadute.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-900">
+              ⚠ {scadute.length} richiest{scadute.length > 1 ? 'e' : 'a'} scadut{scadute.length > 1 ? 'e' : 'a'}
+            </p>
+            <p className="text-xs text-red-800 mt-1">
+              Il GDPR (Art. 17) richiede risposta entro 30 giorni. Procedi con l&apos;esecuzione o il rifiuto motivato ora.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200">
@@ -227,6 +244,13 @@ function RichiesteTab() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <a
+                      href={`/api/host/gdpr/richieste/${r.id}/export`}
+                      className="text-xs text-indigo-600 hover:underline font-medium mr-3"
+                      title="Scarica pacchetto dati ospite (Art. 15)"
+                    >
+                      Scarica dati
+                    </a>
                     {r.stato === 'PENDENTE' || r.stato === 'IN_LAVORAZIONE' ? (
                       <>
                         <button
