@@ -169,13 +169,18 @@ export default function DpaAcceptance({ nomeAzienda, reAccept, versioneVecchia }
         {/* Firma digitale */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
           <h3 className="font-semibold text-gray-900 text-sm mb-1">Firma digitale *</h3>
-          <p className="text-xs text-gray-500 mb-3">Firma nel riquadro sottostante con mouse o dito</p>
-          <div className="border-2 border-dashed border-gray-200 rounded-lg h-48 relative">
-            <SignaturePad
-              onSave={(base64) => setFirmaBase64(base64)}
-              onClear={() => setFirmaBase64(null)}
-            />
-          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Firma nel riquadro con mouse o dito, poi clicca <strong>Salva Firma ✓</strong> per confermarla.
+          </p>
+          <SignaturePad
+            onSave={(base64) => setFirmaBase64(base64)}
+            onClear={() => setFirmaBase64(null)}
+          />
+          {firmaBase64 && (
+            <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1">
+              <Check className="w-3.5 h-3.5" /> Firma salvata
+            </p>
+          )}
         </div>
 
         {/* Errore */}
