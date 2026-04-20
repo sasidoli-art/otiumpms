@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check, ArrowLeft } from 'lucide-react'
 import StepDateCamere, { type UnitaDisponibile } from './step-date-camere'
+import StepDatiOspite, { type GuestData, type ConsensiData } from './step-dati-ospite'
 
 export type SelezioneCamera = {
   arrivo: Date
@@ -24,6 +25,8 @@ const STEPS = ['Date e camere', 'I tuoi dati', 'Conferma'] as const
 export default function CamereFlow({ strutturaId, capacitaMax }: Props) {
   const [step, setStep] = useState(0)
   const [sel, setSel] = useState<SelezioneCamera | null>(null)
+  const [guestData, setGuestData] = useState<GuestData | null>(null)
+  const [consensi, setConsensi] = useState<ConsensiData | null>(null)
 
   return (
     <div>
@@ -88,18 +91,19 @@ export default function CamereFlow({ strutturaId, capacitaMax }: Props) {
       )}
 
       {step === 1 && sel && (
-        <PlaceholderStep
-          titolo="I tuoi dati"
-          descrizione="Form di inserimento dati ospite (nome, cognome, email, telefono, richieste speciali). Implementazione nel prossimo step."
-          sel={sel}
-          onAvanti={() => setStep(2)}
+        <StepDatiOspite
+          onAvanti={({ guestData: g, consensi: c }) => {
+            setGuestData(g)
+            setConsensi(c)
+            setStep(2)
+          }}
         />
       )}
 
-      {step === 2 && sel && (
+      {step === 2 && sel && guestData && consensi && (
         <PlaceholderStep
           titolo="Conferma"
-          descrizione="Riepilogo prenotazione + accettazione privacy + CTA 'Conferma prenotazione'. Implementazione nel prossimo step."
+          descrizione={`Riepilogo prenotazione per ${guestData.nome} ${guestData.cognome} (${guestData.email}) + submit → POST /api/book/[strutturaId] + registraConsenso per tos/privacy/marketing. Implementazione nel prossimo step.`}
           sel={sel}
           onAvanti={() => { /* submit API */ }}
           submitLabel="Conferma prenotazione"
