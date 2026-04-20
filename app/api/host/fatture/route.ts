@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
+import { normalizzaRighe, calcolaTotali, buildRigheCreatePayload, type RigaInput } from '@/lib/fattura-righe'
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -113,13 +114,7 @@ async function createFromPrenotazione(hostId: string, body: unknown) {
   }
 
   // Build righe from prenotazione data
-  const righe: Array<{
-    descrizione: string
-    quantita: number
-    prezzoUnitario: number
-    iva: number
-    totale: number
-  }> = []
+  const righeInput: RigaInput[] = []
 
   // Main stay
   if (prenotazione.prezzoTotale) {
@@ -131,23 +126,23 @@ async function createFromPrenotazione(hostId: string, body: unknown) {
     const prezzoNotte = prenotazione.prezzoTotale / notti
     const unitaNome = prenotazione.unita?.nome || 'Soggiorno'
 
-    righe.push({
+    righeInput.push({
       descrizione: `${unitaNome} — ${notti} nott${notti === 1 ? 'e' : 'i'}`,
       quantita: notti,
       prezzoUnitario: Math.round(prezzoNotte * 100) / 100,
       iva: aliquota,
-      totale: prenotazione.prezzoTotale,
+      categoria: 'soggiorno',
     })
   }
 
   // Addebiti extra
   for (const addebito of prenotazione.addebiti) {
-    righe.push({
+    righeInput.push({
       descrizione: addebito.descrizione,
       quantita: addebito.quantita,
       prezzoUnitario: addebito.prezzoUnitario,
       iva: addebito.aliquotaIva,
-      totale: addebito.totale,
+      categoria: 'extra',
     })
   }
 
@@ -158,23 +153,22 @@ async function createFromPrenotazione(hostId: string, body: unknown) {
           (prenotazione.dataPartenza.getTime() - prenotazione.dataArrivo.getTime()) / (1000 * 60 * 60 * 24)
         ))
       : 1
-    righe.push({
+    righeInput.push({
       descrizione: 'Tassa di soggiorno',
       quantita: notti * prenotazione.numOspiti,
       prezzoUnitario: prenotazione.tassaSoggiorno,
       iva: 0, // esente
-      totale: prenotazione.tassaSoggiorno * notti * prenotazione.numOspiti,
+      naturaEsenzione: 'N1',
+      categoria: 'tassa-soggiorno',
     })
   }
 
-  if (righe.length === 0) {
+  if (righeInput.length === 0) {
     return NextResponse.json({ error: 'Nessun importo da fatturare' }, { status: 422 })
   }
 
-  // Calculate totals
-  const imponibile = righe.reduce((sum, r) => sum + r.totale, 0)
-  const ivaAmount = righe.reduce((sum, r) => sum + r.totale * (r.iva / 100), 0)
-  const totale = Math.round((imponibile + ivaAmount) * 100) / 100
+  const righe = normalizzaRighe(righeInput)
+  const { imponibile, iva: ivaAmount, totale } = calcolaTotali(righe)
 
   // Generate progressive number
   const anno = new Date().getFullYear()
@@ -187,9 +181,9 @@ async function createFromPrenotazione(hostId: string, body: unknown) {
       anno,
       clienteNome: `${prenotazione.guestNome} ${prenotazione.guestCognome}`,
       clienteEmail: prenotazione.guestEmail,
-      righe,
-      imponibile: Math.round(imponibile * 100) / 100,
-      iva: Math.round(ivaAmount * 100) / 100,
+      ...buildRigheCreatePayload(righe),
+      imponibile,
+      iva: ivaAmount,
       totale,
       aliquotaIva: aliquota,
       note: data.note || null,
@@ -208,17 +202,15 @@ async function createManual(hostId: string, body: unknown) {
   if (parsed.error) return parsed.error
   const data = parsed.data
 
-  const imponibile = data.righe.reduce((sum, r) => sum + r.quantita * r.prezzoUnitario, 0)
-  const ivaAmount = data.righe.reduce(
-    (sum, r) => sum + r.quantita * r.prezzoUnitario * ((r.iva ?? 22) / 100),
-    0,
+  const righe = normalizzaRighe(
+    data.righe.map((r) => ({
+      descrizione: r.descrizione,
+      quantita: r.quantita,
+      prezzoUnitario: r.prezzoUnitario,
+      iva: r.iva ?? 22,
+    })),
   )
-  const totale = Math.round((imponibile + ivaAmount) * 100) / 100
-
-  const righeConTotale = data.righe.map(r => ({
-    ...r,
-    totale: r.quantita * r.prezzoUnitario,
-  }))
+  const { imponibile, iva: ivaAmount, totale } = calcolaTotali(righe)
 
   const anno = new Date().getFullYear()
   const numero = await generateNumeroFattura(hostId, anno)
@@ -239,9 +231,9 @@ async function createManual(hostId: string, body: unknown) {
       clienteEmail: data.clienteEmail || null,
       clientePec: data.clientePec || null,
       clienteSDI: data.clienteSDI || null,
-      righe: righeConTotale,
-      imponibile: Math.round(imponibile * 100) / 100,
-      iva: Math.round(ivaAmount * 100) / 100,
+      ...buildRigheCreatePayload(righe),
+      imponibile,
+      iva: ivaAmount,
       totale,
       aliquotaIva: data.aliquotaIva,
       dataScadenza: data.dataScadenza ? new Date(data.dataScadenza) : null,

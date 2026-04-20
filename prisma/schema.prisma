@@ -511,8 +511,10 @@ model Fattura {
   clientePec       String?
   clienteSDI       String?
 
-  // Righe fattura (JSON array)
+  // Righe fattura (JSON array) — LEGACY, sostituito da rigeRel. Da rimuovere dopo migrazione.
   righe Json // [{descrizione, quantita, prezzoUnitario, iva, totale}]
+  // Righe fattura (relazione 1:N) — canonica per analytics e report
+  rigeRel RigaFattura[]
 
   imponibile  Float
   iva         Float
@@ -546,6 +548,29 @@ model Fattura {
   @@index([anno])
   @@index([riferimentoFatturaId])
   @@map("fatture")
+}
+
+// Riga di fattura — permette report per servizio, IVA media, analytics
+model RigaFattura {
+  id        String  @id @default(cuid())
+  fatturaId String
+  fattura   Fattura @relation(fields: [fatturaId], references: [id], onDelete: Cascade)
+
+  ordine          Int    @default(0) // ordinamento nella fattura
+  descrizione     String
+  quantita        Float
+  prezzoUnitario  Float
+  aliquotaIva     Float  @default(22) // percentuale (0 = esente)
+  totale          Float  // quantita * prezzoUnitario (imponibile)
+  naturaEsenzione String? // codice SDI es. N1 (tassa soggiorno), N4, N6, ecc.
+  categoria       String? // tassonomia libera: "soggiorno", "spa", "food", "tassa-soggiorno", "extra"
+
+  createdAt DateTime @default(now())
+
+  @@index([fatturaId])
+  @@index([fatturaId, ordine])
+  @@index([categoria])
+  @@map("righe_fattura")
 }
 
 // ─── Booking Engine ────────────────────────────────────────────────────────────

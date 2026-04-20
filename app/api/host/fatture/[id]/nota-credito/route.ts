@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
+import { normalizzaRighe, calcolaTotali, buildRigheCreatePayload, type RigaInput } from '@/lib/fattura-righe'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -61,25 +62,18 @@ export async function POST(
   }
 
   // Determine righe for the credit note
-  let righeNC: Array<{
-    descrizione: string
-    quantita: number
-    prezzoUnitario: number
-    iva: number
-    totale: number
-  }>
+  let righeInput: RigaInput[]
 
   if (data.righe && data.righe.length > 0) {
     // Partial credit note
-    righeNC = data.righe.map(r => ({
+    righeInput = data.righe.map((r) => ({
       descrizione: r.descrizione,
       quantita: r.quantita,
       prezzoUnitario: r.prezzoUnitario,
       iva: r.iva ?? 22,
-      totale: r.quantita * r.prezzoUnitario,
     }))
   } else {
-    // Full reversal: mirror all original righe
+    // Full reversal: mirror all original righe (legge da JSON legacy per compatibilità)
     const righeOriginali = originale.righe as Array<{
       descrizione: string
       quantita: number
@@ -87,19 +81,16 @@ export async function POST(
       iva?: number
       totale: number
     }>
-    righeNC = righeOriginali.map(r => ({
+    righeInput = righeOriginali.map((r) => ({
       descrizione: `Storno: ${r.descrizione}`,
       quantita: r.quantita,
       prezzoUnitario: r.prezzoUnitario,
       iva: r.iva !== undefined ? r.iva : originale.aliquotaIva,
-      totale: r.totale,
     }))
   }
 
-  // Calculate totals (stored as positive values, tipoDocumento=TD04 signals it's a credit)
-  const imponibile = righeNC.reduce((sum, r) => sum + r.totale, 0)
-  const ivaAmount = righeNC.reduce((sum, r) => sum + r.totale * (r.iva / 100), 0)
-  const totale = Math.round((imponibile + ivaAmount) * 100) / 100
+  const righeNC = normalizzaRighe(righeInput)
+  const { imponibile, iva: ivaAmount, totale } = calcolaTotali(righeNC)
 
   // Generate progressive number
   const anno = new Date().getFullYear()
@@ -136,9 +127,9 @@ export async function POST(
       clienteEmail: originale.clienteEmail,
       clientePec: originale.clientePec,
       clienteSDI: originale.clienteSDI,
-      righe: righeNC,
-      imponibile: Math.round(imponibile * 100) / 100,
-      iva: Math.round(ivaAmount * 100) / 100,
+      ...buildRigheCreatePayload(righeNC),
+      imponibile,
+      iva: ivaAmount,
       totale,
       aliquotaIva: originale.aliquotaIva,
       note: data.note || `Nota di credito rif. fattura ${originale.numero}`,
