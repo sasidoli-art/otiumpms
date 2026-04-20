@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { runAllRetentionPolicies } from '@/lib/gdpr-retention'
+import { eseguiRetention, notificaRetentionImminente } from '@/lib/gdpr-retention'
 import { logger } from '@/lib/logger'
 
 /**
  * GET /api/cron/gdpr-retention
  *
- * Cron job per la pulizia automatica dei dati personali scaduti.
- * Esegue tutte le policy di retention per ogni host attivo.
+ * Cron giornaliero (consigliato 03:00) per la pulizia automatica dei dati
+ * scaduti. Passa null come hostId per applicare a tutti i tenant con una
+ * sola query per policy.
  *
- * Schedulazione consigliata: ogni giorno alle 03:00 (basso traffico)
+ * Inoltre invia notifiche agli host per record in scadenza imminente
+ * (waiver SPA a 15gg, prenotazioni a 10gg, configurabile in RETENTION_POLICIES).
+ *
  * Protetto da CRON_SECRET.
  */
 export async function GET(req: NextRequest) {
-  // Verifica CRON_SECRET
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
@@ -23,39 +24,24 @@ export async function GET(req: NextRequest) {
   logger.info('Cron GDPR retention avviato', 'cron/gdpr-retention')
 
   try {
-    // Trova tutti gli host attivi
-    const hosts = await prisma.host.findMany({
-      where: { statoAbbonamento: { not: 'SOSPESO' } },
-      select: { id: true, nomeAzienda: true },
-    })
-
-    const allResults: { hostId: string; hostName: string; results: Awaited<ReturnType<typeof runAllRetentionPolicies>> }[] = []
-
-    for (const host of hosts) {
-      const results = await runAllRetentionPolicies(host.id)
-      allResults.push({
-        hostId: host.id,
-        hostName: host.nomeAzienda,
-        results,
-      })
-    }
+    const report = await eseguiRetention(null)
+    const notifiche = await notificaRetentionImminente()
 
     const summary = {
-      hostsProcessed: hosts.length,
-      totalProcessed: allResults.reduce((s, h) => s + h.results.reduce((ss, r) => ss + r.processed, 0), 0),
-      totalErrors: allResults.reduce((s, h) => s + h.results.reduce((ss, r) => ss + r.errors, 0), 0),
-      details: allResults.map(h => ({
-        host: h.hostName,
-        policies: h.results.map(r => ({
-          policy: r.policy,
-          processed: r.processed,
-          errors: r.errors,
-        })),
+      eseguitoAt: report.eseguitoAt,
+      totalProcessed: report.azioni.reduce((s, a) => s + a.processed, 0),
+      totalErrors: report.azioni.reduce((s, a) => s + a.errors, 0),
+      perPolicy: report.azioni.map((a) => ({
+        policy: a.policyId,
+        entita: a.entita,
+        azione: a.azione,
+        processed: a.processed,
+        errors: a.errors,
       })),
+      notifiche,
     }
 
     logger.info('Cron GDPR retention completato', 'cron/gdpr-retention', summary)
-
     return NextResponse.json(summary)
   } catch (err) {
     logger.error('Cron GDPR retention fallito', 'cron/gdpr-retention', {
