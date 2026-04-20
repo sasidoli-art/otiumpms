@@ -116,7 +116,20 @@ export async function PATCH(req: NextRequest) {
 
   logger.info('Profilo host aggiornato', 'host/profilo', { hostId: auth.user.hostId })
 
-    await auditFromAuth(auth, { azione: 'profilo.aggiornato', entita: 'host', dettagli: 'Profilo aggiornato' })
+  await auditFromAuth(auth, { azione: 'profilo.aggiornato', entita: 'host', dettagli: 'Profilo aggiornato' })
 
-return NextResponse.json(updated)
+  // Log separato se l'update ha toccato secret (senza i valori)
+  const updatedSecrets: string[] = []
+  if (data.smtpPass !== undefined && data.smtpPass !== null && !(data.smtpPass === '••••••••')) updatedSecrets.push('smtpPass')
+  if (data.conciergeApiKey !== undefined && data.conciergeApiKey !== null && !(data.conciergeApiKey === '••••••••')) updatedSecrets.push('conciergeApiKey')
+  if (data.whatsappAccessToken !== undefined && data.whatsappAccessToken !== null && !(data.whatsappAccessToken === '••••••••')) updatedSecrets.push('whatsappAccessToken')
+  if (updatedSecrets.length > 0) {
+    await auditFromAuth(auth, {
+      azione: 'host.secret.updated',
+      entita: 'host',
+      dettagli: `Secrets updated: ${updatedSecrets.join(', ')}`,
+    })
+  }
+
+  return NextResponse.json(updated)
 }

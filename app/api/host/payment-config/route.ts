@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
-import { applySecretUpdate, PAYMENT_SECRET_FIELDS, maskSecret } from '@/lib/secrets'
+import { applySecretUpdate, PAYMENT_SECRET_FIELDS, maskSecret, isMasked } from '@/lib/secrets'
+import { audit } from '@/lib/audit'
 
 /**
  * GET /api/host/payment-config — config provider pagamento
@@ -58,6 +59,22 @@ export async function PATCH(req: NextRequest) {
     update: data,
     create: { hostId: auth.user.hostId, ...data },
   })
+
+  // Audit log dei secret toccati (senza valori)
+  const touchedSecrets = (PAYMENT_SECRET_FIELDS as readonly string[]).filter(
+    (f) => body[f] !== undefined && body[f] !== null && !isMasked(body[f]),
+  )
+  if (touchedSecrets.length > 0) {
+    await audit({
+      hostId: auth.user.hostId,
+      userId: auth.user.id,
+      userEmail: auth.user.email,
+      azione: 'payment-config.secret.updated',
+      entita: 'paymentProviderConfig',
+      entitaId: auth.user.hostId,
+      dettagli: `Secrets updated: ${touchedSecrets.join(', ')}`,
+    })
+  }
 
   return NextResponse.json({ ok: true, providerAttivo: config.providerAttivo })
 }

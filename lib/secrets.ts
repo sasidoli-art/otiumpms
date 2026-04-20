@@ -1,4 +1,9 @@
-import { encrypt, decrypt, isEncrypted, maybeDecrypt } from './crypto';
+import { encrypt, isEncrypted, decryptNullable } from './crypto';
+
+/**
+ * UI-layer helpers for secret masking.
+ * Per l'accesso diretto a host secrets, usa lib/host-secrets.ts.
+ */
 
 export const SECRET_MASK = '••••••••';
 
@@ -11,6 +16,13 @@ export function isMasked(value: string | null | undefined): boolean {
   return value === SECRET_MASK;
 }
 
+/**
+ * Normalizza un update di secret da PATCH API:
+ * - incoming undefined → mantieni existing
+ * - incoming mask → mantieni existing (utente non ha modificato)
+ * - incoming falsy → null
+ * - incoming string → encrypt (se non già cifrato)
+ */
 export function applySecretUpdate(
   incoming: string | null | undefined,
   existing: string | null,
@@ -21,9 +33,13 @@ export function applySecretUpdate(
   return isEncrypted(incoming) ? incoming : encrypt(incoming);
 }
 
+/**
+ * Decifra un secret appena letto dal DB (per uso server-side immediato).
+ * Preferire getHostSecret/getPaymentSecret da lib/host-secrets.ts quando
+ * possibile.
+ */
 export function revealSecret(stored: string | null | undefined): string | null {
-  if (!stored) return null;
-  return maybeDecrypt(stored);
+  return decryptNullable(stored);
 }
 
 export const HOST_SECRET_FIELDS = [
@@ -56,4 +72,4 @@ export function maskPaymentSecrets<T extends Record<string, any>>(cfg: T): T {
   return masked;
 }
 
-export { encrypt, decrypt, maybeDecrypt };
+export { encrypt, decryptNullable };

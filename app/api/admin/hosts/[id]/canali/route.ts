@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { z } from 'zod'
-import { applySecretUpdate, maskSecret } from '@/lib/secrets'
+import { applySecretUpdate, maskSecret, isMasked } from '@/lib/secrets'
+import { audit } from '@/lib/audit'
 
 const canaliSchema = z.object({
   smtpHost: z.string().max(255).trim().optional().nullable(),
@@ -77,6 +78,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       emailMittente: true,
     },
   })
+
+  if (data.smtpPass !== undefined && data.smtpPass !== null && !isMasked(data.smtpPass)) {
+    await audit({
+      hostId: id,
+      userId: auth.user.id,
+      userEmail: auth.user.email,
+      azione: 'host.secret.updated',
+      entita: 'host',
+      entitaId: id,
+      dettagli: 'Secret updated: smtpPass',
+    })
+  }
 
   return NextResponse.json({ ...updated, smtpPass: maskSecret(updated.smtpPass) })
 }
