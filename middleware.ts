@@ -107,10 +107,11 @@ export default withAuth(
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    // Forward pathname to server components via header
-    const response = NextResponse.next()
-    response.headers.set('x-pathname', pathname)
-    return response
+    // Forward pathname to server components via REQUEST header
+    // (response.headers.set non arriva al server component, va su request.headers)
+    const requestHeaders = new Headers(req.headers)
+    requestHeaders.set('x-pathname', pathname)
+    return NextResponse.next({ request: { headers: requestHeaders } })
   },
   {
     callbacks: {

@@ -31,14 +31,16 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   const isSelezionePage = pathname.startsWith('/host/seleziona-struttura')
   const isDpaPage = pathname === '/host/dpa' || pathname.startsWith('/host/dpa/')
 
-  // Fallback redirect (middleware handles this primarily via JWT token)
+  // Fallback redirect (middleware handles this primarily via JWT token).
+  // Safety: skip se pathname vuoto per evitare redirect loop.
   const onboardingDone = (host?.onboardingStep ?? 0) >= 5 || host?.onboardingCompletato
-  if (session.user.role === 'HOST' && host && !onboardingDone && !isOnboardingPage) {
+  if (session.user.role === 'HOST' && host && pathname && !onboardingDone && !isOnboardingPage) {
     redirect('/host/onboarding')
   }
 
-  // DPA guard (Art. 28 GDPR): HOST deve aver accettato l'ultima versione
-  if (session.user.role === 'HOST' && host && !isDpaPage && !isOnboardingPage) {
+  // DPA guard (Art. 28 GDPR): HOST deve aver accettato l'ultima versione.
+  // Safety: skip se pathname vuoto (header non propagato) per evitare redirect loop.
+  if (session.user.role === 'HOST' && host && pathname && !isDpaPage && !isOnboardingPage) {
     const { DPA_VERSIONE } = await import('@/lib/dpa-template')
     const ultimaVer = host.dpaAccettazioni[0]?.versione ?? null
     const dpaOk = host.dpaAccettato && ultimaVer === DPA_VERSIONE
