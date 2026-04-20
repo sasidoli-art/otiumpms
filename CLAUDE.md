@@ -242,7 +242,17 @@ enum CategoriaSpa { ... }
 | `lib/superadmin-guard.ts` | `requireSuperAdmin()` guard for superadmin routes |
 | `lib/db.ts` | Prisma client singleton |
 | `lib/utils.ts` | `cn()`, `formatData()`, `formatValuta()`, `formatDataRelativa()`, enum label/color helpers |
-| `lib/validations.ts` | Zod schemas + `parseBody()` helper + type guards. Also: `waiverSpaSchema`, `pagamentoSpaSchema`, `ZONE_CORPO` |
+| `lib/validations.ts` | Zod schemas core + `parseBody()` helper + type guards. SPA schemi re-esportati da `lib/spa/` |
+| `lib/spa/` | Bounded context SPA: `constants.ts` (ZONE_CORPO, CONDIZIONI_SALUTE, METODI_PAGAMENTO_SPA), `validations.ts` (waiverSpaSchema, pagamentoSpaSchema), `index.ts` barrel |
+| `lib/wifi/` | Bounded context Wi-Fi: `constants.ts` (AUTH_METHODS, DEFAULT_COMPLIMENTARY_MINS), `index.ts` |
+| `lib/pos/` | Bounded context POS/Cassa: `constants.ts` (METODI_PAGAMENTO_POS, CATEGORIE_VOCE_POS), `index.ts` |
+| `lib/host-config.ts` | Access layer per HostSmtpConfig/HostConciergeConfig/HostWifiConfig/HostBillingInfo (read-through + dual-write durante migrazione dal God Object) |
+| `lib/host-secrets.ts` | Layer accesso a campi cifrati dell'host: `getHostSecret`/`setHostSecret` con audit log |
+| `lib/secrets.ts` | UI helpers per mask/unmask secret in PATCH API |
+| `lib/crypto.ts` | AES-256-GCM primitives + `EncryptionError` + `validateEncryptionKey()` (chiamato da `instrumentation.ts`) |
+| `lib/crm.ts` | `upsertOspiteFromBooking`, `lookupOspite`, `incrementStatsOnCheckout` per sync Prenotazione→OspiteCRM |
+| `lib/soft-delete.ts` | Helper per soft delete: `notDeleted`, `softDeletePatch`, `restorePatch` |
+| `lib/fattura-righe.ts` | `normalizzaRighe`, `calcolaTotali`, `buildRigheCreatePayload` (dual-write JSON legacy + RigaFattura relazionale) |
 | `lib/moduli.ts` | Module system: `CATALOGO_MODULI`, `parseModuli()`, `isModuloAttivo()`, `PREZZI_ADDON` |
 | `lib/billing.ts` | Subscription plans: `PLAN_DEFINITIONS`, limits, upgrade/downgrade logic |
 | `lib/email.ts` | Nodemailer SMTP transport (Gmail) |

@@ -304,77 +304,21 @@ const PRIORITA_MANUTENZIONE = ['BASSA', 'NORMALE', 'ALTA', 'URGENTE'] as const
 
 export type StatoManutenzione = typeof STATI_MANUTENZIONE[number]
 
-// ─── SPA: Waiver ──────────────────────────────────────────────────────────────
+// ─── SPA: re-export da lib/spa (bounded context) per retrocompatibilità ─────
+// Tipi/schemi/costanti SPA sono stati spostati in lib/spa/. I nuovi consumer
+// devono importare da '@/lib/spa'. Questi re-export esistono per non rompere
+// i consumer già in essere.
+export {
+  waiverSpaSchema,
+  pagamentoSpaSchema,
+  type WaiverSpaInput,
+  type PagamentoSpaInput,
+} from '@/lib/spa'
+export type {
+  MetodoPagamentoSpa as MetodoPagamentoSpaEnum,
+  StatoPagamentoSpa as StatoPagamentoSpaEnum,
+} from '@/lib/spa'
 
-const ZONE_CORPO = ['testa', 'viso', 'collo', 'spalle', 'schiena', 'petto', 'addome', 'fianchi', 'mani', 'braccia', 'avambracci', 'gambe', 'piedi', 'caviglie'] as const
-
-const CONDIZIONI_SALUTE = [
-  'pressione_alta', 'pressione_bassa', 'problemi_cardiaci', 'diabete',
-  'epilessia', 'problemi_circolatori', 'ernia_disco', 'artrite',
-  'problemi_cutanei', 'operazioni_recenti', 'altro',
-] as const
-
-const ALLERGIE_COMUNI = [
-  'lattice', 'oli_essenziali', 'profumi', 'nichel', 'altro',
-] as const
-
-export const waiverSpaSchema = z.object({
-  appuntamentoId: z.string().cuid('ID appuntamento non valido'),
-  firmaBase64: z.string().optional().nullable(),
-
-  // Zone corpo (semplici checkbox)
-  zoneTrattate: z.array(z.enum(ZONE_CORPO)).default([]).optional(),
-  zoneEvitare: z.array(z.enum(ZONE_CORPO)).default([]).optional(),
-
-  // Condizioni di salute (checkbox guidate)
-  incinta: z.boolean().default(false),
-  incintaMesi: z.number().min(1).max(9).optional().nullable(),
-  condizioni: z.array(z.enum(CONDIZIONI_SALUTE)).default([]).optional(),
-  condizioneAltro: z.string().max(300).trim().optional().nullable(),
-
-  // Allergie (checkbox + testo)
-  allergieSelezionate: z.array(z.enum(ALLERGIE_COMUNI)).default([]).optional(),
-  allergieAltro: z.string().max(300).trim().optional().nullable(),
-
-  // Legacy (retrocompatibilità)
-  allergie: z.string().max(500).trim().optional().nullable(),
-  patologie: z.string().max(500).trim().optional().nullable(),
-  farmaci: z.string().max(500).trim().optional().nullable(),
-
-  // Preferenze trattamento
-  pressioneMassaggio: z.enum(['leggera', 'media', 'forte']).optional().nullable(),
-  temperaturaPreferita: z.enum(['freddo', 'tiepido', 'caldo']).optional().nullable(),
-  musicaPreferita: z.enum(['si', 'no', 'indifferente']).optional().nullable(),
-  aromiPreferiti: z.enum(['si', 'senza']).optional().nullable(),
-  notePreferenze: z.string().max(500).trim().optional().nullable(),
-
-  // Accettazione
-  accettazioneTermini: z.boolean().refine(v => v === true, 'Devi accettare i termini e le condizioni'),
-  accettazionePrivacy: z.boolean().refine(v => v === true, 'Devi accettare la privacy policy'),
-  consensoFoto: z.boolean().default(false),
-  dichiarazioneNessuna: z.boolean().default(false),
-})
-
-export type WaiverSpaInput = z.infer<typeof waiverSpaSchema>
-
-// ─── SPA: Pagamento ───────────────────────────────────────────────────────────
-
-const METODI_PAGAMENTO_SPA = ['CAMERA_CREDIT', 'CONTANTI', 'CARTA', 'TRANSFERWISE'] as const
-const STATI_PAGAMENTO_SPA = ['PENDENTE', 'RISCOSSO', 'RIMBORSO_RICHIESTO', 'RIMBORSATO'] as const
-
-export const pagamentoSpaSchema = z.object({
-  appuntamentoId: z.string().cuid('ID appuntamento non valido'),
-  importo: z.number().positive('Importo deve essere positivo'),
-  tipoImporto: z.enum(['TRATTAMENTO', 'PERCORSO', 'PERSONALIZZATO']).default('TRATTAMENTO'),
-  metodo: z.enum(METODI_PAGAMENTO_SPA),
-  unitaId: z.string().cuid().optional().nullable(), // se CAMERA_CREDIT
-  ultimeQuatroCifre: z.string().length(4).regex(/^\d{4}$/).optional().nullable(), // se CARTA
-  noteRiscossione: z.string().max(500).optional().nullable(),
-})
-
-export type PagamentoSpaInput = z.infer<typeof pagamentoSpaSchema>
-export type MetodoPagamentoSpaEnum = typeof METODI_PAGAMENTO_SPA[number]
-export type StatoPagamentoSpaEnum = typeof STATI_PAGAMENTO_SPA[number]
 export type PrioritaManutenzione = typeof PRIORITA_MANUTENZIONE[number]
 
 export function isStatoManutenzione(s: string): s is StatoManutenzione {
