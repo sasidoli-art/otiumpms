@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { pollInboundEmails } from '@/lib/inbound-email'
 import { logger } from '@/lib/logger'
+import { revealSecret } from '@/lib/secrets'
 
 /**
  * GET /api/cron/inbound-email
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
           host: imapHost,
           port: 993,
           user: host.smtpUser!,
-          pass: host.smtpPass!,
+          pass: revealSecret(host.smtpPass)!,
           tls: true,
         })
         totalProcessed += count

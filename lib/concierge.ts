@@ -19,6 +19,7 @@ import { PrioritaHK, PrioritaManutenzione, TipoAzioneConcierge } from '@prisma/c
 import { createAIProvider, type AIMessage, type AIToolDefinition, type AIToolCall } from '@/lib/ai-provider'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { logger } from '@/lib/logger'
+import { revealSecret } from '@/lib/secrets'
 
 // ─── Tool Definitions ─────────────────────────────────────────────────────────
 
@@ -883,7 +884,7 @@ export async function processGuestMessage(params: {
         ? host.conciergeProvider || 'ollama'
         : platformSettings.aiProvider || 'claude'
     ) as 'ollama' | 'claude' | 'openai',
-    apiKey: useBYO ? host.conciergeApiKey : platformSettings.aiApiKey,
+    apiKey: useBYO ? revealSecret(host.conciergeApiKey) : platformSettings.aiApiKey,
     model: useBYO ? host.conciergeModel : platformSettings.aiModel,
     baseUrl: useBYO ? host.conciergeBaseUrl : platformSettings.aiBaseUrl,
   })

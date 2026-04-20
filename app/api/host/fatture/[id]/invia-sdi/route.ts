@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { generateFatturaPA } from '@/lib/fattura-elettronica'
 import { getInvoiceProvider } from '@/lib/invoice-provider'
+import { revealSecret } from '@/lib/secrets'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -113,7 +114,7 @@ export async function POST(
   const host = fattura.host as Record<string, unknown>
   const provider = getInvoiceProvider({
     provider: (host.sdiProvider as string) || 'manuale',
-    apiKey: host.sdiApiKey as string | undefined,
+    apiKey: revealSecret(host.sdiApiKey as string | null | undefined) ?? undefined,
     username: host.sdiUsername as string | undefined,
     companyId: host.sdiCompanyId as string | undefined,
   })

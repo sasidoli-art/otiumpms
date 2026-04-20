@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { parseWebhookMessages, sendWhatsAppMessage, verifyWebhookSignature } from '@/lib/whatsapp'
 import { processGuestMessage } from '@/lib/concierge'
 import { logger } from '@/lib/logger'
+import { revealSecret } from '@/lib/secrets'
 
 /**
  * GET /api/whatsapp/webhook
@@ -68,10 +69,11 @@ export async function POST(req: NextRequest) {
       })
 
       // Se c'è una risposta, inviala via WhatsApp
-      if (result.response && host.whatsappAccessToken) {
+      const accessToken = revealSecret(host.whatsappAccessToken)
+      if (result.response && accessToken) {
         await sendWhatsAppMessage({
           phoneNumberId: msg.phoneNumberId,
-          accessToken: host.whatsappAccessToken,
+          accessToken,
           to: msg.from,
           text: result.response,
         })

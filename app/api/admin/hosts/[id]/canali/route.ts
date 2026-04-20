@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { z } from 'zod'
+import { applySecretUpdate, maskSecret } from '@/lib/secrets'
 
 const canaliSchema = z.object({
   smtpHost: z.string().max(255).trim().optional().nullable(),
@@ -31,7 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 
   if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
-  return NextResponse.json(host)
+  return NextResponse.json({ ...host, smtpPass: maskSecret(host.smtpPass) })
 }
 
 // PATCH /api/admin/hosts/[id]/canali
@@ -64,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       smtpHost: data.smtpHost !== undefined ? (data.smtpHost || null) : host.smtpHost,
       smtpPort: data.smtpPort !== undefined ? (data.smtpPort ?? null) : host.smtpPort,
       smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
-      smtpPass: data.smtpPass !== undefined ? (data.smtpPass || null) : host.smtpPass,
+      smtpPass: applySecretUpdate(data.smtpPass, host.smtpPass),
       emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
     },
     select: {
@@ -77,5 +78,5 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   })
 
-  return NextResponse.json(updated)
+  return NextResponse.json({ ...updated, smtpPass: maskSecret(updated.smtpPass) })
 }

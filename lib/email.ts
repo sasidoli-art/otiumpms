@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/db'
 import { emailQueue } from '@/lib/email-queue'
+import { revealSecret } from '@/lib/secrets'
 
 /**
  * Restituisce un transporter Nodemailer e l'indirizzo "from" da usare.
@@ -21,7 +22,7 @@ async function getTransporterAndFrom(hostId?: string | null): Promise<{
         host: host.smtpHost,
         port: host.smtpPort ?? 587,
         secure: (host.smtpPort ?? 587) === 465,
-        auth: { user: host.smtpUser, pass: host.smtpPass },
+        auth: { user: host.smtpUser, pass: revealSecret(host.smtpPass) ?? '' },
       })
       return {
         transporter: t,

@@ -4,6 +4,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
+import { applySecretUpdate, maskHostSecrets } from '@/lib/secrets'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -16,7 +17,7 @@ export async function GET() {
   })
 
   if (!host) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
-  return NextResponse.json(host)
+  return NextResponse.json(maskHostSecrets(host))
 }
 
 // PATCH /api/host/profilo
@@ -68,7 +69,7 @@ export async function PATCH(req: NextRequest) {
       smtpHost: data.smtpHost !== undefined ? (data.smtpHost || null) : host.smtpHost,
       smtpPort: data.smtpPort !== undefined ? (data.smtpPort ?? null) : host.smtpPort,
       smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
-      smtpPass: data.smtpPass !== undefined ? (data.smtpPass || null) : host.smtpPass,
+      smtpPass: applySecretUpdate(data.smtpPass, host.smtpPass),
       emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
       // Multi-valuta
       valutaBase: data.valutaBase !== undefined ? data.valutaBase : host.valutaBase,
@@ -93,13 +94,13 @@ export async function PATCH(req: NextRequest) {
             : new Date(data.conciergeGdprAcceptedAt)
           : host.conciergeGdprAcceptedAt,
       conciergeProvider: data.conciergeProvider !== undefined ? data.conciergeProvider : host.conciergeProvider,
-      conciergeApiKey: data.conciergeApiKey !== undefined ? (data.conciergeApiKey || null) : host.conciergeApiKey,
+      conciergeApiKey: applySecretUpdate(data.conciergeApiKey, host.conciergeApiKey),
       conciergeModel: data.conciergeModel !== undefined ? (data.conciergeModel || null) : host.conciergeModel,
       conciergeBaseUrl: data.conciergeBaseUrl !== undefined ? (data.conciergeBaseUrl || null) : host.conciergeBaseUrl,
       conciergeSystemPrompt: data.conciergeSystemPrompt !== undefined ? (data.conciergeSystemPrompt || null) : host.conciergeSystemPrompt,
       // WhatsApp Business
       whatsappNumeroId: data.whatsappNumeroId !== undefined ? (data.whatsappNumeroId || null) : host.whatsappNumeroId,
-      whatsappAccessToken: data.whatsappAccessToken !== undefined ? (data.whatsappAccessToken || null) : host.whatsappAccessToken,
+      whatsappAccessToken: applySecretUpdate(data.whatsappAccessToken, host.whatsappAccessToken),
       whatsappVerifyToken: data.whatsappVerifyToken !== undefined ? (data.whatsappVerifyToken || null) : host.whatsappVerifyToken,
       // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod)
       wifiAuthPms: rawObj.wifiAuthPms !== undefined ? !!rawObj.wifiAuthPms : host.wifiAuthPms,

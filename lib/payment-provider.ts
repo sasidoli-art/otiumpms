@@ -13,6 +13,7 @@
  */
 
 import { logger } from '@/lib/logger'
+import { revealSecret } from '@/lib/secrets'
 
 // ─── Tipi ─────────────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ class StripeTerminalProvider implements PaymentProvider {
   private readerId: string
 
   constructor(config: PaymentProviderConfig) {
-    this.secretKey = config.stripeSecretKey || ''
+    this.secretKey = revealSecret(config.stripeSecretKey) || ''
     this.readerId = config.stripeReaderId || ''
   }
 
@@ -178,7 +179,7 @@ class AdyenTerminalProvider implements PaymentProvider {
   private baseUrl: string
 
   constructor(config: PaymentProviderConfig) {
-    this.apiKey = config.adyenApiKey || ''
+    this.apiKey = revealSecret(config.adyenApiKey) || ''
     this.merchantAccount = config.adyenMerchantAccount || ''
     this.terminalId = config.adyenTerminalId || ''
     this.baseUrl = config.adyenEnvironment === 'live'
@@ -251,7 +252,7 @@ class SumUpProvider implements PaymentProvider {
   private apiKey: string
 
   constructor(config: PaymentProviderConfig) {
-    this.apiKey = config.sumupApiKey || ''
+    this.apiKey = revealSecret(config.sumupApiKey) || ''
   }
 
   async processPayment(req: PaymentRequest): Promise<PaymentResult> {
