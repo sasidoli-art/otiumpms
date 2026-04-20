@@ -751,6 +751,185 @@ export async function notificaRetentionImminente(): Promise<{
   return { notificheCreate, perPolicy }
 }
 
+// ─── Cancellazione on-demand di un singolo ospite (Art. 17 GDPR) ─────────────
+
+export type DryRunReport = {
+  daCancellare: {
+    prenotazioni: number
+    messaggiChat: number
+    appuntamentiSpa: number
+    waiverSpa: number
+    accompagnatori: number
+    crm: boolean
+    fotoDocumenti: number
+  }
+  conservatiPerLegge: {
+    fatture: number
+    prenotazioniAlloggiati: number // records con dataPartenza < 5 anni (campi ISTAT non rimovibili)
+  }
+  dataUltimaConservazioneAlloggiati: Date | null
+}
+
+/**
+ * Cancella/anonimizza tutti i dati di un ospite presso un host, rispettando
+ * gli obblighi legali (fatture 10 anni, Alloggiati 5 anni). Con `dryRun`
+ * restituisce solo i conteggi senza modificare nulla.
+ */
+export async function cancellaTuttiDatiOspite(
+  hostId: string,
+  email: string,
+  options: { dryRun?: boolean; attoreUserId?: string } = {},
+): Promise<DryRunReport> {
+  const emailNorm = email.trim().toLowerCase()
+  const dryRun = options.dryRun ?? false
+
+  const prenotazioni = await prisma.prenotazione.findMany({
+    where: { hostId, guestEmail: emailNorm, deletedAt: null },
+    select: { id: true, dataPartenza: true, fotoDocumentoFronte: true, fotoDocumentoRetro: true, fatturaId: true },
+  })
+  const prenotazioniIds = prenotazioni.map((p) => p.id)
+
+  const fiveYearsAgo = subDays(new Date(), 365 * 5)
+  const prenotazioniAlloggiatiAttive = prenotazioni.filter(
+    (p) => !p.dataPartenza || p.dataPartenza >= fiveYearsAgo,
+  ).length
+
+  // Ultima data in cui i campi ISTAT devono essere conservati (dataPartenza + 5 anni)
+  const ultimaAlloggiati = prenotazioni
+    .map((p) => p.dataPartenza)
+    .filter((d): d is Date => !!d)
+    .reduce<Date | null>((max, d) => {
+      const limite = new Date(d)
+      limite.setFullYear(limite.getFullYear() + 5)
+      return !max || limite > max ? limite : max
+    }, null)
+
+  const [messaggiChat, appuntamentiSpa, waiverSpa, accompagnatori, ospiteCRM, fatture] = await Promise.all([
+    prisma.messaggio.count({
+      where: { chat: { prenotazioneId: { in: prenotazioniIds } } },
+    }),
+    prisma.appuntamentoSpa.findMany({
+      where: { hostId, guestEmail: emailNorm },
+      select: { id: true, waiver: { select: { id: true } } },
+    }),
+    prisma.waiverSpa.count({
+      where: { appuntamento: { hostId, guestEmail: emailNorm } },
+    }),
+    prisma.accompagnatore.count({ where: { prenotazioneId: { in: prenotazioniIds } } }),
+    prisma.ospiteCRM.findUnique({
+      where: { hostId_email: { hostId, email: emailNorm } },
+      select: { id: true },
+    }),
+    prisma.fattura.count({ where: { hostId, prenotazioni: { some: { guestEmail: emailNorm } } } }),
+  ])
+
+  const fotoDaRimuovere = prenotazioni.filter(
+    (p) => p.fotoDocumentoFronte || p.fotoDocumentoRetro,
+  ).length
+
+  const report: DryRunReport = {
+    daCancellare: {
+      prenotazioni: prenotazioni.length,
+      messaggiChat,
+      appuntamentiSpa: appuntamentiSpa.length,
+      waiverSpa,
+      accompagnatori,
+      crm: !!ospiteCRM,
+      fotoDocumenti: fotoDaRimuovere,
+    },
+    conservatiPerLegge: {
+      fatture,
+      prenotazioniAlloggiati: prenotazioniAlloggiatiAttive,
+    },
+    dataUltimaConservazioneAlloggiati: ultimaAlloggiati,
+  }
+
+  if (dryRun) return report
+
+  // Esecuzione in transazione dove possibile
+  await prisma.$transaction(async (tx) => {
+    // 1. Messaggi chat: delete
+    if (prenotazioniIds.length > 0) {
+      await tx.messaggio.deleteMany({
+        where: { chat: { prenotazioneId: { in: prenotazioniIds } } },
+      })
+    }
+    // 2. Waiver SPA: hard delete (dati sanitari Art. 9)
+    await tx.waiverSpa.deleteMany({
+      where: { appuntamentoId: { in: appuntamentiSpa.map((a) => a.id) } },
+    })
+    // 3. Accompagnatori: delete
+    if (prenotazioniIds.length > 0) {
+      await tx.accompagnatore.deleteMany({
+        where: { prenotazioneId: { in: prenotazioniIds } },
+      })
+    }
+    // 4. Prenotazioni: anonimizza + rimuovi foto documenti
+    for (const p of prenotazioni) {
+      const entroAlloggiati = !p.dataPartenza || p.dataPartenza >= fiveYearsAgo
+      await tx.prenotazione.update({
+        where: { id: p.id },
+        data: {
+          guestNome: 'Ospite',
+          guestCognome: 'Anonimizzato',
+          guestEmail: ANON_MARKER(p.id),
+          guestTelefono: null,
+          guestNote: null,
+          guestCodiceFiscale: null,
+          fotoDocumentoFronte: null,
+          fotoDocumentoRetro: null,
+          regCardFirmaBase64: null,
+          checkInToken: null,
+          pin: null,
+          // Se fuori dalla finestra Alloggiati (> 5 anni), rimuovi anche ISTAT
+          ...(entroAlloggiati ? {} : {
+            guestSesso: null, guestDataNascita: null, guestLuogoNascita: null,
+            guestComuneNascitaIstat: null, guestProvinciaNascita: null,
+            guestStatoNascitaIstat: null, guestCittadinanzaIstat: null,
+            guestTipoDocumento: null, guestNumeroDocumento: null,
+            guestLuogoRilascio: null, guestComuneRilascioIstat: null,
+            guestProvinciaRilascio: null, guestStatoRilascioIstat: null,
+          }),
+        },
+      })
+    }
+    // 5. OspiteCRM: anonimizza (mantiene stats aggregate)
+    if (ospiteCRM) {
+      await tx.ospiteCRM.update({
+        where: { id: ospiteCRM.id },
+        data: {
+          nome: 'Cliente',
+          cognome: 'Rimosso',
+          email: ANON_MARKER(ospiteCRM.id),
+          telefono: null,
+          nazionalita: null,
+          note: null,
+          preferenze: null,
+          blacklistMotivo: null,
+          tags: [],
+          spaAllergie: null,
+          spaNote: null,
+          spaTrattamentiPreferiti: [],
+          spaPreferenzeTerapistaId: null,
+        },
+      })
+    }
+    // Appuntamenti SPA: i waiver sono già stati cancellati sopra, gli
+    // appuntamenti sono già collegati alla prenotazione anonimizzata.
+  })
+
+  await audit({
+    hostId,
+    userId: options.attoreUserId ?? null,
+    azione: 'gdpr.art17.cancellazione_ospite',
+    entita: 'ospiteCRM',
+    dettagli: `Cancellazione dati ospite ${emailNorm.substring(0, 3)}*** — ${report.daCancellare.prenotazioni} prenotazioni anonimizzate, ${report.daCancellare.waiverSpa} waiver cancellati. Fatture NON toccate: ${report.conservatiPerLegge.fatture}.`,
+    datiJson: report as unknown as Record<string, unknown>,
+  })
+
+  return report
+}
+
 // ─── Retrocompat API pre-esistente ───────────────────────────────────────────
 // Il cron /api/cron/gdpr-retention e /api/host/gdpr/retention usano queste
 // firme. Le manteniamo come wrapper sulla nuova eseguiRetention().
