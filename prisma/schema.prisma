@@ -1871,22 +1871,42 @@ model AuditLog {
 
 // ─── Consent Tracking (Art. 7 GDPR) ────────────────────────────────────────────
 
+/// Storico immutabile dei consensi (Art. 7 GDPR).
+/// Ogni cambio di stato (accetta → revoca) è un NUOVO record, non un UPDATE.
+/// Il consenso "attivo" è l'ultimo record per (subject, hostId, tipo) con revocatoAt=null.
 model UserConsent {
-  id        String @id @default(cuid())
-  userId    String? // utente autenticato (staff/host)
-  guestEmail String? // ospite non autenticato
-  hostId    String?
+  id         String @id @default(cuid())
 
-  tipo       String // "tos", "privacy", "marketing", "cookie_all", "cookie_necessary", "spa_art9"
-  accettato  Boolean @default(true)
-  versione   String? // versione del documento accettato
+  // ─── Chi ──────────────────────────────────────────────────────────────────
+  hostId     String? // host di riferimento (multi-tenant)
+  userId     String? // utente autenticato (staff/host)
+  guestEmail String? // ospite non autenticato
+  guestToken String? // token HMAC per identificare l'ospite senza login
+
+  // ─── Cosa ─────────────────────────────────────────────────────────────────
+  // tipo: "termini_servizio" | "privacy_ospite" | "marketing_email" | "marketing_sms"
+  //       | "spa_art9" | "cookie_analytics" | "cookie_marketing" | "profilazione_crm"
+  tipo       String
+  versione   String // es. "2026-04-01". Se il testo del documento cambia, serve nuovo consenso.
+
+  // ─── Stato ────────────────────────────────────────────────────────────────
+  accettato  Boolean @default(true) // true = dato, false = revocato
+
+  // ─── Prova del consenso (Art. 7.1 GDPR: onere della prova) ───────────────
   ip         String?
   userAgent  String?
+  metodo     String? @default("checkbox") // "checkbox" | "firma_digitale" | "double_opt_in" | "api"
 
-  createdAt DateTime @default(now())
+  // ─── Revoca ───────────────────────────────────────────────────────────────
+  revocatoAt    DateTime?
+  revocaMotivo  String? // "richiesta_ospite" | "scadenza" | "cambio_versione"
 
+  createdAt  DateTime @default(now())
+
+  @@index([guestEmail, tipo])
+  @@index([hostId, tipo])
+  @@index([guestToken])
   @@index([userId])
-  @@index([guestEmail])
   @@index([tipo, createdAt])
   @@map("user_consents")
 }
