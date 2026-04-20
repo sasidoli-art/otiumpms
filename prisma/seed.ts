@@ -518,73 +518,14 @@ async function main() {
   ])
   console.log('✅ Ospiti CRM create/update:', ospiti.length)
 
-  // ─── Eventi ──────────────────────────────────────────────────────────
-  const eventi = await Promise.all([
-    prisma.evento.create({
-      data: {
-        hostId: host.id,
-        titolo: 'Sagra del Vino Nobile',
-        descrizione: 'Degustazione e festa del Vino Nobile di Montepulciano con produttori locali',
-        categoria: 'FOOD',
-        stato: 'APPROVATO',
-        dataInizio: giorno(14),
-        dataFine: giorno(16),
-        orario: '18:00 - 24:00',
-        luogo: 'Piazza Grande',
-        citta: 'Montepulciano',
-        regione: 'Toscana',
-        indirizzo: 'Piazza Grande 1',
-        prezzo: '€15 calice incluso',
-        visualizzazioni: 1250,
-        click: 340,
-      },
-    }),
-    prisma.evento.create({
-      data: {
-        hostId: host.id,
-        titolo: 'Concerto Jazz al Tramonto',
-        descrizione: 'Jazz dal vivo nella terrazza panoramica con aperitivo toscano',
-        categoria: 'MUSICA',
-        stato: 'APPROVATO',
-        dataInizio: giorno(7),
-        dataFine: giorno(7),
-        orario: '19:30',
-        luogo: 'Terrazza Panoramica',
-        citta: 'Pienza',
-        regione: 'Toscana',
-        prezzo: 'Gratuito',
-        visualizzazioni: 820,
-        click: 195,
-      },
-    }),
-    prisma.evento.create({
-      data: {
-        hostId: host.id,
-        titolo: 'Mercato dell\'Antiquariato',
-        descrizione: 'Mercatino mensile di antiquariato e artigianato nel centro storico',
-        categoria: 'FIERA',
-        stato: 'IN_ATTESA',
-        dataInizio: giorno(21),
-        dataFine: giorno(21),
-        orario: '09:00 - 18:00',
-        luogo: 'Centro Storico',
-        citta: 'Montepulciano',
-        regione: 'Toscana',
-        prezzo: 'Ingresso libero',
-        visualizzazioni: 430,
-        click: 85,
-      },
-    }),
-  ])
-  console.log('✅ Eventi creati:', eventi.length)
-
   // ─── Pacchetti ───────────────────────────────────────────────────────
+  // Nota: modulo Eventi rimosso. Riferimento evento ora è stringa libera (eventoEsterno).
   const pacchetti = await Promise.all([
     prisma.pacchetto.create({
       data: {
         hostId: host.id,
         strutturaId: struttura1.id,
-        eventoId: eventi[0].id,
+        eventoEsterno: 'Sagra del Vino Nobile di Montepulciano',
         nome: 'Weekend Vino Nobile',
         descrizione: 'Due notti al B&B Il Poggio con ingresso alla Sagra del Vino Nobile',
         notti: 2,
@@ -607,7 +548,7 @@ async function main() {
       data: {
         hostId: host.id,
         strutturaId: struttura2.id,
-        eventoId: eventi[1].id,
+        eventoEsterno: 'Concerto Jazz al Tramonto — Pienza',
         nome: 'Jazz & Relax in Val d\'Orcia',
         descrizione: 'Serata jazz con soggiorno in agriturismo e cena tipica',
         notti: 1,

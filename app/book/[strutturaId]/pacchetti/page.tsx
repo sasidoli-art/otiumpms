@@ -37,9 +37,6 @@ export default async function PacchettiPubbliciPage({
         { dataFine: { gte: new Date() } },
       ],
     },
-    include: {
-      evento: { select: { titolo: true, dataInizio: true, citta: true, luogo: true } },
-    },
     orderBy: { prezzo: 'asc' },
   })
 
@@ -84,13 +81,10 @@ export default async function PacchettiPubbliciPage({
                 {/* Card header */}
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
                   <h2 className="text-lg font-bold text-white">{p.nome}</h2>
-                  {(p.evento || p.eventoEsterno) && (
+                  {p.eventoEsterno && (
                     <p className="text-indigo-200 text-sm mt-0.5 flex items-center gap-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      {p.evento
-                        ? `${p.evento.titolo}${p.evento.dataInizio ? ` · ${formatData(p.evento.dataInizio)}` : ''}`
-                        : p.eventoEsterno
-                      }
+                      {p.eventoEsterno}
                     </p>
                   )}
                 </div>

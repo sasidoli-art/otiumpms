@@ -9,7 +9,6 @@ const pachettoUpdateSchema = z.object({
   nome: z.string().min(1).max(200).optional(),
   descrizione: z.string().optional(),
   immagine: z.string().optional(),
-  eventoId: z.string().nullable().optional(),
   eventoEsterno: z.string().nullable().optional(),
   notti: z.coerce.number().int().min(1).optional(),
   numOspiti: z.coerce.number().int().min(1).optional(),
@@ -33,7 +32,6 @@ export async function GET(
     where: { id: params.id, hostId: auth.user.hostId },
     include: {
       struttura: { select: { id: true, nome: true } },
-      evento: { select: { id: true, titolo: true, dataInizio: true, citta: true } },
     },
   })
 

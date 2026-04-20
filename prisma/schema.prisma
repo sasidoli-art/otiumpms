@@ -490,6 +490,9 @@ model HostBillingInfo {
   @@map("host_billing_info")
 }
 
+/// @deprecated Modulo Eventi rimosso dal PMS (2026-04). Usa `Prenotazione.eventoEsterno`
+/// (string libera) o referenzia OtiumWeek.it come source esterno. Il modello
+/// resta per non perdere dati legacy; in fase 2 verrà droppato con migration.
 model Evento {
   id     String @id @default(cuid())
   hostId String
@@ -531,7 +534,6 @@ model Evento {
   updatedAt DateTime @updatedAt
 
   analyticsGiorn AnalyticsGiornalieri[]
-  pacchetti      Pacchetto[]
 
   @@index([hostId])
   @@index([hostId, stato])
@@ -878,6 +880,10 @@ model Prenotazione {
   guestEmail    String
   guestTelefono String?
   guestNote     String?
+
+  // Evento di riferimento (stringa libera, non legato a model Evento interno)
+  // Es. "Salone del Mobile 2026", "Matrimonio Rossi", link a OtiumWeek.it
+  eventoEsterno String?
 
   // Dettagli prenotazione
   dataArrivo   DateTime          @db.Date
@@ -1791,10 +1797,9 @@ model Pacchetto {
   descrizione String?
   immagine    String?
 
-  // Evento collegato (può essere evento host o evento esterno Otiumweek)
-  eventoId      String? // ID evento host locale (nullable)
-  evento        Evento? @relation(fields: [eventoId], references: [id])
-  eventoEsterno String? // URL o titolo evento Otiumweek esterno (quando non è evento host)
+  // Evento collegato — stringa libera (nome o URL). Dopo la rimozione del
+  // modulo Eventi interno (2026-04), non esiste più collegamento a Evento.
+  eventoEsterno String?
 
   // Dettagli pacchetto
   notti           Int    @default(1)

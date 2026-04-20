@@ -95,14 +95,12 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 | `/host/strutture` | Properties management + detail + tariffe |
 | `/host/crm` | Guest CRM + detail |
 | `/host/fatture` | Invoices (fatturazione elettronica) |
-| `/host/eventi` | Local events + new event |
-| `/host/pacchetti` | Packages + detail + new |
+| `/host/pacchetti` | Packages + detail + new (con riferimento evento esterno come stringa libera) |
 | `/host/alloggiati` | Alloggiati Web (police reporting) |
 | `/host/housekeeping` | HK tasks + calendar + biancheria |
 | `/host/manutenzione` | Maintenance reports |
 | `/host/staff` | Staff communications board |
 | `/host/notifiche` | Notifications |
-| `/host/analytics` | Analytics dashboard |
 | `/host/report` | Revenue reports |
 | `/host/profilo` | Profile & settings |
 | `/host/oggi` | Today's arrivals/departures |
@@ -149,7 +147,6 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 | `/admin/dashboard` | Admin overview |
 | `/admin/clienti` | Host/client management |
 | `/admin/prenotazioni` | All bookings across hosts |
-| `/admin/eventi` | All events |
 | `/admin/fatture` | Platform invoices |
 | `/admin/pagamenti` | Payment tracking |
 | `/admin/ticket` | Support tickets |

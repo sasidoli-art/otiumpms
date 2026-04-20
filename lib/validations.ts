@@ -343,36 +343,6 @@ export const manutenzioneCreateSchema = z.object({
 
 export type ManutenzioneCreateInput = z.infer<typeof manutenzioneCreateSchema>
 
-// ─── Host: eventi ─────────────────────────────────────────────────────────────
-
-const CATEGORIE_EVENTO = [
-  'MUSICA', 'ARTE', 'TEATRO', 'FOOD', 'SPORT',
-  'FESTIVAL', 'FIERA', 'CONFERENZA', 'CINEMA', 'NATURA', 'FAMIGLIA', 'ALTRO',
-] as const
-
-export type CategoriaEventoEnum = typeof CATEGORIE_EVENTO[number]
-
-export const eventoCreateSchema = z.object({
-  titolo: z.string().min(1).max(500).trim(),
-  descrizione: z.string().max(10000).trim().optional().nullable(),
-  categoria: z.enum(CATEGORIE_EVENTO),
-  dataInizio: z.string().min(1),
-  dataFine: z.string().optional().nullable(),
-  orario: z.string().max(100).trim().optional().nullable(),
-  luogo: z.string().max(255).trim().optional().nullable(),
-  citta: z.string().min(1).max(100).trim(),
-  regione: z.string().min(1).max(100).trim(),
-  indirizzo: z.string().max(255).trim().optional().nullable(),
-  prezzo: z.string().max(100).trim().optional().nullable(),
-  urlBiglietti: z.string().url().max(500).optional().nullable().or(z.literal('')),
-  urlEvento: z.string().url().max(500).optional().nullable().or(z.literal('')),
-  immagine: z.string().max(500).optional().nullable(),
-  visibilitaNaz: z.boolean().default(false),
-  regioni: z.array(z.string().max(100)).default([]),
-})
-
-export type EventoCreateInput = z.infer<typeof eventoCreateSchema>
-
 // ─── Abbonamento Upgrade ─────────────────────────────────────────────────────
 
 export const abbonamentoUpgradeSchema = z.object({

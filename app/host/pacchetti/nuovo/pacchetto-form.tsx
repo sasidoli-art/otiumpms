@@ -4,23 +4,18 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Plus, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
 
 type Struttura = { id: string; nome: string; citta: string | null }
-type Evento = { id: string; titolo: string; dataInizio: Date; citta: string }
 
 export default function PacchettoForm({
   strutture,
-  eventi,
 }: {
   strutture: Struttura[]
-  eventi: Evento[]
 }) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [incluso, setIncluso] = useState<string[]>([''])
-  const [fonteEvento, setFonteEvento] = useState<'host' | 'esterno'>('host')
 
   function addIncluso() { setIncluso(prev => [...prev, '']) }
   function removeIncluso(i: number) { setIncluso(prev => prev.filter((_, idx) => idx !== i)) }
@@ -47,9 +42,7 @@ export default function PacchettoForm({
       dataFine: fd.get('dataFine') || undefined,
     }
 
-    if (fonteEvento === 'host' && fd.get('eventoId')) {
-      body.eventoId = fd.get('eventoId')
-    } else if (fonteEvento === 'esterno' && fd.get('eventoEsterno')) {
+    if (fd.get('eventoEsterno')) {
       body.eventoEsterno = fd.get('eventoEsterno')
     }
 
@@ -105,46 +98,14 @@ export default function PacchettoForm({
         </div>
 
         <div>
-          <label className="label">Evento collegato</label>
-          <div className="flex gap-2 mb-2">
-            <button
-              type="button"
-              onClick={() => setFonteEvento('host')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                fonteEvento === 'host' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              I miei eventi
-            </button>
-            <button
-              type="button"
-              onClick={() => setFonteEvento('esterno')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                fonteEvento === 'esterno' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-            >
-              Evento esterno / Otiumweek
-            </button>
-          </div>
-
-          {fonteEvento === 'host' ? (
-            <select name="eventoId" className="input">
-              <option value="">Nessun evento (opzionale)</option>
-              {eventi.map(ev => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.titolo} — {ev.citta}, {format(new Date(ev.dataInizio), 'dd/MM/yyyy')}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              name="eventoEsterno"
-              className="input"
-              placeholder='es. "Sagra del Tartufo di Alba" o URL Otiumweek'
-            />
-          )}
+          <label className="label">Evento collegato (opzionale)</label>
+          <input
+            name="eventoEsterno"
+            className="input"
+            placeholder='es. "Sagra del Tartufo di Alba" o URL OtiumWeek'
+          />
           <p className="text-xs text-gray-400 mt-1">
-            Collega un evento dalla tua lista o inserisci un evento del territorio per creare l'offerta combinata
+            Nome o URL di un evento del territorio per creare l&apos;offerta combinata
           </p>
         </div>
       </div>

@@ -10,7 +10,6 @@ const pachettoCreateSchema = z.object({
   nome: z.string().min(1).max(200),
   descrizione: z.string().optional(),
   immagine: z.string().optional(),
-  eventoId: z.string().optional(),
   eventoEsterno: z.string().optional(),
   notti: z.coerce.number().int().min(1).default(1),
   numOspiti: z.coerce.number().int().min(1).default(2),
@@ -30,7 +29,6 @@ export async function GET() {
     where: { hostId: auth.user.hostId },
     include: {
       struttura: { select: { id: true, nome: true } },
-      evento: { select: { id: true, titolo: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -54,16 +52,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })
   }
 
-  // Verify evento belongs to host if provided
-  if (data.eventoId) {
-    const evento = await prisma.evento.findFirst({
-      where: { id: data.eventoId, hostId: auth.user.hostId },
-    })
-    if (!evento) {
-      return NextResponse.json({ error: 'Evento non trovato' }, { status: 404 })
-    }
-  }
-
   const pacchetto = await prisma.pacchetto.create({
     data: {
       hostId: auth.user.hostId,
@@ -71,7 +59,6 @@ export async function POST(req: NextRequest) {
       nome: data.nome,
       descrizione: data.descrizione,
       immagine: data.immagine,
-      eventoId: data.eventoId || null,
       eventoEsterno: data.eventoEsterno || null,
       notti: data.notti,
       numOspiti: data.numOspiti,

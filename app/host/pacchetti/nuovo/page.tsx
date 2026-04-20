@@ -14,18 +14,11 @@ export default async function NuovoPacchettoPage() {
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 
-  const [strutture, eventi] = await Promise.all([
-    prisma.struttura.findMany({
-      where: { hostId: hostId, attiva: true },
-      select: { id: true, nome: true, citta: true },
-      orderBy: { nome: 'asc' },
-    }),
-    prisma.evento.findMany({
-      where: { hostId: hostId, stato: { in: ['APPROVATO', 'IN_ATTESA'] } },
-      select: { id: true, titolo: true, dataInizio: true, citta: true },
-      orderBy: { dataInizio: 'desc' },
-    }),
-  ])
+  const strutture = await prisma.struttura.findMany({
+    where: { hostId: hostId, attiva: true },
+    select: { id: true, nome: true, citta: true },
+    orderBy: { nome: 'asc' },
+  })
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -39,7 +32,7 @@ export default async function NuovoPacchettoPage() {
         </div>
       </div>
 
-      <PacchettoForm strutture={strutture} eventi={eventi} />
+      <PacchettoForm strutture={strutture} />
     </div>
   )
 }

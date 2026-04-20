@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { format, formatDistanceToNow } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { PianoTipo, StatoAbbonamento, StatoEvento, StatoPagamento, StatoFattura } from '@prisma/client'
+import { PianoTipo, StatoAbbonamento, StatoPagamento, StatoFattura } from '@prisma/client'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -69,28 +69,6 @@ export function statoAbbonamentoColor(stato: StatoAbbonamento): string {
   return colors[stato]
 }
 
-export function statoEventoLabel(stato: StatoEvento): string {
-  const labels: Record<StatoEvento, string> = {
-    BOZZA: 'Bozza',
-    IN_ATTESA: 'In attesa',
-    APPROVATO: 'Approvato',
-    RIFIUTATO: 'Rifiutato',
-    SCADUTO: 'Scaduto',
-  }
-  return labels[stato]
-}
-
-export function statoEventoColor(stato: StatoEvento): string {
-  const colors: Record<StatoEvento, string> = {
-    BOZZA: 'bg-gray-100 text-gray-700',
-    IN_ATTESA: 'bg-yellow-100 text-yellow-800',
-    APPROVATO: 'bg-green-100 text-green-800',
-    RIFIUTATO: 'bg-red-100 text-red-800',
-    SCADUTO: 'bg-gray-100 text-gray-500',
-  }
-  return colors[stato]
-}
-
 export function statoPagamentoLabel(stato: StatoPagamento): string {
   const labels: Record<StatoPagamento, string> = {
     IN_ATTESA: 'In attesa',
@@ -133,24 +111,6 @@ export function statoFatturaColor(stato: StatoFattura): string {
     STORNATA: 'bg-orange-100 text-orange-800',
   }
   return colors[stato]
-}
-
-export function categoriaEventoLabel(categoria: string): string {
-  const labels: Record<string, string> = {
-    MUSICA: '🎵 Musica',
-    ARTE: '🎨 Arte & Mostre',
-    TEATRO: '🎭 Teatro & Spettacolo',
-    FOOD: '🍷 Food & Enogastronomia',
-    SPORT: '⚽ Sport & Benessere',
-    FESTIVAL: '🎪 Festival',
-    FIERA: '🏪 Fiere & Mercati',
-    CONFERENZA: '🎤 Conferenze & Workshop',
-    CINEMA: '🎬 Cinema',
-    NATURA: '🌿 Natura & Outdoor',
-    FAMIGLIA: '👨‍👩‍👧 Famiglia',
-    ALTRO: '📌 Altro',
-  }
-  return labels[categoria] || categoria
 }
 
 export function generaNumeroFattura(anno: number, progressivo: number): string {

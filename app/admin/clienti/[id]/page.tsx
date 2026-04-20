@@ -6,13 +6,10 @@ import {
   pianoLabel,
   statoAbbonamentoLabel,
   statoAbbonamentoColor,
-  statoEventoLabel,
-  statoEventoColor,
   statoPagamentoLabel,
   statoPagamentoColor,
   statoFatturaLabel,
   statoFatturaColor,
-  categoriaEventoLabel,
 } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Mail, Globe, Phone, MapPin, FileText, Plus } from 'lucide-react'
@@ -26,13 +23,11 @@ export default async function ClienteDettaglioPage({ params: paramsPromise }: { 
   const tc = await getTranslations('common')
   const ti = await getTranslations('admin.invoices')
   const tp = await getTranslations('admin.payments')
-  const te = await getTranslations('admin.events')
   const params = await paramsPromise
   const host = await prisma.host.findUnique({
     where: { id: params.id },
     include: {
       user: true,
-      eventi: { orderBy: { createdAt: 'desc' }, take: 10 },
       pagamenti: { orderBy: { createdAt: 'desc' }, take: 10 },
       fatture: { orderBy: { createdAt: 'desc' }, take: 10 },
       abbonamenti: { orderBy: { createdAt: 'desc' }, take: 5 },
@@ -247,40 +242,6 @@ export default async function ClienteDettaglioPage({ params: paramsPromise }: { 
             </div>
           </div>
 
-          {/* Eventi */}
-          <div className="card overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">{te('title')} ({host.eventi.length})</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px]">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="table-th">Titolo</th>{/* TODO: i18n */}
-                    <th className="table-th">{tc('category')}</th>
-                    <th className="table-th">{tc('date')}</th>
-                    <th className="table-th">{tc('status')}</th>
-                    <th className="table-th">Views</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {host.eventi.length === 0 ? (
-                    <tr><td colSpan={5} className="px-5 py-6 text-center text-sm text-gray-400">Nessun evento</td></tr>
-                  ) : host.eventi.map(ev => (
-                    <tr key={ev.id} className="hover:bg-gray-50">
-                      <td className="table-td">
-                        <Link href={`/admin/eventi/${ev.id}`} className="font-medium text-gray-900 hover:text-brand-600">{ev.titolo}</Link>
-                      </td>
-                      <td className="table-td text-sm text-gray-500">{categoriaEventoLabel(ev.categoria)}</td>
-                      <td className="table-td text-gray-500">{formatData(ev.dataInizio)}</td>
-                      <td className="table-td"><Badge className={statoEventoColor(ev.stato)}>{statoEventoLabel(ev.stato)}</Badge></td>
-                      <td className="table-td font-medium">{ev.visualizzazioni}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </div>
 

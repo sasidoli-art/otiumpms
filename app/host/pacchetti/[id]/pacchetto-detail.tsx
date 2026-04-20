@@ -4,14 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Trash2, Save, Plus, Eye, EyeOff } from 'lucide-react'
-import { format } from 'date-fns'
 
 type Pacchetto = {
   id: string
   nome: string
   descrizione: string | null
   strutturaId: string
-  eventoId: string | null
   eventoEsterno: string | null
   notti: number
   numOspiti: number
@@ -23,16 +21,13 @@ type Pacchetto = {
   dataFine: string | null
 }
 type Struttura = { id: string; nome: string; citta: string | null }
-type Evento = { id: string; titolo: string; dataInizio: Date; citta: string }
 
 export default function PacchettoDetail({
   pacchetto,
   strutture,
-  eventi,
 }: {
   pacchetto: Pacchetto
   strutture: Struttura[]
-  eventi: Evento[]
 }) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
@@ -41,9 +36,6 @@ export default function PacchettoDetail({
   const [success, setSuccess] = useState('')
   const [incluso, setIncluso] = useState<string[]>(
     pacchetto.incluso.length > 0 ? pacchetto.incluso : ['']
-  )
-  const [fonteEvento, setFonteEvento] = useState<'host' | 'esterno'>(
-    pacchetto.eventoEsterno ? 'esterno' : 'host'
   )
 
   function addIncluso() { setIncluso(prev => [...prev, '']) }
@@ -73,13 +65,7 @@ export default function PacchettoDetail({
       dataFine: fd.get('dataFine') || null,
     }
 
-    if (fonteEvento === 'host') {
-      body.eventoId = fd.get('eventoId') || null
-      body.eventoEsterno = null
-    } else {
-      body.eventoEsterno = fd.get('eventoEsterno') || null
-      body.eventoId = null
-    }
+    body.eventoEsterno = fd.get('eventoEsterno') || null
 
     const res = await fetch(`/api/host/pacchetti/${pacchetto.id}`, {
       method: 'PATCH',
@@ -186,30 +172,9 @@ export default function PacchettoDetail({
             </select>
           </div>
           <div>
-            <label className="label">Evento collegato</label>
-            <div className="flex gap-2 mb-2">
-              <button type="button" onClick={() => setFonteEvento('host')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  fonteEvento === 'host' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>I miei eventi</button>
-              <button type="button" onClick={() => setFonteEvento('esterno')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  fonteEvento === 'esterno' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                }`}>Evento esterno</button>
-            </div>
-            {fonteEvento === 'host' ? (
-              <select name="eventoId" className="input" defaultValue={pacchetto.eventoId ?? ''}>
-                <option value="">Nessun evento</option>
-                {eventi.map(ev => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.titolo} — {ev.citta}, {format(new Date(ev.dataInizio), 'dd/MM/yyyy')}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input name="eventoEsterno" className="input" defaultValue={pacchetto.eventoEsterno ?? ''}
-                placeholder='es. "Sagra del Tartufo di Alba"' />
-            )}
+            <label className="label">Evento collegato (opzionale)</label>
+            <input name="eventoEsterno" className="input" defaultValue={pacchetto.eventoEsterno ?? ''}
+              placeholder='es. "Sagra del Tartufo di Alba" o URL OtiumWeek' />
           </div>
         </div>
 

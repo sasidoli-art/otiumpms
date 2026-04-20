@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { StatCard } from '@/components/ui/stat-card'
-import { formatValuta, formatData, pianoLabel, statoAbbonamentoLabel, statoAbbonamentoColor, statoEventoLabel, statoEventoColor } from '@/lib/utils'
+import { formatValuta, formatData, pianoLabel, statoAbbonamentoLabel, statoAbbonamentoColor } from '@/lib/utils'
 import { Users, CalendarDays, CreditCard, FileText, TrendingUp, Clock, Building2, BedDouble } from 'lucide-react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -23,8 +23,6 @@ export default async function AdminDashboardPage() {
     clientiAttivi,
     totaleFatture,
     fattureInAttesa,
-    eventiInAttesa,
-    eventiRecenti,
     ultimiClienti,
     fattureTotaleImporto,
     totalePrenotazioni,
@@ -39,12 +37,6 @@ export default async function AdminDashboardPage() {
     prisma.host.count({ where: { statoAbbonamento: 'ATTIVO' } }),
     prisma.fattura.count(),
     prisma.fattura.count({ where: { stato: { in: ['INVIATA', 'BOZZA'] } } }),
-    prisma.evento.count({ where: { stato: 'IN_ATTESA' } }),
-    prisma.evento.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { host: { select: { nomeAzienda: true } } },
-    }),
     prisma.host.findMany({
       take: 5,
       orderBy: { createdAt: 'desc' },
@@ -163,13 +155,6 @@ export default async function AdminDashboardPage() {
           icona={<FileText size={24} />}
           colorIcona="text-[#ffbc00]"
         />
-        <StatCard
-          titolo="Eventi da approvare"
-          valore={eventiInAttesa}
-          sotto="In attesa di revisione"
-          icona={<Clock size={24} />}
-          colorIcona="text-[#fa5c7c]"
-        />
       </div>
 
       {/* Stat Cards — row 2 */}
@@ -222,40 +207,6 @@ export default async function AdminDashboardPage() {
       {/* Tables — ultimi eventi + clienti */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Ultimi eventi */}
-        <div className="card">
-          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CalendarDays size={18} className="text-gray-500" />
-              <h2 className="font-semibold text-gray-900">Ultimi eventi inseriti</h2>{/* TODO: i18n */}
-            </div>
-            <Link href="/admin/eventi" className="text-sm text-brand-500 hover:text-brand-600 font-semibold">
-              Vedi tutti →{/* TODO: i18n */}
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {eventiRecenti.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">Nessun evento ancora</p>
-            ) : (
-              eventiRecenti.map((ev) => (
-                <Link
-                  key={ev.id}
-                  href={`/admin/eventi/${ev.id}`}
-                  className="flex items-center gap-4 px-6 py-3.5 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{ev.titolo}</p>
-                    <p className="text-xs text-gray-400">{ev.host.nomeAzienda} · {ev.citta}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-gray-400">{formatData(ev.dataInizio)}</span>
-                    <Badge className={statoEventoColor(ev.stato)}>{statoEventoLabel(ev.stato)}</Badge>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-
         {/* Ultimi clienti */}
         <div className="card">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">

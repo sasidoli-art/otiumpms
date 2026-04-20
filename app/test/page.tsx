@@ -154,10 +154,7 @@ const sections: Section[] = [
     links: [
       { label: 'Pacchetti', href: '/host/pacchetti', description: 'Offerte e bundle' },
       { label: 'Nuovo Pacchetto', href: '/host/pacchetti/nuovo' },
-      { label: 'Eventi', href: '/host/eventi', description: 'Eventi locali' },
-      { label: 'Nuovo Evento', href: '/host/eventi/nuovo' },
       { label: 'Report Revenue', href: '/host/report', description: 'Analisi ricavi' },
-      { label: 'Analytics', href: '/host/analytics', description: 'Statistiche avanzate' },
       { label: 'Fatture', href: '/host/fatture', description: 'Fatturazione elettronica SDI' },
       { label: 'Email Automatiche', href: '/host/email-automatiche', description: 'Flussi email' },
       { label: 'Channel Manager', href: '/host/canali', description: 'OTA sync' },
@@ -205,7 +202,6 @@ const sections: Section[] = [
       { label: 'Clienti (Host)', href: '/admin/clienti', description: 'Gestione host' },
       { label: 'Nuovo Cliente', href: '/admin/clienti/nuovo' },
       { label: 'Dettaglio Cliente', href: '/admin/clienti/[id]' },
-      { label: 'Eventi', href: '/admin/eventi', description: 'Eventi piattaforma' },
       { label: 'Prenotazioni', href: '/admin/prenotazioni', description: 'Tutte le prenotazioni' },
       { label: 'Pagamenti', href: '/admin/pagamenti', description: 'Incassi e riconciliazione' },
       { label: 'Nuovo Pagamento', href: '/admin/pagamenti/nuovo' },

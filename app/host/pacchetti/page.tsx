@@ -24,7 +24,6 @@ export default async function PacchettiPage() {
     where: { hostId: hostId, ...(strutturaId && { strutturaId }) },
     include: {
       struttura: { select: { nome: true, citta: true } },
-      evento: { select: { titolo: true, dataInizio: true, citta: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -86,13 +85,10 @@ export default async function PacchettiPage() {
               </div>
 
               {/* Evento collegato */}
-              {(p.evento || p.eventoEsterno) && (
+              {p.eventoEsterno && (
                 <div className="flex items-center gap-1.5 text-xs text-indigo-600 mb-2">
                   <Calendar className="w-3 h-3" />
-                  {p.evento
-                    ? `${p.evento.titolo}${p.evento.dataInizio ? ` · ${formatData(p.evento.dataInizio)}` : ''}`
-                    : p.eventoEsterno
-                  }
+                  {p.eventoEsterno}
                 </div>
               )}
 

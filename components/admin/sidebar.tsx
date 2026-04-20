@@ -36,7 +36,6 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
   const adminItems = useMemo(() => [
     { href: '/admin/dashboard',    label: t('dashboard'),      icon: LayoutDashboard },
     { href: '/admin/clienti',      label: t('clients'),        icon: Users },
-    { href: '/admin/eventi',       label: t('events'),         icon: CalendarDays },
     { href: '/admin/prenotazioni', label: t('bookings'),       icon: BookOpen },
     { href: '/admin/pagamenti',    label: t('payments'),       icon: CreditCard },
     { href: '/admin/fatture',      label: t('invoices'),       icon: FileText },

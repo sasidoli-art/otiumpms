@@ -23,23 +23,15 @@ export default async function PacchettoDetailPage({
     where: { id: params.id, hostId: hostId },
     include: {
       struttura: { select: { id: true, nome: true, citta: true } },
-      evento: { select: { id: true, titolo: true, dataInizio: true, citta: true } },
     },
   })
   if (!pacchetto) notFound()
 
-  const [strutture, eventi] = await Promise.all([
-    prisma.struttura.findMany({
-      where: { hostId: hostId, attiva: true },
-      select: { id: true, nome: true, citta: true },
-      orderBy: { nome: 'asc' },
-    }),
-    prisma.evento.findMany({
-      where: { hostId: hostId, stato: { in: ['APPROVATO', 'IN_ATTESA'] } },
-      select: { id: true, titolo: true, dataInizio: true, citta: true },
-      orderBy: { dataInizio: 'desc' },
-    }),
-  ])
+  const strutture = await prisma.struttura.findMany({
+    where: { hostId: hostId, attiva: true },
+    select: { id: true, nome: true, citta: true },
+    orderBy: { nome: 'asc' },
+  })
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -63,10 +55,6 @@ export default async function PacchettoDetailPage({
           dataFine: pacchetto.dataFine?.toISOString().substring(0, 10) ?? null,
         }}
         strutture={strutture}
-        eventi={eventi.map(e => ({
-          ...e,
-          dataInizio: e.dataInizio,
-        }))}
       />
     </div>
   )

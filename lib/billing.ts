@@ -47,7 +47,7 @@ export const PLAN_DEFINITIONS: Record<PianoTipo, PlanDefinition> = {
     maxStrutture: 1,
     maxUnita: 5,
     maxEventi: 3,
-    moduliInclusi: ['prenotazioni', 'strutture', 'eventi', 'crm', 'housekeeping', 'emailAuto', 'ical'],
+    moduliInclusi: ['prenotazioni', 'strutture', 'crm', 'housekeeping', 'emailAuto', 'ical'],
     tier: 1,
   },
   VISIBILITA_MENSILE: {
@@ -58,7 +58,7 @@ export const PLAN_DEFINITIONS: Record<PianoTipo, PlanDefinition> = {
     maxStrutture: 3,
     maxUnita: 20,
     maxEventi: 10,
-    moduliInclusi: ['prenotazioni', 'strutture', 'eventi', 'crm', 'housekeeping', 'manutenzione', 'staff', 'alloggiati', 'promemoria', 'fatturazione', 'catalogo', 'emailAuto', 'ical', 'channelMgr', 'ristorazione'],
+    moduliInclusi: ['prenotazioni', 'strutture', 'crm', 'housekeeping', 'manutenzione', 'staff', 'alloggiati', 'promemoria', 'fatturazione', 'catalogo', 'emailAuto', 'ical', 'channelMgr', 'ristorazione'],
     tier: 2,
   },
   PARTNER_PREMIUM: {
@@ -70,7 +70,7 @@ export const PLAN_DEFINITIONS: Record<PianoTipo, PlanDefinition> = {
     maxUnita: 100,
     maxEventi: -1, // unlimited
     moduliInclusi: [
-      'prenotazioni', 'strutture', 'eventi', 'crm', 'housekeeping',
+      'prenotazioni', 'strutture', 'crm', 'housekeeping',
       'manutenzione', 'staff', 'alloggiati', 'promemoria', 'lostFound', 'magazzino', 'alertOspite',
       'spa', 'fatturazione', 'tariffeDurata', 'ristorazione', 'catalogo', 'upselling',
       'giftCard', 'pos', 'loyalty', 'waitingList', 'cassa',
