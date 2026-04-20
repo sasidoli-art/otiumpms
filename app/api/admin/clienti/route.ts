@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
   const hosts = await prisma.host.findMany({
     where: {
+      deletedAt: null,
       ...(piano && isPianoTipo(piano) ? { piano } : {}),
       ...(stato && isStatoAbbonamento(stato) ? { statoAbbonamento: stato } : {}),
       ...(q

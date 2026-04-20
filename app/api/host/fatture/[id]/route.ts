@@ -138,13 +138,14 @@ export async function DELETE(
     )
   }
 
-  // Disconnect prenotazioni before deleting
+  // Disconnect prenotazioni before soft delete
   await prisma.prenotazione.updateMany({
     where: { fatturaId: id },
     data: { fatturaId: null },
   })
 
-  await prisma.fattura.delete({ where: { id } })
+  // Soft delete: il record resta per audit/archivio, viene escluso dalle liste
+  await prisma.fattura.update({ where: { id }, data: { deletedAt: new Date() } })
 
   return NextResponse.json({ ok: true })
 }

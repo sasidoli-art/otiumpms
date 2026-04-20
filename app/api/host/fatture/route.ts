@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
-  const where: Record<string, unknown> = { hostId: auth.user.hostId }
+  const where: Record<string, unknown> = { hostId: auth.user.hostId, deletedAt: null }
   if (anno) where.anno = anno
   if (stato) where.stato = stato
 

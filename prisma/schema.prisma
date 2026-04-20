@@ -291,8 +291,9 @@ model Host {
   sdiUsername  String? // Aruba username
   sdiCompanyId String? // FattureInCloud company ID
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   eventi        Evento[]
   abbonamenti   Abbonamento[]
@@ -540,13 +541,15 @@ model Fattura {
 
   prenotazioni Prenotazione[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   @@index([hostId])
   @@index([hostId, stato])
   @@index([anno])
   @@index([riferimentoFatturaId])
+  @@index([deletedAt])
   @@map("fatture")
 }
 
@@ -840,14 +843,16 @@ model Prenotazione {
   waitingListSpa    WaitingListSpa[]
   incassi           Incasso[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Indici per le query più frequenti nei route handler
   @@unique([hostId, pin])
   @@index([hostId])
   @@index([hostId, stato])
   @@index([guestEmail])
+  @@index([deletedAt])
   @@map("prenotazioni")
 }
 

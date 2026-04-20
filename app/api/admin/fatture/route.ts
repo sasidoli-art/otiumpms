@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
   const fatture = await prisma.fattura.findMany({
     where: {
+      deletedAt: null,
       ...(stato && isStatoFattura(stato) ? { stato } : {}),
       ...(hostId ? { hostId } : {}),
     },

@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   const prenotazioni = await prisma.prenotazione.findMany({
     where: {
+      deletedAt: null,
       ...(stato && isStatoPrenotazione(stato) ? { stato } : {}),
       ...(hostId ? { hostId } : {}),
       ...(q
