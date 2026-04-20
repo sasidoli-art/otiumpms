@@ -29,17 +29,35 @@ export default async function BookingCamerePage({
   const struttura = await getStrutturaPubblica(params.strutturaId)
   if (!struttura || !struttura.moduli.prenotazioni) notFound()
 
-  // Capacità massima tra le unità (per cap stepper ospiti)
-  const maxCap = await prisma.unitaPrenotabile.aggregate({
-    where: { strutturaId: params.strutturaId, attiva: true },
-    _max: { capacita: true, lettiExtra: true },
-  })
+  // Capacità massima tra le unità (per cap stepper ospiti) + policy cancellazione
+  const [maxCap, cfg] = await Promise.all([
+    prisma.unitaPrenotabile.aggregate({
+      where: { strutturaId: params.strutturaId, attiva: true },
+      _max: { capacita: true, lettiExtra: true },
+    }),
+    prisma.struttura.findUnique({
+      where: { id: params.strutturaId },
+      select: { cancellazionePolicy: true },
+    }),
+  ])
   const capacitaMax = (maxCap._max.capacita ?? 4) + (maxCap._max.lettiExtra ?? 0)
 
   return (
     <BookingLayout struttura={struttura}>
       <div className="max-w-4xl mx-auto">
-        <CamereFlow strutturaId={struttura.id} capacitaMax={capacitaMax} />
+        <CamereFlow
+          strutturaId={struttura.id}
+          strutturaNome={struttura.nome}
+          strutturaIndirizzo={
+            struttura.indirizzo
+              ? `${struttura.indirizzo}${struttura.citta ? `, ${struttura.citta}` : ''}`
+              : null
+          }
+          strutturaTelefono={struttura.telefonoHost}
+          moduloSpaAttivo={struttura.moduli.spa}
+          cancellazionePolicy={cfg?.cancellazionePolicy ?? null}
+          capacitaMax={capacitaMax}
+        />
       </div>
     </BookingLayout>
   )

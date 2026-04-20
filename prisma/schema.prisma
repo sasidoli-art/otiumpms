@@ -747,6 +747,10 @@ model Struttura {
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
 
+  // Booking engine pubblico
+  autoConferma        Boolean @default(false) // true = prenotazione diretta CONFERMATA (no revisione)
+  cancellazionePolicy String? // testo libero visibile in fase di conferma. Se null: default standard
+
   // ─── Display firma reception ────────────────────────────────────────────
   firmaDisplayPrenotazioneId String?  // ID prenotazione attualmente in firma sul display
   firmaDisplayAttivaAt       DateTime? // quando è stata attivata
