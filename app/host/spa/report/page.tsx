@@ -6,11 +6,10 @@ import { redirect } from 'next/navigation'
 import { startOfMonth, endOfMonth, parseISO } from 'date-fns'
 import { StatoAppuntamentoSpa } from '@prisma/client'
 import SpaReportClient from './spa-report-client'
-import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function SpaReportPage({ searchParams }: { searchParams: Promise<{ mese?: string }> }) {
   const session = await getServerSession(authOptions)
-  if (!session || !isHostAuthorized(session.user.role)) redirect('/login')
+  if (!session || (session.user.role !== 'HOST' && session.user.role !== 'ADMIN')) redirect('/login')
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 

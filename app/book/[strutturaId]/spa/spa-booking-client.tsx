@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
 import {
   Sparkles, Clock, Euro, ChevronRight, ChevronLeft, ArrowLeft,
   User, Loader2, CheckCircle2, Calendar, MapPin, Star,
@@ -37,6 +36,14 @@ type BookingResult = {
   id: string; servizio: string; dataOra: string; durata: number; prezzo: number
 }
 
+// ─── Category labels ──────────────────────────────────────────────────────────
+
+const CAT_LABELS: Record<string, string> = {
+  MASSAGGIO: 'Massaggi', VISO: 'Trattamenti viso', CORPO: 'Trattamenti corpo',
+  RITUALI: 'Rituali', BAGNI: 'Bagni', COPPIA: 'Coppia', ALTRO: 'Altro',
+}
+const CAT_ORDER = ['MASSAGGIO', 'VISO', 'CORPO', 'RITUALI', 'BAGNI', 'COPPIA', 'ALTRO']
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SpaBookingClient({
@@ -56,16 +63,6 @@ export default function SpaBookingClient({
   percorsi: Percorso[]
   terapisti: Terapista[]
 }) {
-  const t = useTranslations('booking')
-  const tc = useTranslations('common')
-  const tcat = useTranslations('spa.categories')
-
-  const CAT_LABELS: Record<string, string> = {
-    MASSAGGIO: tcat('massage'), VISO: tcat('facial'), CORPO: tcat('body'),
-    RITUALI: tcat('rituals'), BAGNI: tcat('baths'), COPPIA: tcat('couples'), ALTRO: tcat('other'),
-  }
-  const CAT_ORDER = ['MASSAGGIO', 'VISO', 'CORPO', 'RITUALI', 'BAGNI', 'COPPIA', 'ALTRO']
-
   const [step, setStep] = useState(1)
 
   // Step 1: service selection
@@ -154,7 +151,7 @@ export default function SpaBookingClient({
 
     if (!res.ok) {
       const j = await res.json()
-      setErrore(j.error || tc('unexpectedError'))
+      setErrore(j.error || 'Errore durante la prenotazione')
       setLoading(false)
       return
     }
@@ -167,6 +164,8 @@ export default function SpaBookingClient({
 
   async function finalizeBooking() {
     if (!appuntamentoId) return
+    // La prenotazione è già stata creata a step 3
+    // Qui facciamo solo il fetch finale per ottenere i dettagli
     setLoading(true)
     const res = await fetch(`/api/book/${strutturaId}/spa/${appuntamentoId}`)
     if (res.ok) {
@@ -188,10 +187,6 @@ export default function SpaBookingClient({
     .map(cat => ({ cat, items: trattamenti.filter(t => t.categoria === cat) }))
     .filter(g => g.items.length > 0)
 
-  // ── Step labels ─────────────────────────────────────────────────
-
-  const stepLabels = ['Servizio', 'Data e ora', 'I tuoi dati', 'Dichiarazione', 'Fine']
-
   // ── Render ──────────────────────────────────────────────────────
 
   return (
@@ -204,14 +199,14 @@ export default function SpaBookingClient({
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{t('spaWellness')}</h1>
+              <h1 className="text-xl font-bold text-gray-900">SPA & Benessere</h1>
               <p className="text-sm text-gray-500">{nomeAzienda} {citta ? `· ${citta}` : ''}</p>
             </div>
           </div>
 
           {/* Step indicator */}
           <div className="flex items-center gap-2 mt-4">
-            {stepLabels.map((label, i) => (
+            {['Servizio', 'Data e ora', 'I tuoi dati', 'Dichiarazione', 'Fine'].map((label, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   step > i + 1 ? 'bg-green-500 text-white' :
@@ -246,7 +241,6 @@ export default function SpaBookingClient({
                   tab === 'trattamenti' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
               >
-                {/* TODO: i18n */}
                 Trattamenti ({trattamenti.length})
               </button>
               {percorsi.length > 0 && (
@@ -256,7 +250,6 @@ export default function SpaBookingClient({
                     tab === 'percorsi' ? 'bg-purple-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  {/* TODO: i18n */}
                   Percorsi benessere ({percorsi.length})
                 </button>
               )}
@@ -271,29 +264,29 @@ export default function SpaBookingClient({
                       {CAT_LABELS[cat] ?? cat}
                     </h3>
                     <div className="grid gap-3">
-                      {items.map(tr => (
+                      {items.map(t => (
                         <button
-                          key={tr.id}
-                          onClick={() => selectServizio('trattamento', tr)}
+                          key={t.id}
+                          onClick={() => selectServizio('trattamento', t)}
                           className="bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-purple-300 hover:shadow-md transition-all group"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tr.colore }} />
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: t.colore }} />
                                 <p className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                                  {tr.nome}
+                                  {t.nome}
                                 </p>
                               </div>
-                              {tr.descrizione && (
-                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{tr.descrizione}</p>
+                              {t.descrizione && (
+                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{t.descrizione}</p>
                               )}
                               <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
-                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {tr.durata} min</span>
+                                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {t.durata} min</span>
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-lg font-bold text-purple-600">{tr.prezzo.toFixed(0)}€</p>
+                              <p className="text-lg font-bold text-purple-600">{t.prezzo.toFixed(0)}€</p>
                               <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-purple-400 ml-auto mt-1 transition-colors" />
                             </div>
                           </div>
@@ -327,7 +320,6 @@ export default function SpaBookingClient({
                         )}
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                           <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {p.durataMinuti} min</span>
-                          {/* TODO: i18n */}
                           <span>{p.passaggi.length} trattamenti</span>
                         </div>
                         {p.passaggi.length > 0 && (
@@ -353,23 +345,22 @@ export default function SpaBookingClient({
             {/* Therapists */}
             {terapisti.length > 0 && (
               <div>
-                {/* TODO: i18n */}
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">I nostri terapisti</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {terapisti.map(tr => (
-                    <div key={tr.id} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+                  {terapisti.map(t => (
+                    <div key={t.id} className="bg-white rounded-xl border border-gray-200 p-4 text-center">
                       <div
                         className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-bold text-sm"
-                        style={{ backgroundColor: tr.colore }}
+                        style={{ backgroundColor: t.colore }}
                       >
-                        {tr.nome[0]}{tr.cognome[0]}
+                        {t.nome[0]}{t.cognome[0]}
                       </div>
-                      <p className="text-sm font-semibold text-gray-900">{tr.nome} {tr.cognome}</p>
-                      {tr.specializzazioni.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-1">{tr.specializzazioni.slice(0, 2).join(', ')}</p>
+                      <p className="text-sm font-semibold text-gray-900">{t.nome} {t.cognome}</p>
+                      {t.specializzazioni.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-1">{t.specializzazioni.slice(0, 2).join(', ')}</p>
                       )}
-                      {tr.bio && (
-                        <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{tr.bio}</p>
+                      {t.bio && (
+                        <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{t.bio}</p>
                       )}
                     </div>
                   ))}
@@ -383,7 +374,6 @@ export default function SpaBookingClient({
         {step === 2 && servizio && (
           <div className="space-y-5">
             <button onClick={() => setStep(1)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
-              {/* TODO: i18n */}
               <ArrowLeft className="w-4 h-4" /> Cambia servizio
             </button>
 
@@ -399,17 +389,15 @@ export default function SpaBookingClient({
             {/* Therapist preference (optional) */}
             {terapisti.length > 0 && (
               <div>
-                {/* TODO: i18n */}
                 <label className="text-sm font-medium text-gray-700 block mb-1.5">Preferenza terapista (opzionale)</label>
                 <select
                   value={preferTerapista}
                   onChange={e => { setPreferTerapista(e.target.value); setSelectedDate(null); setSlots([]) }}
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white"
                 >
-                  {/* TODO: i18n */}
                   <option value="">Nessuna preferenza</option>
-                  {terapisti.map(tr => (
-                    <option key={tr.id} value={tr.id}>{tr.nome} {tr.cognome}</option>
+                  {terapisti.map(t => (
+                    <option key={t.id} value={t.id}>{t.nome} {t.cognome}</option>
                   ))}
                 </select>
               </div>
@@ -417,7 +405,6 @@ export default function SpaBookingClient({
 
             {/* Week picker */}
             <div>
-              {/* TODO: i18n */}
               <label className="text-sm font-medium text-gray-700 block mb-2">Scegli una data</label>
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
@@ -470,7 +457,6 @@ export default function SpaBookingClient({
             {selectedDate && (
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-2">
-                  {/* TODO: i18n */}
                   Orari disponibili — {format(selectedDate, 'EEEE d MMMM', { locale: it })}
                 </label>
                 {slotsLoading ? (
@@ -479,7 +465,6 @@ export default function SpaBookingClient({
                   </div>
                 ) : slots.filter(s => s.disponibile).length === 0 ? (
                   <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-gray-400 text-sm">
-                    {/* TODO: i18n */}
                     Nessun orario disponibile per questa data. Prova un altro giorno.
                   </div>
                 ) : (
@@ -509,7 +494,6 @@ export default function SpaBookingClient({
         {step === 3 && servizio && selectedDate && selectedSlot && (
           <div className="space-y-5">
             <button onClick={() => setStep(2)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700">
-              {/* TODO: i18n */}
               <ArrowLeft className="w-4 h-4" /> Cambia data/ora
             </button>
 
@@ -525,7 +509,7 @@ export default function SpaBookingClient({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">{tc('name')} *</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Nome *</label>
                   <input
                     type="text" required value={guest.nome}
                     onChange={e => setGuest(g => ({ ...g, nome: e.target.value }))}
@@ -533,7 +517,7 @@ export default function SpaBookingClient({
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">{tc('surname')} *</label>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Cognome *</label>
                   <input
                     type="text" required value={guest.cognome}
                     onChange={e => setGuest(g => ({ ...g, cognome: e.target.value }))}
@@ -542,7 +526,7 @@ export default function SpaBookingClient({
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">{tc('email')} *</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
                 <input
                   type="email" required value={guest.email}
                   onChange={e => setGuest(g => ({ ...g, email: e.target.value }))}
@@ -550,7 +534,7 @@ export default function SpaBookingClient({
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">{tc('phone')}</label>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Telefono</label>
                 <input
                   type="tel" value={guest.telefono}
                   onChange={e => setGuest(g => ({ ...g, telefono: e.target.value }))}
@@ -558,7 +542,6 @@ export default function SpaBookingClient({
                 />
               </div>
               <div>
-                {/* TODO: i18n */}
                 <label className="text-sm font-medium text-gray-700 block mb-1">Note o richieste particolari</label>
                 <textarea
                   rows={3} value={guest.note}
@@ -574,12 +557,10 @@ export default function SpaBookingClient({
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold text-sm hover:from-purple-700 hover:to-pink-600 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                {/* TODO: i18n */}
-                {loading ? 'Prenotazione in corso...' : tc('confirm') + ' ' + tc('bookings').charAt(0).toLowerCase() + tc('bookings').slice(1)}
+                {loading ? 'Prenotazione in corso...' : 'Conferma prenotazione'}
               </button>
 
               <p className="text-xs text-gray-400 text-center">
-                {/* TODO: i18n */}
                 Il pagamento avverra direttamente in struttura. Questa non e una transazione.
               </p>
             </form>
@@ -592,11 +573,9 @@ export default function SpaBookingClient({
             <div className="grid md:grid-cols-2 gap-8">
               {/* Waiver */}
               <div className="space-y-4">
-                {/* TODO: i18n */}
                 <h3 className="text-lg font-bold text-gray-900">1. Dichiarazione di Salute</h3>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-                  {/* TODO: i18n */}
-                  Prima di usufruire del servizio, compila la dichiarazione di salute e firma digitalmente.
+                  ℹ️ Prima di usufruire del servizio, compila la dichiarazione di salute e firma digitalmente.
                 </div>
                 <WaiverSpaForm
                   appuntamentoId={appuntamentoId}
@@ -611,11 +590,9 @@ export default function SpaBookingClient({
 
               {/* Pagamento */}
               <div className="space-y-4">
-                {/* TODO: i18n */}
                 <h3 className="text-lg font-bold text-gray-900">2. Metodo di Pagamento</h3>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-700">
-                  {/* TODO: i18n */}
-                  Seleziona come preferisci pagare il servizio SPA.
+                  ℹ️ Seleziona come preferisci pagare il servizio SPA.
                 </div>
                 {servizio && (
                   <PagamentoSpaForm
@@ -636,7 +613,7 @@ export default function SpaBookingClient({
                 onClick={() => setStep(3)}
                 className="px-6 py-2 rounded-lg bg-gray-200 text-gray-900 font-medium hover:bg-gray-300 transition"
               >
-                ← {tc('back')}
+                ← Indietro
               </button>
               <button
                 onClick={finalizeBooking}
@@ -644,7 +621,6 @@ export default function SpaBookingClient({
                 className="px-6 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {/* TODO: i18n */}
                 Conferma Prenotazione →
               </button>
             </div>
@@ -659,7 +635,6 @@ export default function SpaBookingClient({
             </div>
 
             <div>
-              {/* TODO: i18n */}
               <h2 className="text-2xl font-bold text-gray-900">Prenotazione confermata!</h2>
               <p className="text-gray-500 mt-1">Riceverai una conferma via email</p>
             </div>
@@ -694,7 +669,6 @@ export default function SpaBookingClient({
             </div>
 
             <p className="text-xs text-gray-400">
-              {/* TODO: i18n */}
               Codice prenotazione: <span className="font-mono">{booking.id.slice(0, 8)}</span>
             </p>
           </div>

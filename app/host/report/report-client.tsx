@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { useTranslations } from 'next-intl'
 import {
   TrendingUp, TrendingDown, Euro, BedDouble, CalendarCheck, Building2,
   ChevronLeft, ChevronRight, Loader2, Download, FileText, Minus,
@@ -67,8 +66,6 @@ export default function ReportClient({
 }: {
   annoIniziale: number; meseIniziale: number
 }) {
-  const t = useTranslations('host.report')
-  const tc = useTranslations('common')
   const [anno, setAnno] = useState(annoIniziale)
   const [mese, setMese] = useState(meseIniziale)
   const [dati, setDati] = useState<DatiReport | null>(null)
@@ -123,7 +120,7 @@ export default function ReportClient({
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Report PMS</h1>
           <p className="text-sm text-gray-500">Statistiche mensili con confronto e forecast</p>
         </div>
         {dati && !caricamento && (
@@ -420,109 +417,7 @@ export default function ReportClient({
               <p className="text-sm">Nessuna prenotazione confermata in questo periodo</p>
             </div>
           )}
-
-          {/* Sezioni extra espandibili */}
-          <ReportExtraSection titolo="Scadenziario Crediti" url="/api/host/report/crediti" render={(d) => (
-            <div className="space-y-3">
-              <div className="grid grid-cols-4 gap-3 text-center">
-                {Object.entries(d.scadenziario || {}).map(([fascia, vals]: [string, any]) => (
-                  <div key={fascia} className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                    <p className="text-xs text-gray-500">{fascia}</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{vals.count}</p>
-                    <p className="text-xs text-brand-600">€{vals.totale?.toFixed(0)}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400">Totale crediti: €{d.riepilogo?.totaleCrediti?.toFixed(2)} — {d.riepilogo?.numCrediti} posizioni</p>
-            </div>
-          )} />
-
-          <ReportExtraSection titolo="Statistiche ISTAT (Nazionalità)" url={`/api/host/report/statistiche-istat?anno=${anno}&mese=${mese}`} render={(d) => (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{d.riepilogo?.totaleArrivi}</p>
-                  <p className="text-xs text-gray-500">Arrivi</p>
-                </div>
-                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-blue-600">{d.riepilogo?.italiani}</p>
-                  <p className="text-xs text-gray-500">Italiani</p>
-                </div>
-                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-purple-600">{d.riepilogo?.stranieri}</p>
-                  <p className="text-xs text-gray-500">Stranieri ({d.riepilogo?.percentualeStranieri}%)</p>
-                </div>
-              </div>
-              {d.perNazionalita?.slice(0, 8).map((n: any) => (
-                <div key={n.nome} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-700 dark:text-slate-300">{n.nome}</span>
-                  <span className="font-medium">{n.ospiti} ospiti · {n.notti} notti</span>
-                </div>
-              ))}
-            </div>
-          )} />
-
-          <ReportExtraSection titolo="Tassa di Soggiorno" url={`/api/host/report/tassa-soggiorno?anno=${anno}&mese=${mese}`} render={(d) => (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{d.riepilogo?.prenotazioni}</p>
-                  <p className="text-xs text-gray-500">Prenotazioni</p>
-                </div>
-                <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{d.riepilogo?.totaleNotti}</p>
-                  <p className="text-xs text-gray-500">Notti totali</p>
-                </div>
-                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-green-600">€{d.riepilogo?.totaleTassa?.toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">Tassa totale</p>
-                </div>
-              </div>
-              {d.perStruttura?.map((s: any) => (
-                <div key={s.nome} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-700 dark:text-slate-300">{s.nome} ({s.citta})</span>
-                  <span className="font-medium">{s.notti} notti · €{s.totale?.toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          )} />
         </>
-      )}
-    </div>
-  )
-}
-
-function ReportExtraSection({ titolo, url, render }: {
-  titolo: string; url: string; render: (data: any) => React.ReactNode
-}) {
-  const [aperto, setAperto] = useState(false)
-  const [dati, setDati] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
-
-  async function carica() {
-    if (dati) { setAperto(!aperto); return }
-    setLoading(true); setAperto(true)
-    try {
-      const res = await fetch(url)
-      if (res.ok) setDati(await res.json())
-    } catch (err) { console.error(err) }
-    setLoading(false)
-  }
-
-  return (
-    <div className="card">
-      <button onClick={carica} className="w-full flex items-center justify-between text-left">
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{titolo}</h2>
-        <span className="text-xs text-brand-600">{aperto ? 'Chiudi' : 'Espandi'}</span>
-      </button>
-      {aperto && (
-        <div className="mt-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-6 text-gray-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" /> Caricamento...
-            </div>
-          ) : dati ? render(dati) : <p className="text-xs text-gray-400">Nessun dato</p>}
-        </div>
       )}
     </div>
   )
