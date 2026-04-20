@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { isModuloAttivo } from '@/lib/moduli'
 import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
 import SpaBookingFlow from './spa-booking-flow'
+import BookingLayout from '@/components/book/booking-layout'
+import { getStrutturaPubblica } from '@/lib/book/get-struttura-pubblica'
 
 export const metadata = { title: 'SPA & Benessere — Prenota Online' }
 
@@ -90,8 +92,11 @@ export default async function SpaBookingPage({
     }
   }
 
+  const strutturaPubblica = await getStrutturaPubblica(struttura.id)
+  if (!strutturaPubblica) notFound()
+
   return (
-    <>
+    <BookingLayout struttura={strutturaPubblica}>
       <SpaBookingFlow
         strutturaId={struttura.id}
         struttura={{
@@ -110,6 +115,6 @@ export default async function SpaBookingPage({
         prenotazioneGuest={prenotazioneGuest}
       />
       <PublicConciergeWidget strutturaId={struttura.id} strutturaNome={struttura.nome} />
-    </>
+    </BookingLayout>
   )
 }

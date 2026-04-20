@@ -13,58 +13,28 @@ interface BookingSummary {
 
 interface Props {
   children: ReactNode
-  strutturaNome: string
-  logo?: string | null
   colorePrimario?: string | null
   summary: BookingSummary
 }
 
 /**
- * Layout wrapper per il booking SPA pubblico.
- * Logo + card centrata + riepilogo sticky in basso.
+ * Layout INTERNO del flow SPA: card centrata + riepilogo sticky in basso.
+ * L'header/footer white-label del booking engine è gestito da
+ * components/book/booking-layout.tsx (wrapper esterno).
  */
-export function SpaBookingLayout({
-  children, strutturaNome, logo, colorePrimario, summary,
-}: Props) {
-  const accent = colorePrimario || '#4f46e5'
+export function SpaBookingLayout({ children, colorePrimario, summary }: Props) {
+  const accent = colorePrimario || 'var(--brand-primary, #4f46e5)'
   const [summaryOpen, setSummaryOpen] = useState(false)
   const hasSummary = summary.servizioNome || summary.prezzo
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32">
-      {/* ─── Header ────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logo} alt={strutturaNome} className="h-8 w-auto max-w-[120px] object-contain" />
-            ) : (
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
-                style={{ backgroundColor: accent }}>
-                {strutturaNome.charAt(0)}
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-semibold text-gray-900">{strutturaNome}</p>
-              <p className="text-[10px] text-gray-400">SPA & Benessere</p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full text-white"
-            style={{ backgroundColor: accent }}>
-            Prenota
-          </span>
-        </div>
-      </header>
-
-      {/* ─── Content ───────────────────────────────────────────── */}
+    <div className={hasSummary ? 'pb-32' : ''}>
       <main className="max-w-2xl mx-auto">
-        <div className="sm:my-4 sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-gray-100">
+        <div className="sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border sm:border-gray-100">
           {children}
         </div>
       </main>
 
-      {/* ─── Riepilogo sticky in basso ─────────────────────────── */}
       {hasSummary && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-lg">
           <div className="max-w-2xl mx-auto">

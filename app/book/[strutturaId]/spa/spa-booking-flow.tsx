@@ -94,8 +94,6 @@ export default function SpaBookingFlow({
 
   return (
     <SpaBookingLayout
-      strutturaNome={struttura.nome}
-      logo={struttura.logo}
       colorePrimario={struttura.colorePrimario}
       summary={summary}
     >
