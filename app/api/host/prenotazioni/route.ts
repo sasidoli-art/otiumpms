@@ -6,6 +6,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { parseBody, prenotazioneHostSchema, isStatoPrenotazione } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
+import { upsertOspiteFromBooking } from '@/lib/crm'
 
 // GET /api/host/prenotazioni
 export async function GET(req: NextRequest) {
@@ -104,6 +105,9 @@ export async function POST(req: NextRequest) {
     const { ensurePin } = await import('@/lib/guest-pin')
     await ensurePin(prenotazione.id, auth.user.hostId)
   } catch { /* best effort */ }
+
+  // ── Sync OspiteCRM (non-bloccante) ──────────────────────────────────────────
+  upsertOspiteFromBooking(auth.user.hostId, { guestEmail, guestNome, guestCognome, guestTelefono }).catch(() => {})
 
   // ── Email notifica + notifica in-app (non bloccante) ────────────────────────
   const struttura = strutturaId

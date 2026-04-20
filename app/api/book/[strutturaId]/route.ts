@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { sendEmailNuovaPrenotazione, sendEmailConfermaRicezione } from '@/lib/email'
 import { parseBody, prenotazionePublicSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { upsertOspiteFromBooking } from '@/lib/crm'
 import { logger } from '@/lib/logger'
 import { calcolaPrezzo } from '@/lib/pricing'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
@@ -159,6 +160,11 @@ export async function POST(
       tassaSoggiorno: tassaSoggiornoCalcolata,
       checkInToken,
     },
+  })
+
+  // Sync OspiteCRM (create or update memoria ospite su questo host)
+  await upsertOspiteFromBooking(struttura.hostId, { guestEmail, guestNome, guestCognome, guestTelefono }).catch(() => {
+    // non-blocking: se fallisce il CRM sync, la prenotazione è già stata creata
   })
 
   const chat = await prisma.chat.create({

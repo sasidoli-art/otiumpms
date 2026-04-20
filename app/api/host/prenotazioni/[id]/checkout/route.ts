@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { incrementStatsOnCheckout } from '@/lib/crm'
 
 export async function POST(
   req: Request,
@@ -33,6 +34,9 @@ export async function POST(
     where: { id: params.id },
     data: { stato: 'COMPLETATA' },
   })
+
+  // Aggiorna statistiche CRM (numSoggiorni, totaleSpeso, dataUltimoSoggiorno)
+  incrementStatsOnCheckout(auth.user.hostId, params.id).catch(() => {})
 
   return NextResponse.json(aggiornata)
 }

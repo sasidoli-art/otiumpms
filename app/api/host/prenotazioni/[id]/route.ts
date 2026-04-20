@@ -5,6 +5,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { parseBody, prenotazioneUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
+import { incrementStatsOnCheckout } from '@/lib/crm'
 
 // GET /api/host/prenotazioni/[id]
 export async function GET(
@@ -132,7 +133,7 @@ export async function PATCH(
     })
   }
 
-  // Completata → notifica host + libera camera + task HK
+  // Completata → notifica host + libera camera + task HK + CRM stats
   if (stato === 'COMPLETATA' && prenotazione.stato !== 'COMPLETATA') {
     await prisma.notifica.create({
       data: {
@@ -143,6 +144,9 @@ export async function PATCH(
         linkUrl: `/host/prenotazioni/${params.id}`,
       },
     })
+
+    // Aggiorna statistiche CRM
+    incrementStatsOnCheckout(auth.user.hostId, params.id).catch(() => {})
 
     // Libera camera se richiesto
     const rawObj = raw as Record<string, unknown>

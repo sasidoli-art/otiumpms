@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { logger } from '@/lib/logger'
+import { upsertOspiteFromBooking } from '@/lib/crm'
 
 type ImportRow = {
   nome: string
@@ -148,6 +149,13 @@ export async function POST(req: NextRequest) {
         },
       })
       result.importate++
+      // Sync OspiteCRM (non-bloccante)
+      upsertOspiteFromBooking(hostId, {
+        guestEmail: r.email.trim(),
+        guestNome: r.nome.trim(),
+        guestCognome: r.cognome.trim(),
+        guestTelefono: r.telefono?.trim() || null,
+      }).catch(() => {})
     } catch (err) {
       result.errori.push({
         riga: rigaNum,
