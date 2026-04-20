@@ -45,7 +45,19 @@ export type RetentionAction = {
 
 export type RetentionReport = {
   eseguitoAt: Date
+  completato: boolean // false se interrotto per timeout
+  policyProcessate: string[]
+  policyRimaste: string[]
   azioni: RetentionAction[]
+}
+
+export type RetentionOptions = {
+  /** Limite massimo record per policy (default: illimitato). */
+  maxRecordsPerPolicy?: number
+  /** Timeout budget in ms. Quando superato, le policy rimanenti vengono saltate e `completato=false`. */
+  timeoutMs?: number
+  /** Skippa queste policy (utile per riprendere da dove si era fermati). */
+  skipPolicies?: string[]
 }
 
 // Retrocompatibilità API esistente
@@ -592,21 +604,49 @@ const EXECUTORS: Record<string, PolicyExecutor> = {
  * Esegue tutte le policy di retention. Se `hostId` è specificato, limita ai
  * dati di quell'host (utile per trigger manuale da /host/gdpr). Se null,
  * esegue su tutti i tenant (cron globale).
+ *
+ * Timeout-aware: se `options.timeoutMs` è settato, salta le policy rimanenti
+ * quando il budget è esaurito. `report.completato = false` e `policyRimaste`
+ * contiene gli id non processati (da riprendere nella prossima esecuzione).
  */
-export async function eseguiRetention(hostId: string | null = null): Promise<RetentionReport> {
-  const report: RetentionReport = { eseguitoAt: new Date(), azioni: [] }
-  const now = new Date()
+export async function eseguiRetention(
+  hostId: string | null = null,
+  options: RetentionOptions = {},
+): Promise<RetentionReport> {
+  const eseguitoAt = new Date()
+  const startMs = Date.now()
+  const report: RetentionReport = {
+    eseguitoAt,
+    completato: true,
+    policyProcessate: [],
+    policyRimaste: [],
+    azioni: [],
+  }
+  const skip = new Set(options.skipPolicies ?? [])
 
   for (const policy of RETENTION_POLICIES) {
+    if (skip.has(policy.id)) {
+      report.policyRimaste.push(policy.id)
+      continue
+    }
+
+    // Controllo timeout prima di ogni policy
+    if (options.timeoutMs && Date.now() - startMs > options.timeoutMs) {
+      report.completato = false
+      report.policyRimaste.push(policy.id)
+      continue
+    }
+
     const executor = EXECUTORS[policy.id]
     if (!executor) {
       logger.warn(`Policy ${policy.id} senza executor`, 'gdpr-retention')
       continue
     }
-    const soglia = subDays(now, policy.giorniRetention)
+    const soglia = subDays(eseguitoAt, policy.giorniRetention)
     try {
       const action = await executor(policy, soglia, hostId)
       report.azioni.push(action)
+      report.policyProcessate.push(policy.id)
       if (action.processed > 0 || action.errors > 0) {
         logger.info(
           `GDPR retention: ${policy.id} — ${action.processed} processati, ${action.errors} errori`,
@@ -623,6 +663,7 @@ export async function eseguiRetention(hostId: string | null = null): Promise<Ret
         processed: 0, errors: 1,
         details: [e instanceof Error ? e.message : String(e)],
       })
+      report.policyProcessate.push(policy.id)
     }
   }
 
