@@ -379,7 +379,115 @@ model Host {
   wifiAccessCodes  WifiAccessCode[]
   wifiSessions     WifiSession[]
 
+  // ─── Config estratte (Fase 1 God Object split) ──────────────────────────
+  // Durante la migrazione i campi SMTP/Concierge/Wifi/Billing esistono sia su
+  // Host (legacy) che su questi modelli dedicati (new). Lib/host-config.ts
+  // legge con read-through (new → fallback Host) e scrive dual-write.
+  // Al termine della Fase 3 i campi su Host verranno rimossi.
+  smtpConfig      HostSmtpConfig?
+  conciergeConfig HostConciergeConfig?
+  wifiConfig      HostWifiConfig?
+  billingInfo     HostBillingInfo?
+
   @@map("hosts")
+}
+
+// ─── Host config sub-models (extraction from God Object) ──────────────────
+
+model HostSmtpConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPass      String? // cifrato (AES-256-GCM via lib/crypto.ts)
+  emailMittente String?
+
+  // Email routing — inoltro richieste ospiti a reparti specifici
+  emailHousekeeping String?
+  emailManutenzione String?
+  emailRistorazione String?
+  emailReception    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("host_smtp_config")
+}
+
+model HostConciergeConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // AI Concierge
+  conciergeAttivo         Boolean   @default(false)
+  conciergeProvider       String?   @default("ollama")
+  conciergeApiKey         String? // cifrato
+  conciergeModel          String?   @default("llama3.1")
+  conciergeBaseUrl        String?
+  conciergeSystemPrompt   String?
+  conciergeGdprAcceptedAt DateTime?
+
+  // WhatsApp Business
+  whatsappNumeroId    String?
+  whatsappAccessToken String? // cifrato
+  whatsappVerifyToken String? // plaintext per webhook lookup
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([whatsappVerifyToken]) // per webhook Meta (findFirst)
+  @@map("host_concierge_config")
+}
+
+model HostWifiConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Captive Portal — metodi autenticazione
+  wifiAuthPms           Boolean @default(true)
+  wifiAuthCode          Boolean @default(true)
+  wifiAuthComplimentary Boolean @default(false)
+  wifiComplimentaryMins Int     @default(120)
+  wifiAuthUserForm      Boolean @default(false)
+  wifiAuthSocial        Boolean @default(false)
+  wifiRedirectUrl       String?
+  wifiWelcomeMessage    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("host_wifi_config")
+}
+
+model HostBillingInfo {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Dati fatturazione (distinti dai dati azienda dell'Host)
+  fattNomeAzienda String?
+  fattPartitaIva  String?
+  fattIndirizzo   String?
+  fattCitta       String?
+  fattCap         String?
+  fattProvincia   String?
+  fattPaese       String? @default("Italia")
+  fattEmail       String?
+  fattPec         String?
+  fattCodiceSDI   String?
+  regimeFiscale   String? @default("RF01")
+
+  // SDI provider (Aruba / FattureInCloud / manuale)
+  sdiProvider  String?
+  sdiApiKey    String? // cifrato
+  sdiUsername  String?
+  sdiCompanyId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("host_billing_info")
 }
 
 model Evento {
