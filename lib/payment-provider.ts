@@ -54,6 +54,96 @@ export interface PaymentProvider {
   getStatus?(): Promise<{ online: boolean; terminale: string }>
 }
 
+// ─── Online checkout (Stripe Hosted) ─────────────────────────────────────────
+//
+// Flusso card-not-present per booking engine / privacy portal / qualsiasi checkout online.
+// Crea una Stripe Checkout Session e ritorna l'URL a cui redirigere il browser.
+// Lo stato viene aggiornato async dal webhook /api/webhooks/stripe.
+
+export interface OnlineCheckoutRequest {
+  hostId: string
+  prenotazioneId: string
+  importo: number // EUR
+  descrizione: string
+  successUrl: string
+  cancelUrl: string
+  guestEmail?: string | null
+  // Capture mode: 'automatic' riscuote subito; 'manual' solo autorizza (hold) per no-show policy
+  captureMode?: 'automatic' | 'manual'
+  // Metadata propagati a webhook
+  metadata?: Record<string, string>
+}
+
+export interface OnlineCheckoutResult {
+  success: boolean
+  sessionId: string | null
+  sessionUrl: string | null
+  errore: string | null
+}
+
+/**
+ * Crea una Stripe Checkout Session per pagamenti online.
+ * Richiede `PaymentProviderConfig.stripeSecretKey` configurata per il host.
+ */
+export async function createOnlineCheckout(
+  stripeSecretKey: string | null | undefined,
+  req: OnlineCheckoutRequest,
+): Promise<OnlineCheckoutResult> {
+  const secret = stripeSecretKey ? (revealSecret(stripeSecretKey) ?? stripeSecretKey) : null
+  if (!secret) {
+    return { success: false, sessionId: null, sessionUrl: null, errore: 'Stripe non configurato per questo host' }
+  }
+
+  try {
+    const params = new URLSearchParams()
+    params.append('mode', 'payment')
+    params.append('success_url', req.successUrl)
+    params.append('cancel_url', req.cancelUrl)
+    params.append('line_items[0][price_data][currency]', 'eur')
+    params.append('line_items[0][price_data][product_data][name]', req.descrizione.slice(0, 200))
+    params.append('line_items[0][price_data][unit_amount]', String(Math.round(req.importo * 100)))
+    params.append('line_items[0][quantity]', '1')
+    if (req.guestEmail) params.append('customer_email', req.guestEmail)
+    if (req.captureMode === 'manual') {
+      params.append('payment_intent_data[capture_method]', 'manual')
+    }
+    // Metadata propagati al PaymentIntent/Session
+    params.append('metadata[hostId]', req.hostId)
+    params.append('metadata[prenotazioneId]', req.prenotazioneId)
+    for (const [k, v] of Object.entries(req.metadata ?? {})) {
+      params.append(`metadata[${k}]`, v)
+    }
+
+    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params,
+    })
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      return {
+        success: false, sessionId: null, sessionUrl: null,
+        errore: err.error?.message || `Stripe HTTP ${res.status}`,
+      }
+    }
+
+    const session = await res.json()
+    return {
+      success: true,
+      sessionId: session.id,
+      sessionUrl: session.url,
+      errore: null,
+    }
+  } catch (err) {
+    logger.error('Stripe Checkout error', { error: String(err) })
+    return { success: false, sessionId: null, sessionUrl: null, errore: `Errore Stripe: ${String(err)}` }
+  }
+}
+
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
 export function createPaymentProvider(config: PaymentProviderConfig): PaymentProvider {

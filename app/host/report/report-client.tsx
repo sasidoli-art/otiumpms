@@ -94,15 +94,54 @@ export default function ReportClient({
 
   function exportCsv() {
     if (!dati) return
-    const header = 'Data,Revenue'
-    const rows = dati.revenuePerGiorno.map(g => `${g.data},${g.revenue.toFixed(2)}`)
-    const strutHeader = '\n\nStruttura,Prenotazioni,Notti Occupate,Revenue'
-    const strutRows = dati.perStruttura.map(s => `${s.nome},${s.prenotazioni},${s.nottiOccupate},${s.revenue.toFixed(2)}`)
-    const fonteHeader = '\n\nFonte,Prenotazioni,Revenue'
-    const fonteRows = dati.perFonte.map(f => `${f.fonte},${f.prenotazioni},${f.revenue.toFixed(2)}`)
-    const summary = `\n\nRiepilogo ${MESI[mese - 1]} ${anno}\nPrenotazioni,${dati.numPrenotazioni}\nOccupazione,${dati.occupazionePercent}%\nRevenue Totale,${dati.revenueTotale.toFixed(2)}\nRevPAR,${dati.revpar.toFixed(2)}\nADR,${dati.adr.toFixed(2)}\nDurata media soggiorno,${dati.durataMediaSoggiorno}\nTasso cancellazione,${dati.cancellazionePct}%`
-    const csv = [header, ...rows, strutHeader, ...strutRows, fonteHeader, ...fonteRows, summary].join('\n')
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    // CSV Excel-IT: BOM UTF-8 + delimiter ";" (Excel italiano)
+    const esc = (v: unknown) => {
+      if (v === null || v === undefined) return ''
+      const s = String(v).replace(/"/g, '""')
+      return /[";\n,]/.test(s) ? `"${s}"` : s
+    }
+    const line = (arr: (string | number)[]) => arr.map(esc).join(';')
+    const lines: string[] = []
+
+    lines.push(line([`Report ${MESI[mese - 1]} ${anno}`]))
+    lines.push('')
+    lines.push(line(['Riepilogo KPI']))
+    lines.push(line(['Metrica', 'Valore', 'Δ vs mese prec.', 'Δ vs anno prec.']))
+    lines.push(line(['Revenue', `€${dati.revenueTotale.toFixed(2)}`, `${dati.confronto.revenue}%`, `${dati.confrontoYoY.revenue}%`]))
+    lines.push(line(['Occupazione', `${dati.occupazionePercent}%`, `${dati.confronto.occupazione} pp`, `${dati.confrontoYoY.occupazione} pp`]))
+    lines.push(line(['RevPAR', `€${dati.revpar.toFixed(2)}`, `${dati.confronto.revpar}%`, `${dati.confrontoYoY.revpar}%`]))
+    lines.push(line(['ADR', `€${dati.adr.toFixed(2)}`, `${dati.confronto.adr}%`, `${dati.confrontoYoY.adr}%`]))
+    lines.push(line(['Prenotazioni', dati.numPrenotazioni, `${dati.confronto.prenotazioni}%`, `${dati.confrontoYoY.prenotazioni}%`]))
+    lines.push(line(['Notti occupate', dati.nottiOccupate, '', '']))
+    lines.push(line(['Durata media soggiorno', `${dati.durataMediaSoggiorno} notti`, '', '']))
+    lines.push(line(['Tasso cancellazione', `${dati.cancellazionePct}%`, '', '']))
+    lines.push('')
+
+    lines.push(line(['Revenue giornaliero']))
+    lines.push(line(['Data', 'Revenue']))
+    dati.revenuePerGiorno.forEach((g) => lines.push(line([g.data, `€${g.revenue.toFixed(2)}`])))
+    lines.push('')
+
+    if (dati.perStruttura.length > 0) {
+      lines.push(line(['Per struttura']))
+      lines.push(line(['Struttura', 'Prenotazioni', 'Notti Occupate', 'Revenue']))
+      dati.perStruttura.forEach((s) => lines.push(line([s.nome, s.prenotazioni, s.nottiOccupate, `€${s.revenue.toFixed(2)}`])))
+      lines.push('')
+    }
+
+    if (dati.perFonte.length > 0) {
+      lines.push(line(['Per fonte']))
+      lines.push(line(['Fonte', 'Prenotazioni', 'Revenue']))
+      dati.perFonte.forEach((f) => lines.push(line([f.fonte, f.prenotazioni, `€${f.revenue.toFixed(2)}`])))
+      lines.push('')
+    }
+
+    lines.push(line(['Forecast prossimi 30 giorni']))
+    lines.push(line(['Data', 'Occupate', 'Totale']))
+    dati.forecast.giorni.forEach((g) => lines.push(line([g.data, g.occupate, g.totale])))
+
+    const csv = '\uFEFF' + lines.join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url; a.download = `report_${anno}_${String(mese).padStart(2, '0')}.csv`; a.click()
@@ -129,7 +168,7 @@ export default function ReportClient({
               <FileText className="w-4 h-4" /> PDF
             </button>
             <button onClick={exportCsv} className="btn-primary flex items-center gap-2 text-sm">
-              <Download className="w-4 h-4" /> CSV
+              <Download className="w-4 h-4" /> Excel
             </button>
           </div>
         )}
@@ -429,17 +468,17 @@ function KpiCard({
   icon: React.ReactNode; titolo: string; valore: string; bg: string; sub?: string; delta?: React.ReactNode
 }) {
   return (
-    <div className="card flex items-start gap-3">
-      <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${bg}`}>
+    <div className="card flex items-start gap-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${bg} ring-1 ring-inset ring-black/5`}>
         {icon}
       </div>
-      <div>
-        <p className="text-2xl font-extrabold text-gray-900 leading-tight">{valore}</p>
-        <div className="flex items-center gap-2">
+      <div className="min-w-0">
+        <p className="text-2xl font-extrabold text-gray-900 leading-tight tracking-tight">{valore}</p>
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="text-xs text-gray-500 font-medium">{titolo}</p>
           {delta}
         </div>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        {sub && <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   )

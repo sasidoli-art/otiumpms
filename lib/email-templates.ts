@@ -650,7 +650,7 @@ export async function renderEmail(
 
   // Injection del messaggio custom (solo se non vuoto)
   const customBlock = resolvedOverride?.messaggioCustom?.trim()
-    ? `<div style="margin-top:16px;padding:14px 18px;border-radius:8px;background:#f9fafb;border-left:3px solid ${'#4f46e5'};color:#374151;line-height:1.55;white-space:pre-wrap;">${escapeBasicHtml(resolvedOverride.messaggioCustom)}</div>`
+    ? `<div style="margin-top:16px;padding:14px 18px;border-radius:8px;background:#f9fafb;border-left:3px solid #4f46e5;color:#374151;line-height:1.55;">${escapeBasicHtml(resolvedOverride.messaggioCustom)}</div>`
     : ''
 
   const bodyHtml = base.bodyHtml + customBlock
@@ -696,12 +696,115 @@ async function loadHostConfig(hostId: string, templateId: EmailTemplateId): Prom
   } catch { return null }
 }
 
+/**
+ * Markdown minimale → HTML sicuro per email.
+ * Supporta:
+ *   **grassetto**, *corsivo*, __grassetto__, _corsivo_
+ *   [testo](url)  → <a href>
+ *   # Titolo      → <h2>
+ *   ## Titolo     → <h3>
+ *   - item        → <ul><li>
+ *   1. item       → <ol><li>
+ *   --- / ***     → <hr>
+ *   \n\n          → <p>...</p>
+ *   \n            → <br>
+ * Tutti i tag HTML input vengono escape. Solo il subset consentito viene
+ * generato dai marker Markdown.
+ */
 function escapeBasicHtml(s: string): string {
-  return s
+  const escaped = s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
+
+  return markdownToHtml(escaped)
+}
+
+function markdownToHtml(src: string): string {
+  const lines = src.split(/\r?\n/)
+  const out: string[] = []
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Horizontal rule
+    if (/^(-{3,}|\*{3,})\s*$/.test(line)) {
+      out.push('<hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;" />')
+      i++
+      continue
+    }
+
+    // Heading
+    const h = line.match(/^(#{1,6})\s+(.+)$/)
+    if (h) {
+      const level = Math.min(h[1].length + 1, 6) // start da h2
+      out.push(`<h${level} style="margin:14px 0 6px;font-weight:700;">${inlineMd(h[2])}</h${level}>`)
+      i++
+      continue
+    }
+
+    // Unordered list
+    if (/^\s*[-*]\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^\s*[-*]\s+/, ''))}</li>`)
+        i++
+      }
+      out.push(`<ul style="margin:8px 0;padding-left:20px;">${items.join('')}</ul>`)
+      continue
+    }
+
+    // Ordered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^\s*\d+\.\s+/, ''))}</li>`)
+        i++
+      }
+      out.push(`<ol style="margin:8px 0;padding-left:20px;">${items.join('')}</ol>`)
+      continue
+    }
+
+    // Blank = chiusura paragrafo
+    if (line.trim() === '') {
+      out.push('')
+      i++
+      continue
+    }
+
+    // Paragrafo: raccogli righe consecutive non-blank non-list non-heading
+    const paraLines: string[] = [line]
+    while (i + 1 < lines.length) {
+      const next = lines[i + 1]
+      if (next.trim() === '') break
+      if (/^\s*[-*]\s+/.test(next)) break
+      if (/^\s*\d+\.\s+/.test(next)) break
+      if (/^#{1,6}\s+/.test(next)) break
+      if (/^(-{3,}|\*{3,})\s*$/.test(next)) break
+      paraLines.push(next)
+      i++
+    }
+    out.push(`<p style="margin:0 0 10px;">${paraLines.map(inlineMd).join('<br>')}</p>`)
+    i++
+  }
+  return out.filter(Boolean).join('\n')
+}
+
+function inlineMd(s: string): string {
+  return s
+    // Link [text](url) — url sanitized
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+      const safeUrl = /^(https?:\/\/|mailto:|tel:)/.test(url) ? url : '#'
+      return `<a href="${safeUrl}" style="color:#4f46e5;text-decoration:underline;">${text}</a>`
+    })
+    // Bold **...** o __...__
+    .replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__([^_]+?)__/g, '<strong>$1</strong>')
+    // Italic *...* o _..._
+    .replace(/(^|[\s(])\*([^*]+?)\*(?=[\s).,!?]|$)/g, '$1<em>$2</em>')
+    .replace(/(^|[\s(])_([^_]+?)_(?=[\s).,!?]|$)/g, '$1<em>$2</em>')
+    // Inline code `x`
+    .replace(/`([^`]+?)`/g, '<code style="background:#f3f4f6;padding:1px 5px;border-radius:3px;font-size:0.9em;">$1</code>')
 }
 
 /**

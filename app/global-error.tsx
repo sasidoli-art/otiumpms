@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
+import * as Sentry from '@sentry/nextjs'
+
 export default function GlobalError({
   error,
   reset,
@@ -7,6 +10,13 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    Sentry.captureException(error, {
+      tags: { surface: 'global-error' },
+      extra: { digest: error?.digest },
+    })
+  }, [error])
+
   return (
     <html>
       <body>
@@ -24,7 +34,7 @@ export default function GlobalError({
             Si è verificato un errore
           </h1>
           <p style={{ color: '#6b7280', marginBottom: '0.5rem' }}>
-            Qualcosa è andato storto.
+            Qualcosa è andato storto. Il team è stato notificato automaticamente.
           </p>
           <p style={{ color: '#9ca3af', fontSize: '0.75rem', marginBottom: '1.5rem' }}>
             {error?.digest ?? error?.message ?? ''}

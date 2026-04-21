@@ -434,16 +434,19 @@ function EditorModal({
             <div>
               <label className="label">Messaggio aggiuntivo</label>
               <textarea
-                rows={8}
+                rows={10}
                 value={messaggio}
                 onChange={(e) => setMessaggio(e.target.value)}
-                placeholder={`Es. Per il check-in sei pregato di presentarti tra le 15 e le 20. Il parcheggio è gratuito — chiedi le chiavi al tuo arrivo.\n\nQuesto testo viene aggiunto in coda al template standard, non lo sostituisce.`}
+                placeholder={`# Benvenuto!\n\nPer il check-in sei pregato di presentarti tra le **15 e le 20**.\n\nIl parcheggio e' gratuito:\n- Ingresso lato via Roma\n- Chiedi le chiavi al tuo arrivo\n\n[Contattaci su WhatsApp](https://wa.me/393331234567)`}
                 className="input font-mono text-xs"
                 maxLength={5000}
               />
-              <p className="text-[11px] text-gray-400 mt-1">
-                {messaggio.length}/5000 caratteri. Puoi andare a capo con Invio. L&apos;HTML non e&apos; supportato.
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-[11px] text-gray-500">
+                  <strong>Markdown supportato</strong>: <code className="bg-gray-100 px-1 rounded">**grassetto**</code>, <code className="bg-gray-100 px-1 rounded">*corsivo*</code>, <code className="bg-gray-100 px-1 rounded"># Titolo</code>, <code className="bg-gray-100 px-1 rounded">- liste</code>, <code className="bg-gray-100 px-1 rounded">[link](url)</code>
+                </p>
+                <p className="text-[11px] text-gray-400">{messaggio.length}/5000</p>
+              </div>
             </div>
 
             {feedback && (

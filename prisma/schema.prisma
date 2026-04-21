@@ -414,6 +414,16 @@ model Host {
   // Alloggiati Web — storico export
   exportAlloggiati ExportAlloggiati[]
 
+  // API keys per integrazioni 3rd-party
+  apiKeys ApiKey[]
+
+  // Gruppi prenotazione (matrimoni, convegni)
+  gruppiPrenotazione GruppoPrenotazione[]
+
+  // Registratore Telematico (scontrino fiscale)
+  registratoreRt    RegistratoreRtConfig?
+  scontriniRt       ScontrinoRT[]
+
   @@map("hosts")
 }
 
@@ -915,6 +925,10 @@ model Prenotazione {
   // Es. "Salone del Mobile 2026", "Matrimonio Rossi", link a OtiumWeek.it
   eventoEsterno String?
 
+  // Gruppo — quando fa parte di una prenotazione di gruppo (matrimonio, convegno)
+  gruppoPrenotazioneId String?
+  gruppoPrenotazione   GruppoPrenotazione? @relation(fields: [gruppoPrenotazioneId], references: [id], onDelete: SetNull)
+
   // Dettagli prenotazione
   dataArrivo   DateTime          @db.Date
   dataPartenza DateTime?         @db.Date
@@ -997,8 +1011,51 @@ model Prenotazione {
   @@index([hostId])
   @@index([hostId, stato])
   @@index([guestEmail])
+  @@index([gruppoPrenotazioneId])
   @@index([deletedAt])
   @@map("prenotazioni")
+}
+
+// ─── Gruppo prenotazioni (matrimoni, convegni, gruppi turistici) ─────────────
+//
+// Raggruppa N `Prenotazione` sotto un master con referente unico.
+// Utile per:
+//   - fatturazione unica al capogruppo
+//   - reportistica per evento/gruppo
+//   - comunicazioni bulk a tutti i partecipanti
+
+model GruppoPrenotazione {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome              String // "Matrimonio Rossi-Bianchi" / "Convegno AIMS 2026"
+  referenteNome     String
+  referenteCognome  String
+  referenteEmail    String
+  referenteTelefono String?
+
+  dataArrivo   DateTime  @db.Date
+  dataPartenza DateTime? @db.Date
+  numOspitiTotali Int @default(0)
+
+  // Prezzo complessivo + eventuale sconto gruppo
+  prezzoTotale  Float?
+  scontoPercent Float?
+
+  note     String?
+  eventoEsterno String? // link stringa libera a evento esterno (es. sito matrimonio)
+
+  prenotazioni Prenotazione[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([hostId])
+  @@index([dataArrivo])
+  @@index([deletedAt])
+  @@map("gruppi_prenotazione")
 }
 
 enum StatoCheckIn {
@@ -1624,6 +1681,103 @@ model Accompagnatore {
 
   @@index([prenotazioneId])
   @@map("accompagnatori")
+}
+
+// ─── Registratore Telematico (scontrino fiscale RT) ──────────────────────────
+//
+// Obbligo di legge in Italia (D.Lgs. 127/2015 + Legge di Bilancio 2019): ogni
+// esercizio di vendita al dettaglio deve usare un Registratore Telematico (RT)
+// che emette scontrino fiscale e trasmette i corrispettivi all'Agenzia delle Entrate.
+//
+// Provider supportati (interfaccia pluggable in lib/registratore-rt.ts):
+//   - NESSUNO: PMS non fiscale (es. b&b senza POS)
+//   - MANUALE: l'operatore emette scontrino con stampante a parte, qui solo traccia
+//   - EPSON_EPOS: Epson FP-90III / TM-m30II-F via ePos-Print XML (HTTP LAN)
+//   - CUSTOM_KUBE: Custom KUBE F via XML HTTP
+//   - OLIVETTI: Olivetti PRT 100F (protocollo proprietario)
+//   - RCH: RCH Print!F / Wall!E
+
+model RegistratoreRtConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  provider         String  @default("NESSUNO") // NESSUNO | MANUALE | EPSON_EPOS | CUSTOM_KUBE | OLIVETTI | RCH
+  matricola        String? // matricola RT (8-10 cifre, visibile sullo scontrino)
+  endpointUrl      String? // IP locale o URL (es. http://192.168.1.50/cgi-bin/fpmate.cgi)
+  timeout          Int     @default(10000) // ms
+  aliquotaDefault  Float   @default(22) // IVA default per voci senza aliquota esplicita
+  esercizioNumero  Int?    // numero esercizio (per sede con più punti vendita)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("registratore_rt_config")
+}
+
+// Record di ogni scontrino emesso (fiscale o non).
+// Collegato a TransazionePOS esistente se generato da POS integrato.
+model ScontrinoRT {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Riferimento transazione POS (opzionale)
+  transazioneId String?
+
+  // Dati fiscali RT
+  numeroScontrino String // numero progressivo RT (giornaliero)
+  matricolaRt     String?
+  dataOra         DateTime @default(now())
+
+  // Totali
+  imponibile Float
+  imposta    Float
+  totale     Float
+  metodoPagamento String @default("CARTA") // CARTA | CONTANTI | ELETTRONICO | MISTO
+
+  // Righe (JSON per snapshot; breakdown per analytics separato in TransazionePOS.voci)
+  righe Json // [{descrizione, qta, prezzo, aliquota, totale}]
+
+  // Stato trasmissione AdE
+  statoTrasmissione String    @default("LOCAL") // LOCAL | TRASMESSO | ERRORE
+  erroreMessaggio   String?
+  trasmessoAt       DateTime?
+
+  // XML firmato (per audit)
+  xmlOriginale String?
+
+  createdAt DateTime @default(now())
+
+  @@index([hostId, dataOra])
+  @@index([transazioneId])
+  @@map("scontrini_rt")
+}
+
+// ─── API Keys (per integrazioni 3rd-party) ───────────────────────────────────
+//
+// Chiave separata da NextAuth JWT per consentire integrazioni server-to-server.
+// Il valore `token` e` lo SHA-256 hex di una chiave pseudo-random di 32 byte.
+// All'atto della creazione viene mostrato UNA SOLA VOLTA.
+
+model ApiKey {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  nome       String // label descrittiva ("Zapier integration", "App gestione contabile")
+  token      String @unique // SHA-256 hex (64 char)
+  prefix     String // primi 8 char della chiave (display-friendly per UI)
+  scopes     String[] @default([]) // "prenotazioni:read", "prenotazioni:write", "ospiti:read", ecc.
+  ultimaUsata DateTime?
+  scadenza    DateTime?
+  revocata    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId])
+  @@index([token])
+  @@map("api_keys")
 }
 
 // ─── Export Alloggiati Web (PS / Questura) ───────────────────────────────────
