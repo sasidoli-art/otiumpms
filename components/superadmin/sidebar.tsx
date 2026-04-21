@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Building2, Users, CreditCard, BarChart3,
   Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText, Bot,
+  LifeBuoy, Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -40,6 +41,12 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
       ],
     },
     {
+      label: 'SUPPORTO',
+      items: [
+        { href: '/superadmin/tickets', label: 'Ticket',       icon: LifeBuoy },
+      ],
+    },
+    {
       label: 'MONITORAGGIO',
       items: [
         { href: '/superadmin/analytics',  label: t('analytics'),  icon: BarChart3 },
@@ -51,9 +58,10 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
     {
       label: 'CONFIGURAZIONE',
       items: [
-        { href: '/superadmin/impostazioni/ai',  label: 'AI Provider',     icon: Bot },
-        { href: '/superadmin/impostazioni/2fa', label: '2FA / Sicurezza', icon: Shield },
-        { href: '/superadmin/impostazioni',     label: t('settings'),     icon: Settings },
+        { href: '/superadmin/impostazioni/ai',          label: 'AI Provider',         icon: Bot },
+        { href: '/superadmin/impostazioni/2fa',         label: '2FA / Sicurezza',     icon: Shield },
+        { href: '/superadmin/settings/notifiche',       label: 'Notifiche',           icon: Bell },
+        { href: '/superadmin/impostazioni',             label: t('settings'),         icon: Settings },
       ],
     },
   ], [t])
