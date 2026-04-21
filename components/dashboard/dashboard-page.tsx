@@ -175,14 +175,28 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
 // ─── Dashboard header ───────────────────────────────────────────────────────
 
 function DashboardHeader({ greeting, firstName }: { greeting: string; firstName: string }) {
+  const oggi = new Date().toLocaleDateString('it-IT', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  })
   return (
-    <div>
-      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-        {greeting},{' '}
-        <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-          {firstName}
-        </span>!
-      </h1>
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 p-6 md:p-7 shadow-lg shadow-indigo-500/20">
+      {/* Pattern decorativo */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.8) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.6) 0%, transparent 40%)',
+        }}
+      />
+      <div className="relative">
+        <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-1 capitalize">
+          {oggi}
+        </p>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+          {greeting}, <span className="text-yellow-200">{firstName}</span>
+        </h1>
+        <p className="text-sm text-white/80 mt-1">
+          Ecco cosa ti aspetta oggi.
+        </p>
+      </div>
     </div>
   )
 }

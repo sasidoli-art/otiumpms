@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
 import {
   ArrowDownToLine, ArrowUpFromLine, Users, BedDouble,
   Check, Clock, AlertCircle, ChevronRight, ShieldCheck,
+  Calendar, TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardData } from '@/hooks/use-dashboard'
@@ -16,18 +17,53 @@ interface Props {
   occupazione: DashboardData['occupazione']
 }
 
+// ─── Accent palette ─────────────────────────────────────────────────────────
+
+type AccentKey = 'emerald' | 'blue' | 'violet'
+
+const ACCENT: Record<AccentKey, { from: string; to: string; tile: string; tileSoft: string; text: string; badgeBg: string; badgeText: string }> = {
+  emerald: {
+    from: '#10b981', to: '#059669',
+    tile: 'rgba(16,185,129,0.18)', tileSoft: 'rgba(16,185,129,0.08)',
+    text: '#059669',
+    badgeBg: 'bg-emerald-50 dark:bg-emerald-900/30',
+    badgeText: 'text-emerald-700 dark:text-emerald-400',
+  },
+  blue: {
+    from: '#3b82f6', to: '#2563eb',
+    tile: 'rgba(59,130,246,0.18)', tileSoft: 'rgba(59,130,246,0.08)',
+    text: '#2563eb',
+    badgeBg: 'bg-blue-50 dark:bg-blue-900/30',
+    badgeText: 'text-blue-700 dark:text-blue-400',
+  },
+  violet: {
+    from: '#8b5cf6', to: '#7c3aed',
+    tile: 'rgba(139,92,246,0.18)', tileSoft: 'rgba(139,92,246,0.08)',
+    text: '#7c3aed',
+    badgeBg: 'bg-violet-50 dark:bg-violet-900/30',
+    badgeText: 'text-violet-700 dark:text-violet-400',
+  },
+}
+
+function accentStyle(k: AccentKey): CSSProperties {
+  const a = ACCENT[k]
+  return {
+    '--card-accent-from': a.from,
+    '--card-accent-to': a.to,
+    '--tile-from': a.tile,
+    '--tile-to': a.tileSoft,
+    '--tile-color': a.text,
+  } as CSSProperties
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function SezioneOggi({ oggi, occupazione }: Props) {
-  // Format date: "Venerdì 17 aprile 2026"
   const dataEstesa = useMemo(() => {
     try {
       const d = new Date(oggi.data + 'T12:00:00')
       return d.toLocaleDateString('it-IT', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
     } catch {
       return `${oggi.giorno} ${oggi.data}`
@@ -36,21 +72,29 @@ export function SezioneOggi({ oggi, occupazione }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* ═══ Header ═══════════════════════════════════════════════════════ */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 capitalize">
-            {dataEstesa}
-          </h2>
+      {/* ═══ Header ═══ */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="icon-tile icon-tile-lg" style={{ '--tile-from': 'rgba(99,102,241,0.18)', '--tile-to': 'rgba(99,102,241,0.08)', '--tile-color': '#6366f1' } as CSSProperties}>
+            <Calendar size={20} />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Oggi</p>
+            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 capitalize leading-tight">
+              {dataEstesa}
+            </h2>
+          </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-sm font-medium text-slate-600 dark:text-slate-300">
-          <Users size={14} />
-          {oggi.inHouse} ospiti in struttura
+        <span className="inline-flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/60 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm ring-1 ring-inset ring-slate-200/60 dark:ring-slate-700/60">
+          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-sm">
+            <Users size={13} className="text-slate-500" />
+          </span>
+          {oggi.inHouse} in struttura
         </span>
       </div>
 
-      {/* ═══ Three columns ════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+      {/* ═══ Cards ═══ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <CardArrivi arrivi={oggi.arrivi} />
         <CardPartenze partenze={oggi.partenze} />
         <CardOccupazione occupazione={occupazione} />
@@ -59,87 +103,102 @@ export function SezioneOggi({ oggi, occupazione }: Props) {
   )
 }
 
+// ─── Shared header ──────────────────────────────────────────────────────────
+
+function CardHeader({
+  accent, icon, title, count, link, badges,
+}: {
+  accent: AccentKey
+  icon: ReactNode
+  title: string
+  count?: number
+  link?: { href: string; label: string }
+  badges?: ReactNode
+}) {
+  const a = ACCENT[accent]
+  return (
+    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="icon-tile">{icon}</div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
+          {typeof count === 'number' && (
+            <span
+              className={cn(
+                'inline-flex items-center justify-center min-w-[24px] h-[24px] px-1.5 rounded-full text-xs font-bold',
+                a.badgeBg, a.badgeText,
+              )}
+            >
+              {count}
+            </span>
+          )}
+        </div>
+        {link && (
+          <Link
+            href={link.href}
+            className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors inline-flex items-center gap-0.5"
+          >
+            {link.label} <ChevronRight size={12} />
+          </Link>
+        )}
+      </div>
+      {badges && <div className="flex flex-wrap gap-1.5 mt-2.5">{badges}</div>}
+    </div>
+  )
+}
+
 // ─── Card Arrivi ────────────────────────────────────────────────────────────
 
 function CardArrivi({ arrivi }: { arrivi: DashboardData['oggi']['arrivi'] }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-emerald-500 flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ArrowDownToLine size={16} className="text-emerald-500" />
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Arrivi</h3>
-            <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
-              {arrivi.totale}
-            </span>
-          </div>
-          <Link href="/host/oggi" className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            Vedi tutti <ChevronRight size={12} className="inline" />
-          </Link>
-        </div>
-
-        {/* Checkin status badges */}
-        {arrivi.totale > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
+    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('emerald')}>
+      <CardHeader
+        accent="emerald"
+        icon={<ArrowDownToLine size={16} />}
+        title="Arrivi"
+        count={arrivi.totale}
+        link={{ href: '/host/oggi', label: 'Tutti' }}
+        badges={arrivi.totale > 0 ? (
+          <>
             {arrivi.checkinCompletati > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                <Check size={10} /> {arrivi.checkinCompletati} verificat{arrivi.checkinCompletati === 1 ? 'o' : 'i'}
-              </span>
+              <BadgePill tone="emerald" icon={<Check size={10} />}>
+                {arrivi.checkinCompletati} verificat{arrivi.checkinCompletati === 1 ? 'o' : 'i'}
+              </BadgePill>
             )}
             {arrivi.checkinOnline > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                <ShieldCheck size={10} /> {arrivi.checkinOnline} da verificare
-              </span>
+              <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>
+                {arrivi.checkinOnline} da verificare
+              </BadgePill>
             )}
             {arrivi.checkinMancanti > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                <Clock size={10} /> {arrivi.checkinMancanti} in attesa
-              </span>
+              <BadgePill tone="slate" icon={<Clock size={10} />}>
+                {arrivi.checkinMancanti} in attesa
+              </BadgePill>
             )}
-          </div>
-        )}
-      </div>
+          </>
+        ) : null}
+      />
 
-      {/* Guest list */}
       <div className="flex-1 min-h-0">
         {arrivi.totale === 0 ? (
           <EmptyState text="Nessun arrivo oggi" />
         ) : (
           <div className="relative">
-            <div className="max-h-[300px] overflow-y-auto">
-              {arrivi.lista.map(guest => (
-                <Link
+            <div className="max-h-[300px] overflow-y-auto py-1">
+              {arrivi.lista.map((guest) => (
+                <GuestRow
                   key={guest.id}
                   href={`/host/prenotazioni/${guest.id}`}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
-                      {guest.guestNome} {guest.guestCognome}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {guest.unitaNome && (
-                        <span className="text-[11px] text-slate-400">
-                          <BedDouble size={10} className="inline mr-0.5" />{guest.unitaNome}
-                        </span>
-                      )}
-                      {guest.numOspiti > 1 && (
-                        <span className="text-[11px] text-slate-400">{guest.numOspiti} ospiti</span>
-                      )}
-                    </div>
-                  </div>
-
-                  <CheckinBadge stato={guest.statoCheckIn} />
-
-                  <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                </Link>
+                  name={`${guest.guestNome} ${guest.guestCognome}`}
+                  subtitle={[
+                    guest.unitaNome ? { icon: <BedDouble size={10} />, text: guest.unitaNome } : null,
+                    guest.numOspiti > 1 ? { icon: <Users size={10} />, text: `${guest.numOspiti} ospiti` } : null,
+                  ].filter(Boolean) as { icon: ReactNode; text: string }[]}
+                  badge={<CheckinBadge stato={guest.statoCheckIn} />}
+                />
               ))}
             </div>
-            {/* Fade-out gradient at bottom when list is long */}
-            {arrivi.lista.length > 4 && (
-              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
-            )}
+            {arrivi.lista.length > 4 && <FadeOut />}
           </div>
         )}
       </div>
@@ -151,64 +210,35 @@ function CardArrivi({ arrivi }: { arrivi: DashboardData['oggi']['arrivi'] }) {
 
 function CardPartenze({ partenze }: { partenze: DashboardData['oggi']['partenze'] }) {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-blue-500 flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ArrowUpFromLine size={16} className="text-blue-500" />
-            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Partenze</h3>
-            <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold">
-              {partenze.totale}
-            </span>
-          </div>
-          <Link href="/host/oggi" className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
-            Vedi tutti <ChevronRight size={12} className="inline" />
-          </Link>
-        </div>
-      </div>
+    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('blue')}>
+      <CardHeader
+        accent="blue"
+        icon={<ArrowUpFromLine size={16} />}
+        title="Partenze"
+        count={partenze.totale}
+        link={{ href: '/host/oggi', label: 'Tutti' }}
+      />
 
-      {/* Guest list */}
       <div className="flex-1 min-h-0">
         {partenze.totale === 0 ? (
           <EmptyState text="Nessuna partenza oggi" />
         ) : (
           <div className="relative">
-            <div className="max-h-[300px] overflow-y-auto">
-              {partenze.lista.map(guest => (
-                <Link
+            <div className="max-h-[300px] overflow-y-auto py-1">
+              {partenze.lista.map((guest) => (
+                <GuestRow
                   key={guest.id}
                   href={`/host/prenotazioni/${guest.id}`}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
-                      {guest.guestNome} {guest.guestCognome}
-                    </p>
-                    {guest.unitaNome && (
-                      <span className="text-[11px] text-slate-400">
-                        <BedDouble size={10} className="inline mr-0.5" />{guest.unitaNome}
-                      </span>
-                    )}
-                  </div>
-
-                  {guest.regCardFirmata ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
-                      <Check size={10} /> Checkout
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                      <AlertCircle size={10} /> Manca firma
-                    </span>
-                  )}
-
-                  <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                </Link>
+                  name={`${guest.guestNome} ${guest.guestCognome}`}
+                  subtitle={guest.unitaNome ? [{ icon: <BedDouble size={10} />, text: guest.unitaNome }] : []}
+                  badge={guest.regCardFirmata
+                    ? <BadgePill tone="emerald" icon={<Check size={10} />}>Checkout</BadgePill>
+                    : <BadgePill tone="amber" icon={<AlertCircle size={10} />}>Manca firma</BadgePill>
+                  }
+                />
               ))}
             </div>
-            {partenze.lista.length > 4 && (
-              <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
-            )}
+            {partenze.lista.length > 4 && <FadeOut />}
           </div>
         )}
       </div>
@@ -221,73 +251,65 @@ function CardPartenze({ partenze }: { partenze: DashboardData['oggi']['partenze'
 function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazione'] }) {
   const { percentuale, unitaOccupate, unitaTotali, settimana } = occupazione
 
-  // Donut color: green < 70, yellow 70-90, red > 90
-  const donutColor = percentuale > 90
-    ? 'text-red-500 dark:text-red-400'
-    : percentuale > 70
-      ? 'text-amber-500 dark:text-amber-400'
-      : 'text-emerald-500 dark:text-emerald-400'
+  const donutStroke = percentuale > 90 ? '#ef4444'
+    : percentuale > 70 ? '#f59e0b' : '#10b981'
+  const donutGradientId = `donut-grad-${percentuale > 90 ? 'red' : percentuale > 70 ? 'amber' : 'emerald'}`
 
-  const donutStroke = percentuale > 90
-    ? '#ef4444'
-    : percentuale > 70
-      ? '#f59e0b'
-      : '#10b981'
+  const donutTextColor = percentuale > 90 ? 'text-red-500 dark:text-red-400'
+    : percentuale > 70 ? 'text-amber-500 dark:text-amber-400'
+    : 'text-emerald-500 dark:text-emerald-400'
 
-  // Find max occupancy day for highlight
-  const maxOcc = Math.max(...settimana.map(d => d.occupate), 1)
+  const maxOcc = Math.max(...settimana.map((d) => d.occupate), 1)
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 border-l-4 border-l-violet-500 flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <BedDouble size={16} className="text-violet-500" />
-          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Occupazione</h3>
-        </div>
-      </div>
+    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('violet')}>
+      <CardHeader
+        accent="violet"
+        icon={<TrendingUp size={16} />}
+        title="Occupazione"
+      />
 
-      {/* Donut + bars */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 gap-5">
-        {/* SVG donut */}
-        <div className="relative w-32 h-32">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-5 gap-5">
+        <div className="relative w-36 h-36">
           <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-            {/* Background ring */}
+            <defs>
+              <linearGradient id={donutGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={donutStroke} stopOpacity="0.9" />
+                <stop offset="100%" stopColor={donutStroke} stopOpacity="1" />
+              </linearGradient>
+            </defs>
             <circle
               cx="60" cy="60" r="50"
               fill="none"
               stroke="currentColor"
-              strokeWidth="10"
+              strokeWidth="11"
               className="text-slate-100 dark:text-slate-800"
             />
-            {/* Value ring */}
             <circle
               cx="60" cy="60" r="50"
               fill="none"
-              stroke={donutStroke}
-              strokeWidth="10"
+              stroke={`url(#${donutGradientId})`}
+              strokeWidth="11"
               strokeLinecap="round"
               strokeDasharray={`${(percentuale / 100) * 314.16} 314.16`}
               className="transition-all duration-700 ease-out"
+              style={{ filter: `drop-shadow(0 2px 4px ${donutStroke}40)` }}
             />
           </svg>
-          {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-2xl font-bold', donutColor)}>
+            <span className={cn('text-3xl font-extrabold tracking-tight', donutTextColor)}>
               {percentuale}%
             </span>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-[11px] font-medium text-slate-400">
               {unitaOccupate}/{unitaTotali} camere
             </span>
           </div>
         </div>
 
-        {/* 7-day mini bar chart */}
         {settimana.length > 0 && (
           <div className="w-full space-y-1.5">
             <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Prossimi 7 giorni</p>
             {settimana.map((day, i) => {
-              const pct = day.totali > 0 ? (day.occupate / day.totali) * 100 : 0
               const barWidth = maxOcc > 0 ? (day.occupate / maxOcc) * 100 : 0
               const isMax = day.occupate === maxOcc && maxOcc > 0
               const isToday = i === 0
@@ -296,7 +318,7 @@ function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazi
                 <div key={day.data} className="flex items-center gap-2">
                   <span className={cn(
                     'text-[11px] w-7 shrink-0 text-right font-medium',
-                    isToday ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-400',
+                    isToday ? 'text-slate-800 dark:text-slate-100 font-bold' : 'text-slate-400',
                   )}>
                     {isToday ? 'Oggi' : day.giorno}
                   </span>
@@ -305,8 +327,8 @@ function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazi
                       className={cn(
                         'h-full rounded-full transition-all duration-500',
                         isMax
-                          ? 'bg-violet-500 dark:bg-violet-400'
-                          : 'bg-violet-300 dark:bg-violet-600',
+                          ? 'bg-gradient-to-r from-violet-500 to-violet-600 dark:from-violet-400 dark:to-violet-500'
+                          : 'bg-gradient-to-r from-violet-200 to-violet-300 dark:from-violet-700 dark:to-violet-600',
                       )}
                       style={{ width: `${barWidth}%` }}
                     />
@@ -327,40 +349,86 @@ function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazi
   )
 }
 
-// ─── Checkin badge ──────────────────────────────────────────────────────────
+// ─── Guest row ──────────────────────────────────────────────────────────────
+
+function GuestRow({
+  href, name, subtitle, badge,
+}: {
+  href: string
+  name: string
+  subtitle: { icon: ReactNode; text: string }[]
+  badge: ReactNode
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{name}</p>
+        {subtitle.length > 0 && (
+          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
+            {subtitle.map((s, i) => (
+              <span key={i} className="inline-flex items-center gap-0.5">
+                {s.icon}{s.text}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {badge}
+      <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+    </Link>
+  )
+}
+
+// ─── Badge pill ─────────────────────────────────────────────────────────────
+
+const TONE_CLS: Record<string, string> = {
+  emerald: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/60 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/40',
+  blue: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200/60 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-800/40',
+  amber: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/60 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/40',
+  slate: 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
+  red: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/40',
+}
+
+function BadgePill({ tone, icon, children }: { tone: string; icon: ReactNode; children: ReactNode }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0', TONE_CLS[tone] ?? TONE_CLS.slate)}>
+      {icon}
+      {children}
+    </span>
+  )
+}
 
 function CheckinBadge({ stato }: { stato: string }) {
   switch (stato) {
     case 'VERIFICATO':
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 shrink-0">
-          <Check size={10} /> Verificato
-        </span>
-      )
+      return <BadgePill tone="emerald" icon={<Check size={10} />}>Verificato</BadgePill>
     case 'ONLINE_COMPLETATO':
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shrink-0">
-          <ShieldCheck size={10} /> Da verificare
-        </span>
-      )
+      return <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>Da verificare</BadgePill>
     default:
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
-          <Clock size={10} /> In attesa
-        </span>
-      )
+      return <BadgePill tone="slate" icon={<Clock size={10} />}>In attesa</BadgePill>
   }
+}
+
+// ─── Fade-out ───────────────────────────────────────────────────────────────
+
+function FadeOut() {
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
+  )
 }
 
 // ─── Empty state ────────────────────────────────────────────────────────────
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-10 px-4">
-      <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
+    <div className="flex flex-col items-center justify-center py-12 px-4">
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center mb-3 ring-1 ring-inset ring-slate-200/60 dark:ring-slate-700/60">
         <Check size={20} className="text-slate-300 dark:text-slate-600" />
       </div>
-      <p className="text-sm text-slate-400">{text}</p>
+      <p className="text-sm text-slate-400 font-medium">{text}</p>
     </div>
   )
 }

@@ -171,22 +171,59 @@ h1, h2, h3, h4, h5, h6 {
   .card {
     background: var(--bg-elevated);
     border: 1px solid var(--border-default);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     padding: 1.25rem 1.5rem;
     box-shadow: var(--shadow-card);
+    transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
   }
-  .card:hover { box-shadow: var(--shadow-card-hover); }
+  .card:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--border-hover);
+  }
 
   .card-interactive {
     @apply card cursor-pointer;
-    transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
   }
   .card-interactive:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     border-color: var(--border-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
   .card-interactive:active { transform: translateY(0); }
+
+  /* Card con accent gradient sul bordo sinistro (senza border-l tailwind) */
+  .card-accent {
+    @apply card;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-accent::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--card-accent-from, #10b981), var(--card-accent-to, #059669));
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  }
+
+  /* Icon tile: quadrato con gradient + icona centrata */
+  .icon-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--tile-from, rgba(99,102,241,0.12)), var(--tile-to, rgba(99,102,241,0.05)));
+    color: var(--tile-color, #6366f1);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+    flex-shrink: 0;
+  }
+  .icon-tile-lg {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-xl);
+  }
 
   /* ── Buttons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
