@@ -150,6 +150,10 @@ model User {
   tickets          Ticket[]
   staffMemberships StaffMember[]
 
+  // Notifiche superadmin (in-app)
+  notificheSuperadmin NotificaSuperadmin[]
+  configNotifiche     ConfigNotificaDestinatario[]
+
   @@map("users")
 }
 
@@ -2047,6 +2051,64 @@ model Notifica {
   createdAt DateTime @default(now())
 
   @@map("notifiche")
+}
+
+// ─── Notifiche SUPERADMIN (platform-level events) ────────────────────────────
+//
+// Separata da `Notifica` perche` quella e` host-scoped (hostId non-nullable).
+//   - userId = null  → broadcast a tutti i SUPERADMIN
+//   - userId = <id>  → notifica indirizzata
+model NotificaSuperadmin {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tipo      String // "ticket.nuovo" | "ticket.urgente" | "host.signup" | "email.fallita" | ...
+  titolo    String
+  messaggio String?
+  linkUrl   String?
+  priorita  String @default("NORMALE") // BASSA | NORMALE | ALTA | URGENTE
+
+  entitaTipo String?
+  entitaId   String?
+
+  letta   Boolean   @default(false)
+  lettaAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, letta])
+  @@index([tipo, createdAt])
+  @@index([entitaTipo, entitaId])
+  @@map("notifiche_superadmin")
+}
+
+// ─── Config Destinatari Notifiche SUPERADMIN ─────────────────────────────────
+//
+// Lista esplicita di chi riceve notifiche ticket/segnalazioni (supera il default
+// "tutti i role=SUPERADMIN"). Supporta anche email esterne.
+// Se la tabella e` vuota → fallback: notifica tutti i SUPERADMIN.
+model ConfigNotificaDestinatario {
+  id String @id @default(cuid())
+
+  // Almeno uno tra userId e emailEsterna deve essere valorizzato
+  userId       String?
+  user         User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEsterna String?
+
+  nome String? // label ("Capo IT", "On-call", "info@agency.com")
+
+  tipiEvento     String[] @default([]) // filtri ["ticket.nuovo"...]; vuoto = tutti
+  prioritaMinima String   @default("BASSA") // BASSA | NORMALE | ALTA | URGENTE
+  canali         String[] @default(["email", "inapp"]) // email | inapp | slack
+
+  attivo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([attivo])
+  @@index([userId])
+  @@map("config_notifica_destinatari")
 }
 
 // ─── Config Email automatiche ────────────────────────────────────────────────

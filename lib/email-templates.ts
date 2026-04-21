@@ -825,8 +825,120 @@ export async function isTemplateAttivo(hostId: string, templateId: EmailTemplate
   } catch { return true }
 }
 
-// ─── Legacy shim — mantiene API usata dalla UI email-automatiche ────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// SUPERADMIN EMAIL TEMPLATES (notifiche platform-level)
+// Registry separato da EMAIL_TEMPLATES (no host/ospite context).
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { sanitizeText, sanitizeTextToHtml } from '@/lib/sanitize'
+
+export type SuperadminTemplateId =
+  | 'ticket_nuovo_superadmin'
+  | 'ticket_urgente_superadmin'
+  | 'host_signup_superadmin'
+  | 'sistema_avviso_superadmin'
+
+export interface SuperadminEmailTemplate {
+  id: SuperadminTemplateId
+  nome: string
+  trigger: string
+}
+
+export const SUPERADMIN_EMAIL_TEMPLATES: SuperadminEmailTemplate[] = [
+  { id: 'ticket_nuovo_superadmin',   nome: 'Nuovo ticket (SUPERADMIN)',      trigger: 'Ticket creato da HOST/ADMIN' },
+  { id: 'ticket_urgente_superadmin', nome: 'Ticket URGENTE (SUPERADMIN)',    trigger: 'Ticket con priorita ALTA o URGENTE' },
+  { id: 'host_signup_superadmin',    nome: 'Nuovo host registrato',          trigger: 'Host completa onboarding' },
+  { id: 'sistema_avviso_superadmin', nome: 'Avviso di sistema',              trigger: 'Cron fallito / errore infrastruttura' },
+]
+
+const PRIORITA_COLOR: Record<string, { bg: string; text: string; label: string }> = {
+  BASSA:   { bg: '#e0e7ff', text: '#3730a3', label: 'BASSA' },
+  NORMALE: { bg: '#dbeafe', text: '#1e40af', label: 'NORMALE' },
+  ALTA:    { bg: '#fed7aa', text: '#9a3412', label: 'ALTA' },
+  URGENTE: { bg: '#fecaca', text: '#991b1b', label: 'URGENTE' },
+}
+
+export interface SuperadminEmailContext {
+  titolo: string
+  messaggio: string
+  linkUrl?: string | null
+  priorita?: 'BASSA' | 'NORMALE' | 'ALTA' | 'URGENTE'
+  entitaTipo?: string
+  entitaId?: string
+  autore?: { nome: string; email: string }
+  hostNome?: string
+  categoria?: string
+  appUrl?: string
+}
+
+export function renderSuperadminEmail(
+  templateId: SuperadminTemplateId,
+  ctx: SuperadminEmailContext,
+): { subject: string; html: string } {
+  const appUrl = ctx.appUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? 'https://otium-pms.vercel.app'
+  const link = ctx.linkUrl ? `${appUrl}${ctx.linkUrl}` : null
+  const priorita = ctx.priorita ?? 'NORMALE'
+  const badge = PRIORITA_COLOR[priorita] ?? PRIORITA_COLOR.NORMALE
+
+  const priorityBadge = `<span style="display:inline-block;padding:3px 10px;border-radius:12px;background:${badge.bg};color:${badge.text};font-size:11px;font-weight:700;letter-spacing:0.5px;">${badge.label}</span>`
+
+  const emoji = priorita === 'URGENTE' ? '🔴 '
+    : priorita === 'ALTA' ? '🟠 '
+    : ''
+
+  const subject = `${emoji}[Otium PMS] ${sanitizeText(ctx.titolo, 200)}`
+
+  const header = {
+    ticket_nuovo_superadmin:    'Nuovo ticket ricevuto',
+    ticket_urgente_superadmin:  'TICKET URGENTE — intervento immediato',
+    host_signup_superadmin:     'Nuovo host registrato sulla piattaforma',
+    sistema_avviso_superadmin:  'Avviso di sistema',
+  }[templateId]
+
+  const infoTable = (ctx.autore || ctx.hostNome || ctx.categoria)
+    ? `<table style="width:100%;border-collapse:collapse;margin:16px 0;">
+         ${ctx.autore ? `<tr>
+           <td style="padding:6px 10px;font-size:12px;color:#6b7280;background:#f9fafb;border-bottom:1px solid #e5e7eb;width:30%;">Autore</td>
+           <td style="padding:6px 10px;font-size:14px;border-bottom:1px solid #e5e7eb;">${sanitizeText(ctx.autore.nome, 100)} &lt;${sanitizeText(ctx.autore.email, 120)}&gt;</td>
+         </tr>` : ''}
+         ${ctx.hostNome ? `<tr>
+           <td style="padding:6px 10px;font-size:12px;color:#6b7280;background:#f9fafb;border-bottom:1px solid #e5e7eb;">Host</td>
+           <td style="padding:6px 10px;font-size:14px;border-bottom:1px solid #e5e7eb;">${sanitizeText(ctx.hostNome, 100)}</td>
+         </tr>` : ''}
+         ${ctx.categoria ? `<tr>
+           <td style="padding:6px 10px;font-size:12px;color:#6b7280;background:#f9fafb;border-bottom:1px solid #e5e7eb;">Categoria</td>
+           <td style="padding:6px 10px;font-size:14px;border-bottom:1px solid #e5e7eb;">${sanitizeText(ctx.categoria, 50)}</td>
+         </tr>` : ''}
+         <tr>
+           <td style="padding:6px 10px;font-size:12px;color:#6b7280;background:#f9fafb;">Priorita</td>
+           <td style="padding:6px 10px;font-size:14px;">${priorityBadge}</td>
+         </tr>
+       </table>`
+    : `<p style="margin:12px 0;">${priorityBadge}</p>`
+
+  const body = `
+    <p style="font-size:16px;font-weight:700;color:#111827;margin:0 0 8px;">${header}</p>
+    <p style="color:#374151;line-height:1.55;">${sanitizeText(ctx.titolo, 200)}</p>
+    ${infoTable}
+    <div style="background:#f9fafb;border-left:3px solid ${badge.text};padding:12px 16px;border-radius:6px;margin:14px 0;">
+      <p style="margin:0;color:#374151;line-height:1.55;font-size:14px;">${sanitizeTextToHtml(ctx.messaggio, 2000)}</p>
+    </div>
+    ${link ? `<p style="text-align:center;margin:20px 0;">
+      <a href="${link}" class="btn" style="display:inline-block;background:${badge.text};color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:14px;">Apri nel pannello →</a>
+    </p>` : ''}
+    <p style="color:#9ca3af;font-size:11px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:12px;">
+      Notifica automatica Otium PMS · ${new Date().toLocaleString('it-IT')}
+    </p>
+  `
+
+  const html = renderLayout(body, null, null)
+  return { subject, html }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Legacy shim — mantiene API usata dalla UI email-automatiche
 // TODO: migrare prenotazione-actions.tsx alla nuova API e rimuovere questo blocco.
+// ═══════════════════════════════════════════════════════════════════════════
 
 export type LinguaTemplate = 'it' | 'en' | 'de' | 'fr' | 'es'
 export type TipoTemplate =

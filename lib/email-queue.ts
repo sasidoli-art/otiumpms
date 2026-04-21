@@ -205,9 +205,32 @@ async function logAuditFailure(job: EmailJob, error: string): Promise<void> {
 }
 
 async function notifyHostFailure(job: EmailJob, error: string): Promise<void> {
-  if (!job.hostId) return
   try {
     const { prisma } = await import('@/lib/db')
+
+    if (!job.hostId) {
+      // Email superadmin/platform fallita → NotificaSuperadmin broadcast
+      const admins = await prisma.user.findMany({
+        where: { role: 'SUPERADMIN' },
+        select: { id: true },
+      })
+      if (admins.length > 0) {
+        await prisma.notificaSuperadmin.createMany({
+          data: admins.map((a) => ({
+            userId: a.id,
+            tipo: 'email.fallita',
+            titolo: `Email non inviata: ${job.label}`,
+            messaggio: `Destinatario: ${job.to ?? '-'}\nTemplate: ${job.templateId ?? '-'}\nErrore dopo ${job.retries} tentativi: ${error.slice(0, 300)}`,
+            priorita: 'ALTA',
+            entitaTipo: 'email',
+            entitaId: job.id,
+          })),
+        })
+      }
+      return
+    }
+
+    // Email host-scoped fallita → Notifica host
     await prisma.notifica.create({
       data: {
         hostId: job.hostId,
