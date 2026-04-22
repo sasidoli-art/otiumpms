@@ -2756,16 +2756,44 @@ model Ticket {
   paginaUrl     String?
   userAgent     String?
   screenshot    String?
+  /// Legacy — risposta singola admin. Per thread conversazione usare `risposte`.
   rispostaAdmin String?
   rispostoDa    String?
   rispostoAt    DateTime?
+  /// Assegnato a admin user id (ownership supporto)
+  assegnatoA    String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  /// Thread risposte conversazione (host ↔ admin)
+  risposte      TicketRisposta[]
 
   @@index([userId])
   @@index([hostId])
   @@index([stato])
+  @@index([assegnatoA, stato])
   @@map("tickets")
+}
+
+/// Risposta a un ticket — parte di un thread conversazione host ↔ admin.
+model TicketRisposta {
+  id       String @id @default(cuid())
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  autoreId    String
+  autoreEmail String
+  /// 'host' | 'admin'
+  autoreRuolo String
+
+  testo    String
+  allegati Json? // [{ nome, url }]
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+  @@index([ticketId, createdAt])
+  @@map("ticket_risposte")
 }
 
 // ─── Staff Management ─────────────────────────────────────────────────────────

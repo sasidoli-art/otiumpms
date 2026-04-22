@@ -413,6 +413,12 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
         icon: 'ClipboardList',
       },
       {
+        id: 'supporto',
+        label: 'sidebar.supporto',
+        href: '/host/supporto',
+        icon: 'LifeBuoy',
+      },
+      {
         id: 'help',
         label: 'sidebar.help',
         href: '/host/help',
