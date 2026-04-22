@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { headers } from 'next/headers'
 import { HostLayout } from '@/components/layout/host-layout'
 import { getStruttureHost } from '@/lib/struttura-attiva'
+import ImpersonationBanner from '@/components/admin/impersonation-banner'
 
 export default async function HostRootLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions)
@@ -61,19 +62,22 @@ export default async function HostRootLayout({ children }: { children: React.Rea
   }
 
   return (
-    <HostLayout
-      nomeUtente={session.user.name ?? ''}
-      email={session.user.email}
-      nomeAzienda={host?.nomeAzienda ?? 'La mia azienda'}
-      moduliAttivi={host?.moduliAttivi ?? {}}
-      logo={host?.logo}
-      ruolo={session.user.role}
-      piano={host?.piano ?? null}
-      hostId={host?.id ?? null}
-      strutture={strutture}
-      strutturaAttivaId={attiva?.id ?? null}
-    >
-      {children}
-    </HostLayout>
+    <>
+      <ImpersonationBanner />
+      <HostLayout
+        nomeUtente={session.user.name ?? ''}
+        email={session.user.email}
+        nomeAzienda={host?.nomeAzienda ?? 'La mia azienda'}
+        moduliAttivi={host?.moduliAttivi ?? {}}
+        logo={host?.logo}
+        ruolo={session.user.role}
+        piano={host?.piano ?? null}
+        hostId={host?.id ?? null}
+        strutture={strutture}
+        strutturaAttivaId={attiva?.id ?? null}
+      >
+        {children}
+      </HostLayout>
+    </>
   )
 }

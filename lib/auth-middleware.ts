@@ -209,6 +209,30 @@ export async function requireHostOrAdmin(searchParams?: URLSearchParams): Promis
   // ADMIN / SUPERADMIN — impersona un host
   if (session.user.role === 'ADMIN' || session.user.role === 'SUPERADMIN') {
     const { prisma } = await import('@/lib/db')
+
+    // Priorita` 1: cookie impersonation (via /api/admin/host/[id]/impersona)
+    try {
+      const { getImpersonation } = await import('@/lib/impersonation')
+      const imp = await getImpersonation()
+      if (imp && imp.adminUserId === session.user.id) {
+        const host = await prisma.host.findUnique({ where: { id: imp.hostId }, select: { id: true } })
+        if (host) {
+          return {
+            user: {
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.name,
+              role: 'HOST' as const,
+              hostId: host.id,
+            },
+          }
+        }
+      }
+    } catch {
+      // cookie lib puo` fallire in edge runtime, best-effort
+    }
+
+    // Priorita` 2: query param ?hostId= (API calls)
     const targetHostId = searchParams?.get('hostId') ?? undefined
     const host = targetHostId
       ? await prisma.host.findUnique({ where: { id: targetHostId }, select: { id: true } })
