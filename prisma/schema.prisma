@@ -424,6 +424,9 @@ model Host {
   // Gruppi prenotazione (matrimoni, convegni)
   gruppiPrenotazione GruppoPrenotazione[]
 
+  // Pagamenti piattaforma (host paga Otium per abbonamento)
+  pagamentiPiattaforma PagamentoPiattaforma[]
+
   // Registratore Telematico (scontrino fiscale)
   registratoreRt    RegistratoreRtConfig?
   scontriniRt       ScontrinoRT[]
@@ -1755,6 +1758,46 @@ model ScontrinoRT {
   @@index([hostId, dataOra])
   @@index([transazioneId])
   @@map("scontrini_rt")
+}
+
+// ─── Pagamenti piattaforma (host → Otium per abbonamento) ────────────────────
+//
+// Tracciabilita` dei pagamenti ricevuti dall'host per l'abbonamento alla
+// piattaforma. Distinto da `Pagamento` (che e` legato a fatture operative).
+//
+// Usi:
+//   - registrazione manuale dall'admin
+//   - integrazione Stripe (webhook payment_succeeded)
+//   - bonifico tracciato con riferimento
+//
+// Il periodoInizio/periodoFine identifica il mese/periodo coperto.
+
+model PagamentoPiattaforma {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  importo Float // EUR con 2 decimali (Prisma Decimal sarebbe meglio, Float ok per MVP)
+  valuta  String @default("EUR")
+  metodo  String @default("MANUALE") // MANUALE | STRIPE | BONIFICO | CARTA
+  stato   String @default("PAGATO") // PAGATO | PENDENTE | FALLITO | RIMBORSATO
+
+  riferimento String? // numero fattura host, ID transazione Stripe, CRO bonifico
+  note        String?
+
+  // Periodo coperto dal pagamento
+  periodoInizio DateTime @db.Date
+  periodoFine   DateTime @db.Date
+
+  // Chi ha registrato (admin) o null per webhook automatici
+  registratoDa String?
+
+  createdAt DateTime @default(now())
+
+  @@index([hostId])
+  @@index([stato, createdAt])
+  @@index([periodoInizio, periodoFine])
+  @@map("pagamenti_piattaforma")
 }
 
 // ─── API Keys (per integrazioni 3rd-party) ───────────────────────────────────
