@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { createOnlineCheckout } from '@/lib/payment-provider'
 import { logger } from '@/lib/logger'
+import { audit } from '@/lib/audit'
+import { getClientIp } from '@/lib/rate-limit'
 
 const bodySchema = z.object({
   prenotazioneId: z.string().min(1),
@@ -77,7 +79,7 @@ export async function POST(
   }
 
   // Crea record PagamentoCheckout in stato PENDENTE
-  await prisma.pagamentoCheckout.create({
+  const pagamento = await prisma.pagamentoCheckout.create({
     data: {
       hostId: prenotazione.hostId,
       prenotazioneId: prenotazione.id,
@@ -89,6 +91,19 @@ export async function POST(
       stato: 'PENDENTE',
       note: 'Checkout session Stripe in attesa',
     },
+  })
+
+  // GDPR Art. 30 — traccia creazione sessione pagamento online
+  await audit({
+    hostId: prenotazione.hostId,
+    userId: null,
+    userEmail: prenotazione.guestEmail,
+    azione: 'pagamento_checkout.online.avviato',
+    entita: 'pagamentoCheckout',
+    entitaId: pagamento.id,
+    dettagli: `Stripe Checkout €${importo} prenotazione=${prenotazione.id}`,
+    ip: getClientIp(req),
+    userAgent: req.headers.get('user-agent'),
   })
 
   return NextResponse.json({

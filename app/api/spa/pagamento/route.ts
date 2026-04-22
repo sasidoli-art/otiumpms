@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { parseBody } from '@/lib/validations'
 import { pagamentoSpaSchema } from '@/lib/validations'
@@ -69,6 +68,14 @@ export async function POST(req: NextRequest) {
         noteRiscossione,
         stato: 'PENDENTE',
       },
+    })
+
+    // GDPR Art. 30 — traccia pagamento (dati finanziari)
+    await auditFromAuth(hostSession, {
+      azione: 'pagamento_spa.upsert',
+      entita: 'pagamentoSpa',
+      entitaId: pagamento.id,
+      dettagli: `Pagamento €${importo} metodo=${metodo}${ultimeQuatroCifre ? ` card****${ultimeQuatroCifre}` : ''} appuntamento=${appuntamentoId}`,
     })
 
     return NextResponse.json(pagamento, { status: 200 })

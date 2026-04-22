@@ -106,6 +106,14 @@ export async function POST(req: NextRequest) {
     await ensurePin(prenotazione.id, auth.user.hostId)
   } catch { /* best effort */ }
 
+  // GDPR Art. 30 — traccia creazione prenotazione manuale (PII ospite)
+  await auditFromAuth(auth, {
+    azione: 'prenotazione.creata.manuale',
+    entita: 'prenotazione',
+    entitaId: prenotazione.id,
+    dettagli: `Prenotazione manuale ${guestCognome} ${guestNome} <${guestEmail}> · arrivo=${arrivoDate.toISOString().slice(0, 10)}${partenzaDate ? ` partenza=${partenzaDate.toISOString().slice(0, 10)}` : ''} · ${numOspiti} ospiti`,
+  })
+
   // ── Sync OspiteCRM (non-bloccante) ──────────────────────────────────────────
   upsertOspiteFromBooking(auth.user.hostId, { guestEmail, guestNome, guestCognome, guestTelefono }).catch(() => {})
 

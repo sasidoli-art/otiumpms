@@ -67,5 +67,13 @@ export async function POST(
     },
   })
 
+  // GDPR Art. 30 — traccia registrazione dati documento ospite (Alloggiati PS)
+  await auditFromAuth(session, {
+    azione: 'prenotazione.checkin',
+    entita: 'prenotazione',
+    entitaId: params.id,
+    dettagli: `Check-in ${prenotazione.guestCognome} ${prenotazione.guestNome} · doc=${aggiornata.guestTipoDocumento ?? '-'} n.${aggiornata.guestNumeroDocumento ? '***' + String(aggiornata.guestNumeroDocumento).slice(-3) : '-'}`,
+  })
+
   return NextResponse.json(aggiornata)
 }

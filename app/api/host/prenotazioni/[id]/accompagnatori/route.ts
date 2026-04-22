@@ -79,6 +79,13 @@ export async function POST(
     },
   })
 
+  await auditFromAuth(auth, {
+    azione: 'accompagnatore.creato',
+    entita: 'accompagnatore',
+    entitaId: accompagnatore.id,
+    dettagli: `Accompagnatore ${accompagnatore.cognome} ${accompagnatore.nome} aggiunto a prenotazione ${id}${accompagnatore.isMinore ? ' (minore)' : ''}`,
+  })
+
   return NextResponse.json(accompagnatore, { status: 201 })
 }
 
@@ -101,5 +108,13 @@ export async function DELETE(
   if (!accompagnatore) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
   await prisma.accompagnatore.delete({ where: { id: accId } })
+
+  await auditFromAuth(auth, {
+    azione: 'accompagnatore.eliminato',
+    entita: 'accompagnatore',
+    entitaId: accId,
+    dettagli: `Accompagnatore ${accompagnatore.cognome} ${accompagnatore.nome} rimosso da prenotazione ${id}`,
+  })
+
   return NextResponse.json({ ok: true })
 }

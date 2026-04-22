@@ -121,6 +121,13 @@ export async function POST(req: NextRequest) {
     },
   })
 
+  await auditFromAuth(auth, {
+    azione: 'staff.invito.creato',
+    entita: 'staffInvite',
+    entitaId: invite.id,
+    dettagli: `Invito staff ${cognome} ${nome} <${email}> ruolo=${ruolo}`,
+  })
+
   // Send invitation email
   const registrationUrl = `${process.env.NEXTAUTH_URL}/registrazione/${invite.token}`
   const hostName = host?.nomeAzienda ?? 'Otium Week'

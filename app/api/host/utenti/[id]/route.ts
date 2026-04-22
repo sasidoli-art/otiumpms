@@ -71,6 +71,16 @@ export async function PATCH(
     },
   })
 
+  const changes: string[] = []
+  if (ruolo !== undefined) changes.push(`ruolo=${ruolo}`)
+  if (attivo !== undefined) changes.push(`attivo=${attivo}`)
+  await auditFromAuth(auth, {
+    azione: 'staff.membro.aggiornato',
+    entita: 'staffMember',
+    entitaId: id,
+    dettagli: `${updated.user.cognome} ${updated.user.nome} · ${changes.join(' · ')}`,
+  })
+
   return NextResponse.json(updated)
 }
 
@@ -94,6 +104,13 @@ export async function DELETE(
   }
 
   await prisma.staffMember.delete({ where: { id } })
+
+  await auditFromAuth(auth, {
+    azione: 'staff.membro.eliminato',
+    entita: 'staffMember',
+    entitaId: id,
+    dettagli: `Membro staff rimosso ruolo=${member.ruolo}`,
+  })
 
   return NextResponse.json({ success: true })
 }

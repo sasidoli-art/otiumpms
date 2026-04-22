@@ -109,6 +109,14 @@ export async function PATCH(
     data: updateData,
   })
 
+  const fieldsChanged = Object.keys(updateData).join(', ')
+  await auditFromAuth(auth, {
+    azione: 'fattura.aggiornata',
+    entita: 'fattura',
+    entitaId: fattura.id,
+    dettagli: `Fattura ${fattura.numero} aggiornata: ${fieldsChanged}${d.stato && d.stato !== existing.stato ? ` · stato ${existing.stato}→${d.stato}` : ''}`,
+  })
+
   return NextResponse.json(fattura)
 }
 
@@ -146,6 +154,13 @@ export async function DELETE(
 
   // Soft delete: il record resta per audit/archivio, viene escluso dalle liste
   await prisma.fattura.update({ where: { id }, data: { deletedAt: new Date() } })
+
+  await auditFromAuth(auth, {
+    azione: 'fattura.eliminata',
+    entita: 'fattura',
+    entitaId: id,
+    dettagli: `Fattura in BOZZA soft-deleted da host`,
+  })
 
   return NextResponse.json({ ok: true })
 }

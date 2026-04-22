@@ -88,14 +88,17 @@ export async function POST(req: NextRequest) {
 
   // Determine if creating from prenotazione or manually
   if (body.prenotazioneId) {
-    return createFromPrenotazione(auth.user.hostId, body)
+    return createFromPrenotazione(auth, body)
   }
-  return createManual(auth.user.hostId, body)
+  return createManual(auth, body)
 }
 
 // ─── Helper: create from prenotazione ────────────────────────────────────────
 
-async function createFromPrenotazione(hostId: string, body: unknown) {
+type AuthedHost = { user: { id: string; email: string; hostId: string } }
+
+async function createFromPrenotazione(auth: AuthedHost, body: unknown) {
+  const hostId = auth.user.hostId
   const parsed = parseBody(fatturaFromPrenotazioneSchema, body)
   if (parsed.error) return parsed.error
   const data = parsed.data
@@ -192,12 +195,20 @@ async function createFromPrenotazione(hostId: string, body: unknown) {
     },
   })
 
+  await auditFromAuth(auth, {
+    azione: 'fattura.creata.da_prenotazione',
+    entita: 'fattura',
+    entitaId: fattura.id,
+    dettagli: `Fattura ${fattura.numero} per ${fattura.clienteNome} · €${fattura.totale} · da prenotazione ${prenotazione.id}`,
+  })
+
   return NextResponse.json(fattura, { status: 201 })
 }
 
 // ─── Helper: create manual fattura ───────────────────────────────────────────
 
-async function createManual(hostId: string, body: unknown) {
+async function createManual(auth: AuthedHost, body: unknown) {
+  const hostId = auth.user.hostId
   const parsed = parseBody(fatturaManualSchema, body)
   if (parsed.error) return parsed.error
   const data = parsed.data
@@ -240,6 +251,13 @@ async function createManual(hostId: string, body: unknown) {
       note: data.note || null,
       tipoDocumento: 'TD01',
     },
+  })
+
+  await auditFromAuth(auth, {
+    azione: 'fattura.creata.manuale',
+    entita: 'fattura',
+    entitaId: fattura.id,
+    dettagli: `Fattura ${fattura.numero} per ${fattura.clienteNome}${fattura.clientePIva ? ` (P.IVA ${fattura.clientePIva})` : ''} · €${fattura.totale}`,
   })
 
   return NextResponse.json(fattura, { status: 201 })

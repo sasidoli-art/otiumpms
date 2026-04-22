@@ -71,6 +71,14 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
   // Aggiorna updatedAt della chat
   await prisma.chat.update({ where: { id: params.id }, data: { updatedAt: new Date() } })
 
+  // GDPR Art. 30 — log invio messaggio comunicazione ospite
+  await auditFromAuth(auth, {
+    azione: 'messaggio.inviato',
+    entita: 'messaggio',
+    entitaId: messaggio.id,
+    dettagli: `Messaggio HOST→OSPITE chat=${params.id} canale=${canaleValido} len=${testo.trim().length}`,
+  })
+
   // Notifica via email: sempre se canale=EMAIL, oppure come notifica silenziosa per CHAT
   const inviaEmail = canaleValido === 'EMAIL' || canaleValido === 'CHAT'
   if (inviaEmail) {

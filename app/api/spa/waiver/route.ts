@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
+import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { parseBody } from '@/lib/validations'
 import { waiverSpaSchema } from '@/lib/validations'
@@ -54,6 +53,14 @@ export async function POST(req: NextRequest) {
         ...dichiarazioni,
         confermato: true,
       },
+    })
+
+    // GDPR Art. 30 — traccia upsert waiver (dati Art. 9 sanitari)
+    await auditFromAuth(hostSession, {
+      azione: 'waiver_spa.upsert',
+      entita: 'waiverSpa',
+      entitaId: waiver.id,
+      dettagli: `Waiver appuntamento ${appuntamentoId} firmato: ${firmaBase64 ? 'si' : 'no'}, zone=${(zoneTrattate ?? []).length}/${(zoneEvitare ?? []).length}`,
     })
 
     return NextResponse.json(waiver, { status: 200 })

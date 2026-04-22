@@ -38,5 +38,13 @@ export async function POST(
   // Aggiorna statistiche CRM (numSoggiorni, totaleSpeso, dataUltimoSoggiorno)
   incrementStatsOnCheckout(auth.user.hostId, params.id).catch(() => {})
 
+  // GDPR Art. 30
+  await auditFromAuth(session, {
+    azione: 'prenotazione.checkout',
+    entita: 'prenotazione',
+    entitaId: params.id,
+    dettagli: `Check-out ${prenotazione.guestCognome} ${prenotazione.guestNome} · CONFERMATA→COMPLETATA`,
+  })
+
   return NextResponse.json(aggiornata)
 }

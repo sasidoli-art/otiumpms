@@ -141,5 +141,13 @@ export async function POST(req: Request) {
     },
   })
 
+  // GDPR Art. 30 — traccia creazione/aggiornamento scheda CRM
+  await auditFromAuth(auth, {
+    azione: 'ospite_crm.upsert',
+    entita: 'ospiteCRM',
+    entitaId: ospite.id,
+    dettagli: `Scheda CRM upsert ${cognome} ${nome} <${email}>`,
+  })
+
   return NextResponse.json(ospite, { status: 201 })
 }

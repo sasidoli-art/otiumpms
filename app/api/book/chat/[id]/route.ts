@@ -5,6 +5,7 @@ import { parseBody, messaggioChatSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { logger } from '@/lib/logger'
 import { chatEventBus } from '@/lib/chat-events'
+import { audit } from '@/lib/audit'
 
 // GET  /api/book/chat/[id]  — messaggi della chat (per l'ospite, senza auth)
 export async function GET(
@@ -93,6 +94,19 @@ export async function POST(
   await prisma.chat.update({
     where: { id: params.id },
     data: { updatedAt: new Date() },
+  })
+
+  // GDPR Art. 30 — log invio messaggio ospite (non autenticato)
+  await audit({
+    hostId: null,
+    userId: null,
+    userEmail: chat.prenotazione.guestEmail,
+    azione: 'messaggio.inviato',
+    entita: 'messaggio',
+    entitaId: messaggio.id,
+    dettagli: `Messaggio GUEST→HOST chat=${params.id} len=${testo.length}`,
+    ip: getClientIp(req),
+    userAgent: req.headers.get('user-agent'),
   })
 
   // ── Notifica host via email (non bloccante) ────────────────────────────────

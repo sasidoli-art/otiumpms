@@ -113,6 +113,19 @@ export async function PUT(req: NextRequest, { params: p }: { params: Promise<{ i
     }
   }
 
+  // GDPR Art. 30
+  const azioni: string[] = []
+  if (stato && stato !== existing.stato) azioni.push(`stato ${existing.stato}→${stato}`)
+  if (dataOra) azioni.push(`dataOra aggiornata`)
+  if (azioni.length > 0) {
+    await auditFromAuth(auth, {
+      azione: 'appuntamento_spa.aggiornato',
+      entita: 'appuntamentoSpa',
+      entitaId: id,
+      dettagli: `${updated.guestCognome} ${updated.guestNome} · ${azioni.join(' · ')}`,
+    })
+  }
+
   // ── Email notifiche su cambio stato (non bloccanti) ──────────────────
   const emailOspite = updated.guestEmail
   if (stato && stato !== existing.stato && emailOspite) {
@@ -145,5 +158,13 @@ export async function DELETE(_req: NextRequest, { params: p }: { params: Promise
   if (!existing) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
   await prisma.appuntamentoSpa.delete({ where: { id } })
+
+  await auditFromAuth(auth, {
+    azione: 'appuntamento_spa.eliminato',
+    entita: 'appuntamentoSpa',
+    entitaId: id,
+    dettagli: `Appuntamento SPA ${existing.guestCognome ?? ''} ${existing.guestNome} del ${existing.dataOra.toISOString()} eliminato`,
+  })
+
   return NextResponse.json({ ok: true })
 }
