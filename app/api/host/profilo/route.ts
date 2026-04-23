@@ -108,6 +108,7 @@ export async function PATCH(req: NextRequest) {
       wifiAuthComplimentary: rawObj.wifiAuthComplimentary !== undefined ? !!rawObj.wifiAuthComplimentary : host.wifiAuthComplimentary,
       wifiComplimentaryMins: rawObj.wifiComplimentaryMins !== undefined ? (Number(rawObj.wifiComplimentaryMins) || 120) : host.wifiComplimentaryMins,
       wifiAuthUserForm: rawObj.wifiAuthUserForm !== undefined ? !!rawObj.wifiAuthUserForm : host.wifiAuthUserForm,
+      wifiAuthEmailOnly: rawObj.wifiAuthEmailOnly !== undefined ? !!rawObj.wifiAuthEmailOnly : host.wifiAuthEmailOnly,
       wifiAuthSocial: rawObj.wifiAuthSocial !== undefined ? !!rawObj.wifiAuthSocial : host.wifiAuthSocial,
       wifiRedirectUrl: rawObj.wifiRedirectUrl !== undefined ? (String(rawObj.wifiRedirectUrl) || null) : host.wifiRedirectUrl,
       wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,

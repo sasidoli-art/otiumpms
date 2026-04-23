@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, CheckCircle, Loader, CreditCard, Banknote, Home } from 'lucide-react'
+import { AlertCircle, CheckCircle, Loader, CreditCard, Banknote, Home, Gift } from 'lucide-react'
 
 interface PagamentoSpaFormProps {
   appuntamentoId: string
@@ -41,6 +41,13 @@ const METODI = [
     icon: Home, // Cambierà in futuro
     requiresUnita: false,
   },
+  {
+    id: 'GIFT_CARD',
+    label: 'Gift Card',
+    description: 'Riscatta un codice gift card Otium',
+    icon: Gift,
+    requiresUnita: false,
+  },
 ]
 
 /**
@@ -61,6 +68,11 @@ export function PagamentoSpaForm({
     scadenza: '',
     cvv: '',
   })
+  const [giftCardCodice, setGiftCardCodice] = useState('')
+  const [giftCardVerifica, setGiftCardVerifica] = useState<{
+    valida: boolean; saldoResiduo?: number; errore?: string
+  } | null>(null)
+  const [verificando, setVerificando] = useState(false)
   const [loading, setLoading] = useState(false)
   const [savedPayment, setSavedPayment] = useState<any>(null)
 
@@ -101,6 +113,22 @@ export function PagamentoSpaForm({
       }
       // Estrai ultime 4 cifre
       payload.ultimeQuatroCifre = cardData.numero.slice(-4)
+    }
+
+    if (metodoPagamento === 'GIFT_CARD') {
+      if (!giftCardCodice.trim()) {
+        onError?.('Inserisci il codice gift card')
+        return
+      }
+      if (!giftCardVerifica?.valida) {
+        onError?.('Verifica il codice gift card prima di continuare')
+        return
+      }
+      if (giftCardVerifica.saldoResiduo != null && giftCardVerifica.saldoResiduo < importo) {
+        onError?.(`Saldo gift card insufficiente (€${giftCardVerifica.saldoResiduo.toFixed(2)})`)
+        return
+      }
+      payload.giftCardCodice = giftCardCodice.trim().toUpperCase()
     }
 
     setLoading(true)
@@ -276,6 +304,67 @@ export function PagamentoSpaForm({
           <p className="text-sm text-blue-700">
             Ti invieremo i dati per il bonifico via email
           </p>
+        </motion.div>
+      )}
+
+      {metodoPagamento === 'GIFT_CARD' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <label className="block text-sm font-medium text-gray-900">Codice gift card</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="OW-XXXX-XXXX-XXXX"
+              value={giftCardCodice}
+              onChange={(e) => {
+                setGiftCardCodice(e.target.value.toUpperCase())
+                setGiftCardVerifica(null)
+              }}
+              className="flex-1 px-3 py-2 border rounded-lg font-mono text-sm"
+              maxLength={17}
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                if (!giftCardCodice.trim()) return
+                setVerificando(true)
+                try {
+                  const res = await fetch(`/api/host/spa/gift-card/${encodeURIComponent(giftCardCodice.trim().toUpperCase())}/verifica`)
+                  const j = await res.json()
+                  setGiftCardVerifica({
+                    valida: !!j.valida,
+                    saldoResiduo: j.giftCard?.saldoResiduo,
+                    errore: j.errore,
+                  })
+                } catch {
+                  setGiftCardVerifica({ valida: false, errore: 'Errore di rete' })
+                } finally {
+                  setVerificando(false)
+                }
+              }}
+              disabled={verificando || !giftCardCodice.trim()}
+              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg disabled:opacity-50"
+            >
+              {verificando ? <Loader className="w-4 h-4 animate-spin" /> : 'Verifica'}
+            </button>
+          </div>
+          {giftCardVerifica && (
+            giftCardVerifica.valida ? (
+              <div className="flex items-start gap-2 p-2 rounded bg-emerald-100 text-emerald-800 text-sm">
+                <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
+                <span>
+                  Valida. Saldo disponibile: <strong>€{(giftCardVerifica.saldoResiduo ?? 0).toFixed(2)}</strong>
+                  {giftCardVerifica.saldoResiduo != null && giftCardVerifica.saldoResiduo < importo && (
+                    <span className="block text-red-700 mt-1">⚠ Saldo insufficiente per €{importo.toFixed(2)}</span>
+                  )}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2 rounded bg-red-100 text-red-800 text-sm">
+                <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+                <span>{giftCardVerifica.errore ?? 'Codice non valido'}</span>
+              </div>
+            )
+          )}
         </motion.div>
       )}
 

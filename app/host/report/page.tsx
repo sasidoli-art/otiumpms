@@ -2,8 +2,10 @@
 import { authOptions } from '@/lib/auth'
 import { getHostId } from '@/lib/auth-middleware'
 import { redirect } from 'next/navigation'
-import ReportClient from './report-client'
 import { isHostAuthorized } from '@/lib/permissions'
+import ReportRevenue from '@/components/report/report-revenue'
+
+export const metadata = { title: 'Report — Otium' }
 
 export default async function ReportPage() {
   const session = await getServerSession(authOptions)
@@ -11,7 +13,15 @@ export default async function ReportPage() {
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 
-  const oggi = new Date()
-
-  return <ReportClient annoIniziale={oggi.getFullYear()} meseIniziale={oggi.getMonth() + 1} />
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="page-title">Report</h1>
+        <p className="text-sm text-gray-500">
+          Report dettagliati per commercialista e gestione interna. Export CSV e PDF.
+        </p>
+      </div>
+      <ReportRevenue />
+    </div>
+  )
 }

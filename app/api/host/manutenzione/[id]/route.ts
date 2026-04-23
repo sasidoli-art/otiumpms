@@ -28,6 +28,12 @@ export async function PATCH(
     if (body[f] !== undefined) data[f] = body[f]
   }
   if (body.dataScadenza !== undefined) data.dataScadenza = body.dataScadenza ? new Date(body.dataScadenza) : null
+  // Multi-foto: valida array di URL stringa (max 4) + aggiorna anche legacy `immagineUrl`
+  if (Array.isArray(body.immagini)) {
+    const arr = body.immagini.filter((x: unknown) => typeof x === 'string').slice(0, 4)
+    data.immagini = arr
+    data.immagineUrl = arr[0] ?? null
+  }
   if (body.stato === 'RISOLTA' && seg.stato !== 'RISOLTA') data.dataRisoluzione = new Date()
   if (body.stato && body.stato !== 'RISOLTA' && seg.stato === 'RISOLTA') data.dataRisoluzione = null
 

@@ -30,9 +30,10 @@ export type AuthMethods = {
   complimentary: boolean
   complimentaryMins: number
   userForm: boolean
+  emailOnly?: boolean
 }
 
-type Tab = 'pin' | 'prenotazione' | 'codice' | 'complimentary' | 'user_form'
+type Tab = 'pin' | 'prenotazione' | 'codice' | 'complimentary' | 'user_form' | 'email_only'
 
 export default function WifiLoginClient({
   hostId, hostNome, wifidog, authMethods, redirectUrl, welcomeMessage,
@@ -44,11 +45,12 @@ export default function WifiLoginClient({
   redirectUrl?: string | null
   welcomeMessage?: string | null
 }) {
-  const methods = authMethods ?? { pms: true, code: true, complimentary: false, complimentaryMins: 120, userForm: false }
+  const methods = authMethods ?? { pms: true, code: true, complimentary: false, complimentaryMins: 120, userForm: false, emailOnly: false }
 
   const availableTabs: { id: Tab; label: string; icon: React.ReactNode }[] = []
   if (methods.pms) availableTabs.push({ id: 'pin', label: 'Ho il PIN', icon: <KeyRound className="w-4 h-4" /> })
   if (methods.pms) availableTabs.push({ id: 'prenotazione', label: 'Camera + Cognome', icon: <UserCheck className="w-4 h-4" /> })
+  if (methods.emailOnly) availableTabs.push({ id: 'email_only', label: 'Email prenotazione', icon: <Mail className="w-4 h-4" /> })
   if (methods.code) availableTabs.push({ id: 'codice', label: 'Codice accesso', icon: <KeyRound className="w-4 h-4" /> })
   if (methods.complimentary) availableTabs.push({ id: 'complimentary', label: 'Gratis', icon: <Globe className="w-4 h-4" /> })
   if (methods.userForm) availableTabs.push({ id: 'user_form', label: 'Registrati', icon: <Mail className="w-4 h-4" /> })
@@ -69,6 +71,7 @@ export default function WifiLoginClient({
   const [formNome, setFormNome] = useState('')
   const [compNome, setCompNome] = useState('')
   const [pinValue, setPinValue] = useState('')
+  const [emailOnlyValue, setEmailOnlyValue] = useState('')
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -93,6 +96,9 @@ export default function WifiLoginClient({
           break
         case 'user_form':
           body = { mode: 'user_form', hostId, guestNome: formNome, guestEmail: formEmail, macClient }
+          break
+        case 'email_only':
+          body = { mode: 'email_only', hostId, guestEmail: emailOnlyValue, macClient }
           break
       }
 
@@ -316,6 +322,19 @@ export default function WifiLoginClient({
                 <label className="block text-xs font-medium text-gray-700 mb-1">Il tuo nome (opzionale)</label>
                 <input type="text" value={compNome} onChange={e => setCompNome(e.target.value)}
                   placeholder="Come ti chiami?"
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+              </div>
+            </>
+          )}
+
+          {/* TAB: Email-only (match prenotazione via sola email) */}
+          {tab === 'email_only' && (
+            <>
+              <p className="text-xs text-gray-500">Usa l&apos;email della tua prenotazione per connetterti.</p>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email prenotazione</label>
+                <input type="email" required value={emailOnlyValue} onChange={e => setEmailOnlyValue(e.target.value)}
+                  autoComplete="email" placeholder="mario@esempio.com"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
               </div>
             </>

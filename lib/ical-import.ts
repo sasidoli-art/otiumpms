@@ -1,8 +1,12 @@
 /**
- * Parser iCal per import da canali esterni (Booking.com, Airbnb, VRBO, Google Calendar).
- * Parsa feed iCal (RFC 5545), estrae VEVENT con date inizio/fine.
+ * Parser e sincronizzazione iCal per canali esterni (Booking.com, Airbnb, VRBO, Google Calendar).
+ *
+ * - `fetchAndParseIcal` / `parseIcalText` — parsing RFC 5545
+ * - `importaFeedICal(canaleId)` — sync completo di un singolo canale (upsert + delete orfani)
+ * - `importaTuttiCanali(hostId)` — sync di tutti i canali attivi di un host (concorrenza limitata)
  */
 
+import { prisma } from '@/lib/db'
 import { logger } from '@/lib/logger'
 
 export interface IcalImportEvent {
@@ -140,4 +144,224 @@ function unescapeIcal(s: string): string {
     .replace(/\\,/g, ',')
     .replace(/\\;/g, ';')
     .replace(/\\\\/g, '\\')
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sincronizzazione canali (import completo + upsert + delete orfani)
+// ────────────────────────────────────────────────────────────────────────────
+
+export type ImportResult = {
+  canaleId: string
+  canaleNome: string
+  unitaNome: string | null
+  nuove: number
+  aggiornate: number
+  cancellate: number
+  invariate: number
+  totaleEventi: number
+  errore?: string
+  durataMs: number
+}
+
+/**
+ * Sync di un singolo canale.
+ *
+ * Strategia:
+ * 1. Fetch feed iCal
+ * 2. Carica PrenotazioneCanale esistenti (uid → row)
+ * 3. Per ogni VEVENT: confronta dtstart/dtend con la riga esistente → classifica come invariata/aggiornata/nuova
+ * 4. Delete delle righe il cui uid non è più presente (OTA cancellation)
+ *
+ * Note:
+ * - In caso di fetch fallito: aggiorna `CanaleEsterno.ultimoSyncOk=false` con errore
+ *   e ritorna `ImportResult` con `errore` valorizzato (no throw).
+ * - Disponibilità: non aggiornata qui. La disponibilità pubblica va calcolata
+ *   al query-time unendo `Prenotazione` + `PrenotazioneCanale` (single source of truth).
+ */
+export async function importaFeedICal(canaleId: string): Promise<ImportResult> {
+  const t0 = Date.now()
+
+  const canale = await prisma.canaleEsterno.findUnique({
+    where: { id: canaleId },
+    include: { unita: { select: { nome: true } } },
+  })
+
+  if (!canale) {
+    return {
+      canaleId,
+      canaleNome: '(inesistente)',
+      unitaNome: null,
+      nuove: 0, aggiornate: 0, cancellate: 0, invariate: 0, totaleEventi: 0,
+      errore: 'Canale non trovato',
+      durataMs: Date.now() - t0,
+    }
+  }
+
+  const base: ImportResult = {
+    canaleId,
+    canaleNome: canale.nome,
+    unitaNome: canale.unita?.nome ?? null,
+    nuove: 0, aggiornate: 0, cancellate: 0, invariate: 0, totaleEventi: 0,
+    durataMs: 0,
+  }
+
+  let eventi: IcalImportEvent[]
+  try {
+    eventi = await fetchAndParseIcal(canale.urlIcal)
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err)
+    logger.error(`ical-import fetch fallita ${canaleId}`, { error: errMsg })
+
+    await prisma.canaleEsterno.update({
+      where: { id: canaleId },
+      data: { ultimoSync: new Date(), ultimoSyncOk: false, ultimoSyncError: errMsg.slice(0, 500) },
+    })
+    return { ...base, errore: errMsg, durataMs: Date.now() - t0 }
+  }
+
+  // Pre-load righe esistenti (evita N+1)
+  const esistenti = await prisma.prenotazioneCanale.findMany({
+    where: { canaleId },
+    select: { id: true, uidEvento: true, dataInizio: true, dataFine: true, sommario: true },
+  })
+  const perUid = new Map(esistenti.map((r) => [r.uidEvento, r]))
+
+  const uidDalFeed = new Set<string>()
+  let nuove = 0
+  let aggiornate = 0
+  let invariate = 0
+
+  for (const ev of eventi) {
+    uidDalFeed.add(ev.uid)
+    const cur = perUid.get(ev.uid)
+
+    if (!cur) {
+      await prisma.prenotazioneCanale.create({
+        data: {
+          canaleId,
+          uidEvento: ev.uid,
+          sommario: ev.summary,
+          dataInizio: ev.dtstart,
+          dataFine: ev.dtend,
+          descrizione: ev.description || null,
+        },
+      })
+      nuove += 1
+      continue
+    }
+
+    const sameStart = cur.dataInizio.getTime() === ev.dtstart.getTime()
+    const sameEnd = cur.dataFine.getTime() === ev.dtend.getTime()
+    const sameSummary = cur.sommario === ev.summary
+    if (sameStart && sameEnd && sameSummary) {
+      invariate += 1
+      continue
+    }
+
+    await prisma.prenotazioneCanale.update({
+      where: { id: cur.id },
+      data: {
+        sommario: ev.summary,
+        dataInizio: ev.dtstart,
+        dataFine: ev.dtend,
+        descrizione: ev.description || null,
+      },
+    })
+    aggiornate += 1
+  }
+
+  // Delete orfani — prenotazioni OTA cancellate lato canale
+  const orfani = esistenti.filter((r) => !uidDalFeed.has(r.uidEvento))
+  let cancellate = 0
+  if (orfani.length > 0) {
+    const res = await prisma.prenotazioneCanale.deleteMany({
+      where: { id: { in: orfani.map((o) => o.id) } },
+    })
+    cancellate = res.count
+
+    // Notifica l'host delle cancellazioni — una notifica sintetica per canale
+    if (cancellate > 0) {
+      try {
+        const struttura = await prisma.struttura.findUnique({
+          where: { id: canale.strutturaId },
+          select: { hostId: true },
+        })
+        if (struttura) {
+          await prisma.notifica.create({
+            data: {
+              hostId: struttura.hostId,
+              tipo: 'sistema',
+              titolo: `${cancellate} prenotazione${cancellate === 1 ? '' : 'i'} cancellata${cancellate === 1 ? '' : 'e'} su ${canale.nome}`,
+              messaggio: `Il feed iCal di ${canale.nome} non contiene più ${cancellate} evento${cancellate === 1 ? '' : 'i'} precedentemente importato${cancellate === 1 ? '' : 'i'}.`,
+              linkUrl: '/host/canali',
+            },
+          })
+        }
+      } catch (err) {
+        logger.warn('Notifica cancellazione canale fallita', { error: String(err) })
+      }
+    }
+  }
+
+  // Stato sync OK
+  await prisma.canaleEsterno.update({
+    where: { id: canaleId },
+    data: {
+      ultimoSync: new Date(),
+      ultimoSyncOk: true,
+      ultimoSyncError: null,
+      eventiImportati: eventi.length,
+    },
+  })
+
+  return {
+    ...base,
+    nuove, aggiornate, cancellate, invariate,
+    totaleEventi: eventi.length,
+    durataMs: Date.now() - t0,
+  }
+}
+
+/**
+ * Sync di tutti i canali attivi di un host, con concorrenza limitata.
+ *
+ * Concorrenza: max 5 fetch simultanei. Un canale lento non blocca gli altri.
+ * Non lancia mai: ogni risultato è un `ImportResult` (con `errore` se fallito).
+ */
+export async function importaTuttiCanali(
+  hostId: string,
+  opts: { concurrency?: number } = {},
+): Promise<ImportResult[]> {
+  const concurrency = opts.concurrency ?? 5
+
+  const canali = await prisma.canaleEsterno.findMany({
+    where: { attivo: true, struttura: { hostId } },
+    select: { id: true },
+  })
+
+  const results: ImportResult[] = []
+  let idx = 0
+
+  async function worker() {
+    while (idx < canali.length) {
+      const mine = idx++
+      const c = canali[mine]
+      try {
+        results.push(await importaFeedICal(c.id))
+      } catch (err) {
+        // Salvaguardia: importaFeedICal non dovrebbe mai throw, ma per sicurezza
+        results.push({
+          canaleId: c.id,
+          canaleNome: '(errore)',
+          unitaNome: null,
+          nuove: 0, aggiornate: 0, cancellate: 0, invariate: 0, totaleEventi: 0,
+          errore: err instanceof Error ? err.message : String(err),
+          durataMs: 0,
+        })
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, canali.length) }, worker))
+  return results
 }

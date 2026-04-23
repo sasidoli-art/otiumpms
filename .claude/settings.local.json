@@ -11,7 +11,21 @@
       "Bash(ls -lR /c/PROGETTI/Gestionale_otium/app/host/strutture/[id]/tariffe/)",
       "Bash(find c:PROGETTIGestionale_otiumcomponentshost -type f -name *.tsx)",
       "Bash(ls -la \"c:\\\\PROGETTI\\\\Gestionale_otium\\\\components\\\\host\"\" 2>/dev/null || echo \"Directory not found \")",
-      "Bash(grep -n \"Art. 9\\\\|DPIA\\\\|DPA\\\\|breach\" /c/PROGETTI/Gestionale_otium/docs/legal/*.md)"
+      "Bash(grep -n \"Art. 9\\\\|DPIA\\\\|DPA\\\\|breach\" /c/PROGETTI/Gestionale_otium/docs/legal/*.md)",
+      "Bash(cp /tmp/check-desc-len.js scripts/check-desc-len.js)",
+      "Bash(node scripts/check-desc-len.js)",
+      "Bash(LIMIT=5 node scripts/expand-event-descriptions.js)",
+      "Bash(LIMIT=3 node scripts/expand-event-descriptions.js)",
+      "Bash(echo \"Started in background — PID $!\")",
+      "Bash(node -e ' *)",
+      "Bash(node scripts/reexpand-suspicious.js)",
+      "Bash(git diff *)",
+      "Bash(ENCRYPTION_KEY=aa775c59c3b74f70b185071a2c037f00ccc30c64dad8d8e9c8df9cca69b9e070 npx tsx scripts/backfill-host-configs.ts)",
+      "Bash(grep -nA12 \"^export async function sendEmailNuovaPrenotazione\" lib/email.ts)",
+      "Bash(echo \"EXIT=$?\")"
+    ],
+    "additionalDirectories": [
+      "c:\\PROGETTI\\Gestionale_otium\\app\\host\\crm\\[id]"
     ]
   }
 }

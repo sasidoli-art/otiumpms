@@ -8,10 +8,11 @@ import { BugReportButton } from '@/components/layout/bug-report-button'
 
 interface Props {
   nomeUtente: string
+  userRole?: string
   children: React.ReactNode
 }
 
-export function AdminShell({ nomeUtente, children }: Props) {
+export function AdminShell({ nomeUtente, userRole, children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
 
@@ -27,7 +28,7 @@ export function AdminShell({ nomeUtente, children }: Props) {
         transform transition-transform duration-300 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <AdminSidebar nomeUtente={nomeUtente} />
+        <AdminSidebar nomeUtente={nomeUtente} userRole={userRole} />
       </div>
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar

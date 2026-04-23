@@ -349,6 +349,7 @@ function NuovaSegnalazioneModal({
     titolo: '', categoria: 'ALTRO', descrizione: '', priorita: 'NORMALE',
     strutturaId: '', assegnatoA: '', costoStimato: '', note: '', dataScadenza: '',
   })
+  const [immagini, setImmagini] = useState<string[]>(['', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [errore, setErrore] = useState('')
 
@@ -356,10 +357,15 @@ function NuovaSegnalazioneModal({
     e.preventDefault()
     if (!form.titolo) { setErrore('Il titolo è obbligatorio'); return }
     setLoading(true); setErrore('')
+    const immaginiValide = immagini.map((u) => u.trim()).filter((u) => u.length > 0)
     const res = await fetch('/api/host/manutenzione', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, strutturaId: form.strutturaId || null }),
+      body: JSON.stringify({
+        ...form,
+        strutturaId: form.strutturaId || null,
+        immagini: immaginiValide.length > 0 ? immaginiValide : undefined,
+      }),
     })
     if (!res.ok) { const j = await res.json(); setErrore(j.error || 'Errore'); setLoading(false); return }
     const seg = await res.json()
@@ -430,6 +436,34 @@ function NuovaSegnalazioneModal({
           <div>
             <label className="label">Note</label>
             <textarea rows={2} value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} className="input" />
+          </div>
+          <div>
+            <label className="label">Foto (URL — max 4)</label>
+            <p className="text-xs text-gray-500 mb-2">Incolla fino a 4 URL di immagini. Carica prima su un servizio esterno (es. imgur) o sul filesystem della struttura.</p>
+            <div className="space-y-1.5">
+              {immagini.map((url, idx) => (
+                <input
+                  key={idx}
+                  type="url"
+                  value={url}
+                  onChange={(e) => setImmagini((arr) => {
+                    const copy = [...arr]
+                    copy[idx] = e.target.value
+                    return copy
+                  })}
+                  placeholder={`Foto ${idx + 1} (https://...)`}
+                  className="input text-xs"
+                />
+              ))}
+            </div>
+            {immagini.filter((u) => u.trim().length > 0).length > 0 && (
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                {immagini.filter((u) => u.trim().length > 0).map((url, idx) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={idx} src={url} alt="" className="w-14 h-14 rounded object-cover border border-gray-200" />
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={loading} className="flex-1 btn-primary flex items-center justify-center gap-2">

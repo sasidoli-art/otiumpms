@@ -38,6 +38,11 @@ export async function POST(
   // Aggiorna statistiche CRM (numSoggiorni, totaleSpeso, dataUltimoSoggiorno)
   incrementStatsOnCheckout(auth.user.hostId, params.id).catch(() => {})
 
+  // Loyalty — accumula punti (silenzioso se l'host non ha programma / ospite non iscritto)
+  import('@/lib/fedelta').then(({ accumulaPuntiDaPrenotazione }) =>
+    accumulaPuntiDaPrenotazione(params.id).catch(() => {}),
+  )
+
   // GDPR Art. 30
   await auditFromAuth(session, {
     azione: 'prenotazione.checkout',

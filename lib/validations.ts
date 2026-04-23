@@ -339,6 +339,7 @@ export const manutenzioneCreateSchema = z.object({
   costoStimato: z.coerce.number().min(0).optional().nullable(),
   note: z.string().max(5000).trim().optional().nullable(),
   dataScadenza: z.string().optional().nullable(),
+  immagini: z.array(z.string().url()).max(4).optional(),
 })
 
 export type ManutenzioneCreateInput = z.infer<typeof manutenzioneCreateSchema>

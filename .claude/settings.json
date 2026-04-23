@@ -219,7 +219,31 @@
       "Bash(ls -lt /c/Users/admin/Downloads/*.png /c/Users/admin/Downloads/*.svg)",
       "Bash(node scripts/gen-real-events.js)",
       "Bash(ls -la /c/PROGETTI/Gestionale_otium/OTIUM/public/logo*)",
-      "Bash(node scripts/gen-nazionali.js)"
+      "Bash(node scripts/gen-nazionali.js)",
+      "Bash(powershell -Command \"Move-Item -Path 'c:\\\\PROGETTI\\\\Gestionale_otium\\\\OTIUM' -Destination 'c:\\\\PROGETTI\\\\OTIUM' -Force\")",
+      "WebFetch(domain:app.envato.com)",
+      "Bash(awk '{print $5, $9}')",
+      "Bash(grep -E \"\\\\.crdownload$\")",
+      "Bash(grep -E \"\\\\.jpg$|\\\\.jpeg$|\\\\.JPG$|\\\\.JPEG$\")",
+      "Bash(node scripts/optimize-envato-photos.js)",
+      "Bash(node scripts/publish-article-milano-design-week.js)",
+      "Bash(node scripts/retrofit-article-photos.js)",
+      "Bash(node scripts/force-retrofit-unsplash.js)",
+      "Bash(cat)",
+      "Bash(node scripts/debug-photos.js)",
+      "Bash(node scripts/audit.js)",
+      "Bash(node scripts/recategorize-photos.js)",
+      "Bash(node scripts/smart-retrofit-milano.js)",
+      "Bash(node scripts/audit-events.js)",
+      "Bash(node scripts/assign-photos-to-events.js)",
+      "Bash(node scripts/audit-events-quality.js)",
+      "Bash(node scripts/reset-event-photos.js)",
+      "Bash(node scripts/dedup-events.js)",
+      "Bash(node scripts/validate-source-urls.js)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\")",
+      "Bash(git remote *)",
+      "Bash(git reset *)",
+      "Bash(grep \"\\\\\"marked\\\\\\\\|\\\\\"remark\\\\\\\\|\\\\\"unified\\\\\\\\|\\\\\"react-markdown\" package.json)"
     ]
   }
 }

@@ -162,6 +162,11 @@ export async function PATCH(
     // Aggiorna statistiche CRM
     incrementStatsOnCheckout(auth.user.hostId, params.id).catch(() => {})
 
+    // Loyalty — accumula punti (silenzioso se programma/membership assenti)
+    import('@/lib/fedelta').then(({ accumulaPuntiDaPrenotazione }) =>
+      accumulaPuntiDaPrenotazione(params.id).catch(() => {}),
+    )
+
     // Libera camera se richiesto
     const rawObj = raw as Record<string, unknown>
     const liberaCamera = rawObj.liberaCamera !== false // default true

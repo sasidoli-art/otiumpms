@@ -8,9 +8,17 @@
  * Uso:
  *   const provider = createAIProvider({ provider: 'ollama', model: 'llama3.1' })
  *   const response = await provider.chat(messages, tools)
+ *
+ * Esiste inoltre `generaRispostaConcierge(...)` — wrapper single-turn per la UI di
+ * test/simulazione che NON salva in DB (a differenza di `processGuestMessage` in
+ * `lib/concierge.ts`, che è l'orchestratore canonico del webhook WhatsApp).
  */
 
 import { logger } from '@/lib/logger'
+import { prisma } from '@/lib/db'
+import { getHostSecret } from '@/lib/host-secrets'
+import { getPlatformSettings } from '@/lib/platform-settings'
+import { revealSecret } from '@/lib/secrets'
 
 // ─── Tipi comuni ──────────────────────────────────────────────────────────────
 
@@ -45,6 +53,8 @@ export interface AIProviderConfig {
   apiKey?: string | null
   model?: string | null
   baseUrl?: string | null  // Ollama custom URL, oppure OpenAI-compatible gateway (es. OpenRouter)
+  temperature?: number | null  // 0.0 - 1.0 (null = default provider)
+  maxTokens?: number | null    // max token risposta (null = default provider)
 }
 
 export interface AIProvider {
@@ -140,10 +150,14 @@ class OllamaProvider implements AIProvider {
 class ClaudeProvider implements AIProvider {
   private apiKey: string
   private model: string
+  private temperature: number | undefined
+  private maxTokens: number
 
   constructor(config: AIProviderConfig) {
     this.apiKey = config.apiKey || ''
     this.model = config.model || 'claude-haiku-4-5-20251001'
+    this.temperature = config.temperature ?? undefined
+    this.maxTokens = config.maxTokens ?? 1024
     if (!this.apiKey) throw new Error('API key Anthropic obbligatoria per provider Claude')
   }
 
@@ -182,9 +196,10 @@ class ClaudeProvider implements AIProvider {
 
     const body: Record<string, unknown> = {
       model: this.model,
-      max_tokens: 1024,
+      max_tokens: this.maxTokens,
       messages: anthropicMessages,
     }
+    if (this.temperature !== undefined) body.temperature = this.temperature
     if (systemMsg) body.system = systemMsg.content
     if (tools && tools.length > 0) {
       body.tools = tools.map(t => ({
@@ -248,6 +263,8 @@ class OpenAIProvider implements AIProvider {
   private apiKey: string
   private model: string
   private baseUrl: string
+  private temperature: number | undefined
+  private maxTokens: number | undefined
 
   constructor(config: AIProviderConfig) {
     this.apiKey = config.apiKey || ''
@@ -255,6 +272,8 @@ class OpenAIProvider implements AIProvider {
     // baseUrl custom permette di usare qualsiasi gateway OpenAI-compatibile
     // (OpenRouter, Groq, Together, Perplexity, Azure OpenAI, ecc.)
     this.baseUrl = (config.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '')
+    this.temperature = config.temperature ?? undefined
+    this.maxTokens = config.maxTokens ?? undefined
     if (!this.apiKey) throw new Error('API key OpenAI obbligatoria per provider OpenAI')
   }
 
@@ -285,6 +304,8 @@ class OpenAIProvider implements AIProvider {
       model: this.model,
       messages: openaiMessages,
     }
+    if (this.temperature !== undefined) body.temperature = this.temperature
+    if (this.maxTokens !== undefined) body.max_tokens = this.maxTokens
     if (tools && tools.length > 0) {
       body.tools = tools.map(t => ({
         type: 'function',
@@ -348,5 +369,284 @@ class OpenAIProvider implements AIProvider {
       logger.error('OpenAI connection error', { error: String(err) })
       return { content: null, toolCalls: [], tokensUsed: null, finishReason: 'error' }
     }
+  }
+}
+
+// ─── Single-turn Concierge wrapper ───────────────────────────────────────────
+//
+// `generaRispostaConcierge` è un helper per scenari in cui la gestione della
+// conversazione avviene altrove (UI di test /host/concierge/test, anteprime AI,
+// script batch). NON salva messaggi in DB — il chiamante decide se/come persistere.
+//
+// Per il flusso WhatsApp completo (identifica ospite, crea conversazione, tool-use
+// loop, disclosure AI Act, audit), usa `processGuestMessage` in `lib/concierge.ts`.
+
+export interface ContestoOspiteConcierge {
+  nome: string
+  camera?: string
+  dataArrivo?: Date
+  dataPartenza?: Date
+  pianoPasto?: string
+  lingua?: string
+}
+
+export interface RispostaConcierge {
+  risposta: string
+  tokenUsati: number
+  fonteRisposta: 'ai' | 'knowledge_base' | 'escalation'
+  escalare: boolean
+  motivoEscalation?: string
+}
+
+/**
+ * Costruisce il system prompt per il concierge, adattato ai campi reali
+ * del modello `Struttura` (nome, citta, regione, indirizzo, descrizione).
+ *
+ * NB: il modello non ha oraCheckIn/oraCheckOut/telefono — quindi quelle info
+ * devono stare dentro `conciergeSystemPrompt` (free-text dell'host).
+ */
+function buildSystemPrompt(
+  host: {
+    nomeAzienda: string
+    conciergeSystemPrompt: string | null
+    conciergeKnowledgeBase?: string | null
+  },
+  struttura: {
+    nome: string; citta: string | null; regione: string | null
+    indirizzo: string | null; descrizione: string | null
+  } | null,
+  ospite?: ContestoOspiteConcierge,
+): string {
+  const lingua = ospite?.lingua ?? 'it'
+  const hotelInfo = host.conciergeSystemPrompt
+    ?? 'Nessuna informazione specifica configurata dall\'hotel.'
+  const kb = host.conciergeKnowledgeBase?.trim() || null
+
+  const strutturaBlock = struttura
+    ? [
+        `Nome: ${struttura.nome}`,
+        struttura.indirizzo ? `Indirizzo: ${struttura.indirizzo}${struttura.citta ? `, ${struttura.citta}` : ''}` : '',
+        struttura.regione ? `Regione: ${struttura.regione}` : '',
+        struttura.descrizione ? `Descrizione: ${struttura.descrizione}` : '',
+      ].filter(Boolean).join('\n')
+    : `Nome: ${host.nomeAzienda}`
+
+  // Data minimization GDPR — solo primo nome, niente cognome/email/telefono
+  const firstName = (ospite?.nome ?? '').split(' ')[0] || null
+  const ospiteBlock = ospite
+    ? [
+        firstName ? `Nome: ${firstName}` : '',
+        ospite.camera ? `Camera: ${ospite.camera}` : '',
+        ospite.dataArrivo ? `Check-in: ${ospite.dataArrivo.toISOString().split('T')[0]}` : '',
+        ospite.dataPartenza ? `Check-out: ${ospite.dataPartenza.toISOString().split('T')[0]}` : '',
+        ospite.pianoPasto ? `Piano pasto: ${ospite.pianoPasto}` : '',
+      ].filter(Boolean).join('\n')
+    : null
+
+  return `Sei il concierge digitale di ${host.nomeAzienda}, assistente virtuale per gli ospiti via WhatsApp.
+
+STRUTTURA:
+${strutturaBlock}
+
+INFORMAZIONI HOTEL:
+${hotelInfo}
+${kb ? `\nKNOWLEDGE BASE (FAQ, info zona, servizi):\n${kb}\n` : ''}${ospiteBlock ? `\nOSPITE ATTUALE:\n${ospiteBlock}` : ''}
+
+REGOLE:
+1. Rispondi nella lingua dell'ospite (attualmente: ${lingua}).
+2. Sei un'intelligenza artificiale — se l'ospite chiede esplicitamente se sei una persona, dichiaralo con onestà (obbligo AI Act EU Art. 50).
+3. Tono cordiale ma professionale, da concierge di hotel.
+4. Rispondi SOLO su struttura, soggiorno, zona, servizi offerti. Non inventare dati che non hai.
+5. Per azioni che richiedono intervento umano (reclami, cambi camera, richieste particolari) dì che inoltri alla reception.
+6. Se l'ospite chiede esplicitamente di parlare con una persona, dì che stai collegando un operatore.
+7. Emergenza medica/sicurezza: rispondi di chiamare il 112 e la reception.
+8. Risposte concise (max 3-4 frasi) — è WhatsApp, non email. No markdown, no asterischi.
+9. Non condividere dati di altri ospiti o informazioni interne dell'hotel.`
+}
+
+// Heuristica escalation — match case-insensitive su italiano + inglese
+const TRIGGER_OSPITE = [
+  'parlare con qualcuno', 'parlare con una persona', 'operatore', 'reception',
+  'persona reale', 'talk to someone', 'speak to human', 'real person',
+  'reclamo', 'complaint', 'emergenza', 'emergency',
+]
+const TRIGGER_AI = [
+  'inoltrerò', 'inoltro alla reception', 'contatterò la reception',
+  'collego un operatore', 'forwarding', 'connecting you',
+  'non posso aiutarti', 'non sono in grado',
+]
+
+function detectEscalation(
+  rispostaAI: string,
+  messaggioOspite: string,
+): { escalare: boolean; motivo?: string } {
+  const testoLower = messaggioOspite.toLowerCase()
+  const rispostaLower = rispostaAI.toLowerCase()
+
+  const daOspite = TRIGGER_OSPITE.find((t) => testoLower.includes(t))
+  if (daOspite) return { escalare: true, motivo: `Richiesta esplicita ospite: "${daOspite}"` }
+
+  const daAI = TRIGGER_AI.find((t) => rispostaLower.includes(t))
+  if (daAI) return { escalare: true, motivo: `AI ha inoltrato alla reception: "${daAI}"` }
+
+  return { escalare: false }
+}
+
+/**
+ * Genera una risposta concierge per un turno singolo.
+ *
+ * - Carica `host` + `HostConciergeConfig` (per platform-key fallback)
+ * - Sceglie struttura: quella della prenotazione linkata alla conversazione,
+ *   altrimenti la prima struttura dell'host
+ * - Ricostruisce la storia della conversazione (ultimi 20 messaggi) dal DB
+ * - Chiama il provider AI configurato (BYO host oppure fallback Platform Key)
+ * - Rileva escalation da keyword match (ospite o AI)
+ *
+ * Ritorna risposta + token consumati + flag escalation.
+ * NON salva messaggi né aggiorna stato conversazione — compito del chiamante.
+ */
+export async function generaRispostaConcierge(params: {
+  hostId: string
+  conversazioneId: string
+  messaggioOspite: string
+  contestoOspite?: ContestoOspiteConcierge
+}): Promise<RispostaConcierge> {
+  const { hostId, conversazioneId, messaggioOspite, contestoOspite } = params
+
+  // ─── Host + HostConciergeConfig ─────────────────────────────────────────
+  const host = await prisma.host.findUnique({
+    where: { id: hostId },
+    select: {
+      id: true,
+      nomeAzienda: true,
+      conciergeAttivo: true,
+      conciergeProvider: true,
+      conciergeModel: true,
+      conciergeBaseUrl: true,
+      conciergeApiKey: true,
+      conciergeSystemPrompt: true,
+      strutture: {
+        take: 1,
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true, nome: true, citta: true, regione: true,
+          indirizzo: true, descrizione: true,
+        },
+      },
+    },
+  })
+  if (!host) throw new Error(`Host ${hostId} non trovato`)
+
+  // Campi tuning + knowledge base sono SOLO su HostConciergeConfig (non su Host legacy)
+  const cfg = await prisma.hostConciergeConfig.findUnique({
+    where: { hostId },
+    select: {
+      conciergeTemperatura: true,
+      conciergeMaxToken: true,
+      conciergeKnowledgeBase: true,
+      conciergeLinguaDefault: true,
+    },
+  })
+
+  // Conversazione → prenotazione → struttura (se disponibile)
+  const conversazione = await prisma.conversazioneWhatsApp.findUnique({
+    where: { id: conversazioneId },
+    select: {
+      lingua: true,
+      prenotazione: {
+        select: {
+          struttura: {
+            select: {
+              id: true, nome: true, citta: true, regione: true,
+              indirizzo: true, descrizione: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  const struttura =
+    conversazione?.prenotazione?.struttura ?? host.strutture[0] ?? null
+
+  // Lingua: override da contesto → da conversazione → default host → 'it'
+  const lingua =
+    contestoOspite?.lingua
+    ?? conversazione?.lingua
+    ?? cfg?.conciergeLinguaDefault
+    ?? 'it'
+
+  // ─── Storia conversazione (ultimi 20) ──────────────────────────────────
+  const storiaDesc = await prisma.messaggioWhatsApp.findMany({
+    where: { conversazioneId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: { mittente: true, testo: true },
+  })
+  const storia = storiaDesc.reverse()
+
+  // ─── Costruzione messaggi ──────────────────────────────────────────────
+  const systemPrompt = buildSystemPrompt(
+    { ...host, conciergeKnowledgeBase: cfg?.conciergeKnowledgeBase ?? null },
+    struttura,
+    contestoOspite ? { ...contestoOspite, lingua } : undefined,
+  )
+
+  const messages: AIMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...storia.map((m) => ({
+      role: (m.mittente === 'OSPITE' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: m.testo,
+    })),
+    { role: 'user', content: messaggioOspite },
+  ]
+
+  // ─── Provider config: BYO host → fallback Platform Key ──────────────────
+  const platformSettings = await getPlatformSettings()
+  const useBYO = !!host.conciergeApiKey
+  const providerConfig: AIProviderConfig = useBYO
+    ? {
+        provider: (host.conciergeProvider as AIProviderConfig['provider']) || 'claude',
+        apiKey: await getHostSecret(hostId, 'conciergeApiKey') ?? revealSecret(host.conciergeApiKey),
+        model: host.conciergeModel,
+        baseUrl: host.conciergeBaseUrl,
+        temperature: cfg?.conciergeTemperatura ?? null,
+        maxTokens: cfg?.conciergeMaxToken ?? null,
+      }
+    : {
+        provider: (platformSettings.aiProvider as AIProviderConfig['provider']) || 'claude',
+        apiKey: platformSettings.aiApiKey,
+        model: platformSettings.aiModel,
+        baseUrl: platformSettings.aiBaseUrl,
+        temperature: cfg?.conciergeTemperatura ?? null,
+        maxTokens: cfg?.conciergeMaxToken ?? null,
+      }
+
+  const provider = createAIProvider(providerConfig)
+
+  // ─── Chiamata AI (single-turn, no tools) ───────────────────────────────
+  const response = await provider.chat(messages)
+  const risposta =
+    response.content
+    ?? 'Scusa, al momento non riesco a rispondere. La collego con la reception.'
+
+  // ─── Escalation detection ──────────────────────────────────────────────
+  // La risposta dell'AI potrebbe già contenere keyword di escalation
+  // (es. "inoltrerò alla reception"). Coalizziamo entrambe le euristiche.
+  const escalationResult = detectEscalation(risposta, messaggioOspite)
+
+  // Risposta provider in errore → forziamo escalation
+  const finishError = response.finishReason === 'error'
+  const escalare = escalationResult.escalare || finishError
+  const motivoEscalation = finishError
+    ? 'Errore provider AI — fallback umano'
+    : escalationResult.motivo
+
+  return {
+    risposta,
+    tokenUsati: response.tokensUsed ?? 0,
+    fonteRisposta: escalare ? 'escalation' : 'ai',
+    escalare,
+    motivoEscalation,
   }
 }

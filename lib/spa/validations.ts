@@ -58,6 +58,7 @@ export const pagamentoSpaSchema = z.object({
   unitaId: z.string().cuid().optional().nullable(),
   ultimeQuatroCifre: z.string().length(4).regex(/^\d{4}$/).optional().nullable(),
   noteRiscossione: z.string().max(500).optional().nullable(),
+  giftCardCodice: z.string().min(1).max(40).optional().nullable(),
 });
 
 export type PagamentoSpaInput = z.infer<typeof pagamentoSpaSchema>;

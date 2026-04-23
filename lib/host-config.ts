@@ -95,6 +95,17 @@ export type ConciergeConfig = {
   conciergeBaseUrl: string | null;
   conciergeSystemPrompt: string | null;
   conciergeGdprAcceptedAt: Date | null;
+  // Tuning AI (nuovi campi su HostConciergeConfig — non su Host legacy)
+  conciergeTemperatura: number | null;
+  conciergeMaxToken: number | null;
+  conciergeKnowledgeBase: string | null;
+  // Comportamento
+  conciergeLinguaDefault: string | null;
+  conciergeAutoEscalation: number | null;
+  conciergeOrariAttiviDa: string | null;
+  conciergeOrariAttiviA: string | null;
+  conciergeMessaggioFuoriOrario: string | null;
+  // WhatsApp
   whatsappNumeroId: string | null;
   whatsappAccessToken: string | null; // decrypted
   whatsappVerifyToken: string | null;
@@ -111,11 +122,23 @@ export async function getConciergeConfig(hostId: string): Promise<ConciergeConfi
       conciergeBaseUrl: cfg.conciergeBaseUrl,
       conciergeSystemPrompt: cfg.conciergeSystemPrompt,
       conciergeGdprAcceptedAt: cfg.conciergeGdprAcceptedAt,
+      conciergeTemperatura: cfg.conciergeTemperatura,
+      conciergeMaxToken: cfg.conciergeMaxToken,
+      conciergeKnowledgeBase: cfg.conciergeKnowledgeBase,
+      conciergeLinguaDefault: cfg.conciergeLinguaDefault,
+      conciergeAutoEscalation: cfg.conciergeAutoEscalation,
+      conciergeOrariAttiviDa: cfg.conciergeOrariAttiviDa,
+      conciergeOrariAttiviA: cfg.conciergeOrariAttiviA,
+      conciergeMessaggioFuoriOrario: cfg.conciergeMessaggioFuoriOrario,
       whatsappNumeroId: cfg.whatsappNumeroId,
       whatsappAccessToken: revealSecret(cfg.whatsappAccessToken),
       whatsappVerifyToken: cfg.whatsappVerifyToken,
     };
   }
+  // Fallback legacy Host — solo per i campi che esistono su Host.
+  // I nuovi campi (temperatura, maxToken, knowledgeBase, lingua default, orari attivi,
+  // auto-escalation, messaggio fuori orario) NON sono su Host — ritornano null
+  // finché l'host non salva la config (upsert su HostConciergeConfig).
   const host = await prisma.host.findUnique({
     where: { id: hostId },
     select: {
@@ -130,6 +153,14 @@ export async function getConciergeConfig(hostId: string): Promise<ConciergeConfi
     ...host,
     conciergeApiKey: revealSecret(host.conciergeApiKey),
     whatsappAccessToken: revealSecret(host.whatsappAccessToken),
+    conciergeTemperatura: null,
+    conciergeMaxToken: null,
+    conciergeKnowledgeBase: null,
+    conciergeLinguaDefault: null,
+    conciergeAutoEscalation: null,
+    conciergeOrariAttiviDa: null,
+    conciergeOrariAttiviA: null,
+    conciergeMessaggioFuoriOrario: null,
   };
 }
 
@@ -152,17 +183,29 @@ export async function setConciergeConfig(hostId: string, patch: ConciergeConfigP
     update: data,
     create: { hostId, ...data },
   });
+  // Dual-write verso Host legacy — ma solo per i campi che esistono su Host.
+  // I nuovi campi (tuning AI + comportamento) vivono SOLO su HostConciergeConfig.
   const hostExisting = await prisma.host.findUnique({
     where: { id: hostId }, select: { conciergeApiKey: true, whatsappAccessToken: true },
   });
-  const hostData: Record<string, unknown> = { ...patch };
+  const hostLegacyFields = new Set([
+    'conciergeAttivo', 'conciergeProvider', 'conciergeApiKey', 'conciergeModel',
+    'conciergeBaseUrl', 'conciergeSystemPrompt', 'conciergeGdprAcceptedAt',
+    'whatsappNumeroId', 'whatsappAccessToken', 'whatsappVerifyToken',
+  ]);
+  const hostData: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (hostLegacyFields.has(k)) hostData[k] = v;
+  }
   if (patch.conciergeApiKey !== undefined) {
     hostData.conciergeApiKey = applySecretUpdate(patch.conciergeApiKey, hostExisting?.conciergeApiKey ?? null);
   }
   if (patch.whatsappAccessToken !== undefined) {
     hostData.whatsappAccessToken = applySecretUpdate(patch.whatsappAccessToken, hostExisting?.whatsappAccessToken ?? null);
   }
-  await prisma.host.update({ where: { id: hostId }, data: hostData });
+  if (Object.keys(hostData).length > 0) {
+    await prisma.host.update({ where: { id: hostId }, data: hostData });
+  }
 }
 
 // ─── Wi-Fi ───────────────────────────────────────────────────────────────────
@@ -173,6 +216,7 @@ export type WifiConfig = {
   wifiAuthComplimentary: boolean;
   wifiComplimentaryMins: number;
   wifiAuthUserForm: boolean;
+  wifiAuthEmailOnly: boolean;
   wifiAuthSocial: boolean;
   wifiRedirectUrl: string | null;
   wifiWelcomeMessage: string | null;
@@ -185,7 +229,8 @@ export async function getWifiConfig(hostId: string): Promise<WifiConfig | null> 
     where: { id: hostId },
     select: {
       wifiAuthPms: true, wifiAuthCode: true, wifiAuthComplimentary: true,
-      wifiComplimentaryMins: true, wifiAuthUserForm: true, wifiAuthSocial: true,
+      wifiComplimentaryMins: true, wifiAuthUserForm: true,
+      wifiAuthEmailOnly: true, wifiAuthSocial: true,
       wifiRedirectUrl: true, wifiWelcomeMessage: true,
     },
   });

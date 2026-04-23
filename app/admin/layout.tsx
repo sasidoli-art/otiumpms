@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </p>
         </div>
       </div>
-      <AdminShell nomeUtente={session.user.name ?? ''}>
+      <AdminShell nomeUtente={session.user.name ?? ''} userRole={session.user.role}>
         {children}
       </AdminShell>
     </>

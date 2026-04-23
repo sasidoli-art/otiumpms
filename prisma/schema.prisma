@@ -172,13 +172,35 @@ model Session {
 model PlatformSettings {
   id String @id @default("singleton")
 
+  // ─── Generale ──────────────────────────────────────────────────────────────
+  nomePiattaforma String? @default("Otium PMS")
+  urlBase         String? @default("https://otium-pms.vercel.app")
+  emailSupporto   String?
+  emailNoreply    String?
+
+  // ─── SMTP piattaforma (fallback quando host non ha SMTP proprio) ──────────
+  smtpHost String?
+  smtpPort Int?
+  smtpUser String?
+  smtpPass String? // cifrato (AES-256-GCM via lib/crypto.ts)
+  smtpFrom String? // es. "Otium <noreply@otiumpms.com>"
+
   // ─── AI Concierge: Platform Key centralizzata ──────────────────────────────
   // Configurazione AI globale usata da tutti gli host (Strategia B "Platform Key").
   // L'host abilita/disabilita dal suo toggle ma NON configura provider/chiave.
   aiProvider String? @default("claude") // "claude" | "openai" | "ollama"
   aiModel    String? @default("claude-haiku-4-5-20251001")
-  aiApiKey   String? // Chiave API piattaforma (Anthropic / OpenRouter / OpenAI)
+  aiApiKey   String? // Chiave API piattaforma (Anthropic / OpenRouter / OpenAI) — cifrata
   aiBaseUrl  String? // Opzionale: URL gateway custom (OpenRouter, Ollama, ecc.)
+
+  // ─── Piani e prezzi (override runtime di lib/billing.ts PLAN_DEFINITIONS) ─
+  /// JSON: { LIGHT: { prezzoMensile, prezzoAnnuale, moduliInclusi[] }, ... }
+  /// Se null, usa default hard-coded in lib/billing.ts
+  pianiOverride Json?
+
+  // ─── Maintenance mode ─────────────────────────────────────────────────────
+  maintenanceMode    Boolean @default(false)
+  maintenanceMessage String? @default("Stiamo aggiornando la piattaforma. Torniamo presto.")
 
   // ─── GDPR retention job state ─────────────────────────────────────────────
   // Tracking del cron notturno di retention. Se ultimaEsecuzioneCompletata=false
@@ -239,6 +261,7 @@ model Host {
   wifiAuthComplimentary Boolean @default(false)  // Accesso gratuito a tempo
   wifiComplimentaryMins Int     @default(120)    // Durata accesso gratuito in minuti (default 2h)
   wifiAuthUserForm      Boolean @default(false)  // Registrazione con nome+email
+  wifiAuthEmailOnly     Boolean @default(false)  // Login solo con email (match prenotazione per email)
   wifiAuthSocial        Boolean @default(false)  // Social login (Google/Facebook)
   wifiRedirectUrl       String?                  // URL redirect post-login (sito hotel/attività)
   wifiWelcomeMessage    String?                  // Messaggio personalizzato welcome page
@@ -356,7 +379,8 @@ model Host {
   paymentConfig PaymentProviderConfig?
 
   // Upselling
-  regoleUpsell RegolaUpsell[]
+  regoleUpsell          RegolaUpsell[]
+  upsellingSuggerimenti UpsellingSuggerimento[]
 
   // Ticket support
   tickets Ticket[]
@@ -471,6 +495,18 @@ model HostConciergeConfig {
   conciergeSystemPrompt   String?
   conciergeGdprAcceptedAt DateTime?
 
+  // Tuning AI
+  conciergeTemperatura   Float? @default(0.7)
+  conciergeMaxToken      Int?   @default(500)
+  conciergeKnowledgeBase String? // FAQ/info estese sulla struttura (separate dal system prompt)
+
+  // Comportamento
+  conciergeLinguaDefault          String? @default("it") // fallback lingua risposta
+  conciergeAutoEscalation         Int?    @default(10)   // escalate dopo N msg AI senza risoluzione
+  conciergeOrariAttiviDa          String? // "HH:MM" — se null: sempre attivo
+  conciergeOrariAttiviA           String? // "HH:MM"
+  conciergeMessaggioFuoriOrario   String? // risposta quando il bot è offline
+
   // WhatsApp Business
   whatsappNumeroId    String?
   whatsappAccessToken String? // cifrato
@@ -493,6 +529,7 @@ model HostWifiConfig {
   wifiAuthComplimentary Boolean @default(false)
   wifiComplimentaryMins Int     @default(120)
   wifiAuthUserForm      Boolean @default(false)
+  wifiAuthEmailOnly     Boolean @default(false)
   wifiAuthSocial        Boolean @default(false)
   wifiRedirectUrl       String?
   wifiWelcomeMessage    String?
@@ -1004,6 +1041,8 @@ model Prenotazione {
   addebiti          AddebitoPrenotazione[]
   pagamentiCheckout PagamentoCheckout[]
   proposteUpsell    PropostaUpsell[]
+  upsellingConversioni UpsellingConversione[]
+  movimentiFedelta  MovimentoPunti[]
   sceltePasto       SceltaPastoOspite[]
   transazioniPOS    TransazionePOS[]
   waitingListSpa    WaitingListSpa[]
@@ -1544,6 +1583,90 @@ model PropostaUpsell {
   @@map("proposte_upsell")
 }
 
+// ─── Upselling catalogo (multi-touchpoint, multi-tipo) ───────────────────────
+//
+// Affianca `RegolaUpsell` (che gestisce solo camera upgrades per-prenotazione)
+// con un catalogo generico di offerte mostrabili in più punti del guest journey:
+// post-prenotazione, email pre-arrivo, check-in online, benvenuto WA, in-house.
+
+enum UpsellingTipo {
+  UPGRADE_CAMERA
+  TRATTAMENTO_SPA
+  PIANO_PASTO
+  LATE_CHECKOUT
+  EARLY_CHECKIN
+  SERVIZIO_EXTRA
+  PACCHETTO
+  RISTORANTE
+  ALTRO
+}
+
+enum UpsellingTouchpoint {
+  POST_PRENOTAZIONE
+  EMAIL_PRE_ARRIVO
+  CHECKIN_ONLINE
+  BENVENUTO_WHATSAPP
+  IN_HOUSE
+}
+
+model UpsellingSuggerimento {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  tipo        UpsellingTipo
+  titolo      String
+  descrizione String?
+  immagine    String? // URL immagine per card
+
+  // Prezzo: uno dei due (prezzo fisso in € O percentuale del totale)
+  prezzo            Float?
+  prezzoPercentuale Float?
+
+  // Link opzionali a risorse catalogo esistenti (usati per applicare la conversione)
+  trattamentoSpaId String?
+  servizioId       String?
+  pacchettoId      String?
+  unitaTargetId    String? // per UPGRADE_CAMERA
+
+  // Targeting
+  posizione  UpsellingTouchpoint[] @default([])
+  condizioni Json?                 // { minNotti, maxNotti, cameraTipo[], pianoPasto[], giorniPrimaArrivo{min,max}, ospiteRicorrente }
+  priorita   Int                   @default(0)
+
+  attivo Boolean @default(true)
+
+  conversioni UpsellingConversione[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, attivo])
+  @@map("upselling_suggerimenti")
+}
+
+model UpsellingConversione {
+  id             String                @id @default(cuid())
+  suggerimentoId String
+  suggerimento   UpsellingSuggerimento @relation(fields: [suggerimentoId], references: [id], onDelete: Cascade)
+
+  prenotazioneId String?
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id], onDelete: SetNull)
+
+  touchpoint UpsellingTouchpoint
+  accettato  Boolean             @default(false) // false = vista, true = accettata
+  importo    Float? // € effettivamente applicati (solo se accettato)
+
+  datiApplicazione Json? // tracking effetto: { appuntamentoSpaId, addebitoId, ... }
+
+  createdAt DateTime @default(now())
+
+  @@index([suggerimentoId])
+  @@index([prenotazioneId])
+  @@index([suggerimentoId, accettato])
+  @@map("upselling_conversioni")
+}
+
 // ─── Biancheria & Lavanderia ──────────────────────────────────────────────────
 
 // Dotazione standard per camera/unità (quanta biancheria serve per N ospiti)
@@ -2010,7 +2133,10 @@ model SegnalazioneManutenzione {
   dataScadenza    DateTime? @db.Date
   dataRisoluzione DateTime?
 
+  // Foto: `immagineUrl` è legacy (singola). `immagini` è canonica (multi, max 4 lato UI).
+  // Durante la migrazione entrambi sono letti; scritture nuove usano `immagini`.
   immagineUrl String?
+  immagini    String[] @default([])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2333,6 +2459,7 @@ enum MetodoPagamentoSpa {
   CONTANTI
   CARTA
   TRANSFERWISE
+  GIFT_CARD
 }
 
 enum StatoPagamentoSpa {
@@ -3168,6 +3295,7 @@ model ProgrammaFedelta {
   livelli   LivelloFedelta[]
   membri    MembroFedelta[]
   movimenti MovimentoPunti[]
+  premi     PremioFedelta[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3186,6 +3314,7 @@ model LivelloFedelta {
   colore            String   @default("#6366f1")
   benefici          String[] @default([]) // descrizione benefici livello
   scontoPercentuale Float    @default(0)
+  moltiplicatore    Float    @default(1.0) // moltiplicatore punti accumulo (es. Gold 2x)
   ordine            Int      @default(0)
 
   membri MembroFedelta[]
@@ -3235,6 +3364,14 @@ model MovimentoPunti {
   appuntamentoId String?
   appuntamento   AppuntamentoSpa? @relation(fields: [appuntamentoId], references: [id])
 
+  // Collegamento opzionale a prenotazione alloggio (per accumulo da checkout)
+  prenotazioneId String?
+  prenotazione   Prenotazione?    @relation(fields: [prenotazioneId], references: [id])
+
+  // Collegamento opzionale a premio riscattato (tipo UTILIZZO)
+  premioId String?
+  premio   PremioFedelta? @relation(fields: [premioId], references: [id])
+
   operatore String?
   note      String?
 
@@ -3245,7 +3382,56 @@ model MovimentoPunti {
   programmaFedeltaId String?
 
   @@index([membroId])
+  @@index([prenotazioneId])
+  @@index([premioId])
   @@map("movimenti_punti")
+}
+
+// ─── Premi Fedeltà ────────────────────────────────────────────────────────────
+//
+// Catalogo premi riscattabili dai membri. Tipi supportati:
+//   SCONTO_PRENOTAZIONE  — sconto fisso o % applicabile a una prenotazione futura
+//   TRATTAMENTO_GRATIS   — trattamento SPA offerto (crea appuntamento con prezzo 0)
+//   UPGRADE_CAMERA       — upgrade camera su prossima prenotazione (flag + addebito 0)
+//   BONUS_PUNTI          — bonus punti (es. referral friend)
+//   ALTRO                — premio generico (solo log, side-effect manuale)
+
+enum TipoPremioFedelta {
+  SCONTO_PRENOTAZIONE
+  TRATTAMENTO_GRATIS
+  UPGRADE_CAMERA
+  BONUS_PUNTI
+  ALTRO
+}
+
+model PremioFedelta {
+  id          String            @id @default(cuid())
+  programmaId String
+  programma   ProgrammaFedelta  @relation(fields: [programmaId], references: [id], onDelete: Cascade)
+
+  tipo            TipoPremioFedelta
+  nome            String
+  descrizione     String?
+  immagine        String?
+  costoInPunti    Int
+  attivo          Boolean           @default(true)
+
+  // Disponibilità
+  disponibilitaMax    Int? // quanti riscatti totali disponibili (null = illimitato)
+  riscattiContatore   Int               @default(0) // quanti già riscattati
+  disponibilitaMembro Int? // quanti riscatti max per singolo membro (null = illimitato)
+
+  // Link opzionali per side-effect automatico
+  trattamentoSpaId String?
+  datiApplicazione Json? // es. { scontoPercentuale: 10, valoreSconto: 50 }
+
+  movimenti MovimentoPunti[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([programmaId, attivo])
+  @@map("premi_fedelta")
 }
 
 // ─── SPA Waiting List & Turnaway ──────────────────────────────────────────────
@@ -3646,6 +3832,7 @@ enum WifiSessionTipo {
   CODICE         // walk-in, login con codice di accesso
   COMPLIMENTARY  // accesso gratuito a tempo, nessuna auth richiesta
   USER_FORM      // registrazione con nome+email (lead generation)
+  EMAIL_ONLY     // match prenotazione via sola email (opt-in per host)
 }
 
 model WifiSession {

@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/gdpr-notifiche",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/ical-sync",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

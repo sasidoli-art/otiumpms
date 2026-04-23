@@ -311,8 +311,81 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // ─── Modalita' 5: EMAIL_ONLY (match prenotazione via sola email) ─────────
+  if (mode === 'email_only') {
+    const guestEmail = typeof body.guestEmail === 'string' ? body.guestEmail.trim().toLowerCase() : ''
+
+    if (!guestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+      return NextResponse.json({ error: 'Email non valida' }, { status: 422 })
+    }
+
+    const hostFull = await prisma.host.findUnique({
+      where: { id: hostId },
+      select: { wifiAuthEmailOnly: true },
+    })
+    if (!hostFull?.wifiAuthEmailOnly) {
+      return NextResponse.json({ error: 'Login con email non disponibile' }, { status: 403 })
+    }
+
+    const oggi = new Date()
+    oggi.setHours(0, 0, 0, 0)
+    const domani = new Date(oggi)
+    domani.setDate(domani.getDate() + 1)
+
+    // Cerca prenotazione attiva oggi (check-in ≤ domani, check-out > oggi) con email match
+    const prenotazione = await prisma.prenotazione.findFirst({
+      where: {
+        hostId: host.id,
+        stato: 'CONFERMATA',
+        guestEmail: { equals: guestEmail, mode: 'insensitive' },
+        dataArrivo: { lte: domani },
+        OR: [
+          { dataPartenza: null },
+          { dataPartenza: { gt: oggi } },
+        ],
+        deletedAt: null,
+      },
+      include: { unita: { select: { nome: true } } },
+    })
+
+    if (!prenotazione) {
+      logger.warn('Wi-Fi login email fallito', 'wifi/auth', { hostId, guestEmail, ip })
+      return NextResponse.json(
+        { error: 'Email non trovata. Verifica con la reception.' },
+        { status: 401 }
+      )
+    }
+
+    const expiresAt = prenotazione.dataPartenza
+      ? new Date(prenotazione.dataPartenza.getTime())
+      : new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+    const session = await prisma.wifiSession.create({
+      data: {
+        hostId: host.id,
+        tipo: 'EMAIL_ONLY',
+        prenotazioneId: prenotazione.id,
+        guestNome: prenotazione.guestNome,
+        guestCognome: prenotazione.guestCognome,
+        numeroCamera: prenotazione.unita?.nome ?? null,
+        macClient,
+        ipClient: ip,
+        userAgent,
+        expiresAt,
+      },
+    })
+
+    return NextResponse.json({
+      ok: true,
+      sessionId: session.id,
+      expiresAt: session.expiresAt,
+      hostNome: host.nomeAzienda,
+      guestNome: prenotazione.guestNome,
+    })
+  }
+
   return NextResponse.json(
-    { error: 'mode deve essere "prenotazione", "codice", "complimentary" o "user_form"' },
+    { error: 'mode deve essere "prenotazione", "pin", "codice", "complimentary", "user_form" o "email_only"' },
     { status: 422 }
   )
 }

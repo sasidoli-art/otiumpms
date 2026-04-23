@@ -53,3 +53,7 @@ bakup.file
 *-backup.*
 dump*.sql
 *.pg_dump
+
+# design reference material (cloni esterni, 2.2MB)
+awesome-design-md/
+designer-skills/

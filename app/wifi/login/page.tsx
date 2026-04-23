@@ -43,6 +43,7 @@ export default async function WifiLoginPage({
       wifiAuthComplimentary: true,
       wifiComplimentaryMins: true,
       wifiAuthUserForm: true,
+      wifiAuthEmailOnly: true,
       wifiRedirectUrl: true,
       wifiWelcomeMessage: true,
     },
@@ -81,6 +82,7 @@ export default async function WifiLoginPage({
         complimentary: host.wifiAuthComplimentary,
         complimentaryMins: host.wifiComplimentaryMins,
         userForm: host.wifiAuthUserForm,
+        emailOnly: host.wifiAuthEmailOnly,
       }}
       redirectUrl={host.wifiRedirectUrl}
       welcomeMessage={host.wifiWelcomeMessage}

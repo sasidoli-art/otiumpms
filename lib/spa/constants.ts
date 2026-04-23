@@ -21,7 +21,7 @@ export const ALLERGIE_COMUNI = ['lattice', 'oli_essenziali', 'profumi', 'nichel'
 
 export type AllergiaComune = (typeof ALLERGIE_COMUNI)[number];
 
-export const METODI_PAGAMENTO_SPA = ['CAMERA_CREDIT', 'CONTANTI', 'CARTA', 'TRANSFERWISE'] as const;
+export const METODI_PAGAMENTO_SPA = ['CAMERA_CREDIT', 'CONTANTI', 'CARTA', 'TRANSFERWISE', 'GIFT_CARD'] as const;
 export type MetodoPagamentoSpa = (typeof METODI_PAGAMENTO_SPA)[number];
 
 export const STATI_PAGAMENTO_SPA = ['PENDENTE', 'RISCOSSO', 'RIMBORSO_RICHIESTO', 'RIMBORSATO'] as const;

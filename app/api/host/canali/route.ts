@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
+import { generateIcalToken } from '@/lib/ical'
+
+/**
+ * Costruisce l'URL di export del feed per una coppia (unitaId, canaleId).
+ * `?escludiCanale` evita i loop quando il canale stesso reimporta la sua copia.
+ */
+function buildFeedUrl(req: NextRequest, unitaId: string, canaleId: string): string {
+  const token = generateIcalToken(unitaId)
+  const origin = req.headers.get('x-forwarded-host')
+    ? `https://${req.headers.get('x-forwarded-host')}`
+    : req.nextUrl.origin
+  return `${origin}/api/ical/${unitaId}?token=${token}&escludiCanale=${canaleId}`
+}
 
 /** GET /api/host/canali — lista canali esterni per l'host */
-export async function GET(_: NextRequest) {
+export async function GET(req: NextRequest) {
   const auth = await requireHost()
   if (isUnauthorized(auth)) return auth
 
@@ -12,13 +25,18 @@ export async function GET(_: NextRequest) {
     where: { struttura: { hostId: auth.user.hostId } },
     include: {
       struttura: { select: { nome: true } },
-      unita: { select: { nome: true } },
+      unita: { select: { id: true, nome: true } },
       _count: { select: { prenotazioniImportate: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
 
-  return NextResponse.json(canali)
+  const canaliConFeed = canali.map((c) => ({
+    ...c,
+    feedUrl: c.unita ? buildFeedUrl(req, c.unita.id, c.id) : null,
+  }))
+
+  return NextResponse.json(canaliConFeed)
 }
 
 /** POST /api/host/canali — aggiungi nuovo canale */

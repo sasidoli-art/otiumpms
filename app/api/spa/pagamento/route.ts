@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const parsed = parseBody(pagamentoSpaSchema, body)
     if (parsed.error) return parsed.error
 
-    const { appuntamentoId, importo, tipoImporto, metodo, unitaId, ultimeQuatroCifre, noteRiscossione } = parsed.data
+    const { appuntamentoId, importo, tipoImporto, metodo, unitaId, ultimeQuatroCifre, noteRiscossione, giftCardCodice } = parsed.data
 
     // Verifica che l'appuntamento appartenga a questo host
     const appuntamento = await prisma.appuntamentoSpa.findUnique({
@@ -47,7 +47,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Crea o aggiorna il pagamento
+    // Se metodo è GIFT_CARD, scala il saldo PRIMA di creare il pagamento.
+    // Se la gift card non è valida o saldo insufficiente, fallisce subito (no rollback).
+    let noteGiftCard: string | null = null
+    if (metodo === 'GIFT_CARD') {
+      if (!giftCardCodice) {
+        return NextResponse.json({ error: 'Codice gift card mancante' }, { status: 400 })
+      }
+      const { utilizzaGiftCard } = await import('@/lib/gift-card')
+      const r = await utilizzaGiftCard({
+        codice: giftCardCodice,
+        importo,
+        hostId: hostSession.user.hostId,
+        appuntamentoId,
+        descrizione: `SPA · appuntamento ${appuntamentoId}`,
+        operatore: hostSession.user.email ?? hostSession.user.id,
+      })
+      if (!r.successo) {
+        return NextResponse.json({ error: r.errore, saldoDisponibile: r.saldoDisponibile }, { status: 400 })
+      }
+      noteGiftCard = `Gift card ${giftCardCodice.toUpperCase()} · saldo residuo €${r.saldoResiduo.toFixed(2)}`
+    }
+
+    // Crea o aggiorna il pagamento. Per GIFT_CARD → subito RISCOSSO (transazione già avvenuta).
+    const stato = metodo === 'GIFT_CARD' ? 'RISCOSSO' : 'PENDENTE'
+    const dataRiscossione = metodo === 'GIFT_CARD' ? new Date() : null
     const pagamento = await prisma.pagamentoSpa.upsert({
       where: { appuntamentoId },
       update: {
@@ -56,7 +80,8 @@ export async function POST(req: NextRequest) {
         metodo,
         unitaId: metodo === 'CAMERA_CREDIT' ? unitaId : null,
         ultimeQuatroCifre: metodo === 'CARTA' ? ultimeQuatroCifre : null,
-        noteRiscossione,
+        noteRiscossione: noteGiftCard ?? noteRiscossione,
+        ...(metodo === 'GIFT_CARD' ? { stato: 'RISCOSSO' as const, dataRiscossione: new Date() } : {}),
       },
       create: {
         appuntamentoId,
@@ -65,8 +90,9 @@ export async function POST(req: NextRequest) {
         metodo,
         unitaId: metodo === 'CAMERA_CREDIT' ? unitaId : null,
         ultimeQuatroCifre: metodo === 'CARTA' ? ultimeQuatroCifre : null,
-        noteRiscossione,
-        stato: 'PENDENTE',
+        noteRiscossione: noteGiftCard ?? noteRiscossione,
+        stato,
+        dataRiscossione,
       },
     })
 
@@ -77,6 +103,14 @@ export async function POST(req: NextRequest) {
       entitaId: pagamento.id,
       dettagli: `Pagamento €${importo} metodo=${metodo}${ultimeQuatroCifre ? ` card****${ultimeQuatroCifre}` : ''} appuntamento=${appuntamentoId}`,
     })
+
+    // Loyalty — se il pagamento è stato RISCOSSO (ora o in update precedente),
+    // accumula punti. Silenzioso se programma/membership assenti.
+    if (pagamento.stato === 'RISCOSSO') {
+      import('@/lib/fedelta').then(({ accumulaPuntiDaAppuntamentoSpa }) =>
+        accumulaPuntiDaAppuntamentoSpa(pagamento.appuntamentoId).catch(() => {}),
+      )
+    }
 
     return NextResponse.json(pagamento, { status: 200 })
   } catch (error) {

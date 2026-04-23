@@ -46,6 +46,7 @@ type WifiConfig = {
   authComplimentary: boolean
   complimentaryMins: number
   authUserForm: boolean
+  authEmailOnly: boolean
   authSocial: boolean
   redirectUrl: string | null
   welcomeMessage: string | null
@@ -394,7 +395,7 @@ export default function WifiClient({
 function WifiAuthConfig({ initial }: { initial?: WifiConfig }) {
   const [cfg, setCfg] = useState<WifiConfig>(initial ?? {
     authPms: true, authCode: true, authComplimentary: false,
-    complimentaryMins: 120, authUserForm: false, authSocial: false,
+    complimentaryMins: 120, authUserForm: false, authEmailOnly: false, authSocial: false,
     redirectUrl: null, welcomeMessage: null,
   })
   const [saving, setSaving] = useState(false)
@@ -412,6 +413,7 @@ function WifiAuthConfig({ initial }: { initial?: WifiConfig }) {
           wifiAuthComplimentary: cfg.authComplimentary,
           wifiComplimentaryMins: cfg.complimentaryMins,
           wifiAuthUserForm: cfg.authUserForm,
+          wifiAuthEmailOnly: cfg.authEmailOnly,
           wifiAuthSocial: cfg.authSocial,
           wifiRedirectUrl: cfg.redirectUrl || null,
           wifiWelcomeMessage: cfg.welcomeMessage || null,
@@ -476,6 +478,10 @@ function WifiAuthConfig({ initial }: { initial?: WifiConfig }) {
         <Toggle on={cfg.authUserForm} label="Registrazione (nome + email)"
           desc="L'ospite compila un form con nome e email. Utile per lead generation e marketing."
           onChange={v => setCfg(c => ({ ...c, authUserForm: v }))} />
+
+        <Toggle on={cfg.authEmailOnly} label="Login con email prenotazione"
+          desc="L'ospite inserisce solo l'email della prenotazione — il sistema cerca un soggiorno attivo corrispondente."
+          onChange={v => setCfg(c => ({ ...c, authEmailOnly: v }))} />
 
         <Toggle on={cfg.authSocial} label="Social Login (Google, Facebook)"
           desc="Login con account social. Richiede configurazione OAuth (disponibile a breve)."

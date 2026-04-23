@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   LayoutDashboard, Activity, Users, Building2, CreditCard, Puzzle,
   LifeBuoy, BookOpen, Settings, Mail, ScrollText, Home,
-  ChevronDown, LogOut, Shield,
+  ChevronDown, LogOut, Shield, Database, UserCog, Rocket, ExternalLink,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -16,10 +16,22 @@ import { ADMIN_SIDEBAR_GROUPS, type AdminBadgeType } from '@/lib/admin-sidebar-c
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard, Activity, Users, Building2, CreditCard, Puzzle,
   LifeBuoy, BookOpen, Settings, Mail, ScrollText, Home,
+  Shield, Database, UserCog, Rocket,
 }
 
-export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
+interface Props {
+  nomeUtente: string
+  userRole?: string
+}
+
+export function AdminSidebar({ nomeUtente, userRole }: Props) {
   const pathname = usePathname()
+
+  const groups = useMemo(
+    () => ADMIN_SIDEBAR_GROUPS.filter((g) => !g.superadminOnly || userRole === 'SUPERADMIN'),
+    [userRole],
+  )
+
   const [open, setOpen] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {}
     ADMIN_SIDEBAR_GROUPS.forEach((g) => { init[g.id] = g.defaultOpen })
@@ -39,8 +51,6 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
       .catch(() => {})
   }, [])
 
-  const groups = useMemo(() => ADMIN_SIDEBAR_GROUPS, [])
-
   return (
     <aside className="flex flex-col h-full w-[240px] shrink-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 overflow-y-auto">
       {/* Brand */}
@@ -59,11 +69,17 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
         {groups.map((group) => {
           const GroupIcon = ICONS[group.icon] ?? LayoutDashboard
           const isOpen = open[group.id]
+          const isRed = group.accent === 'red'
           return (
             <div key={group.id}>
               <button
                 onClick={() => setOpen((p) => ({ ...p, [group.id]: !p[group.id] }))}
-                className="w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white/40 hover:text-white/70 transition-colors"
+                className={cn(
+                  'w-full flex items-center justify-between px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors',
+                  isRed
+                    ? 'text-red-400/80 hover:text-red-300'
+                    : 'text-white/40 hover:text-white/70',
+                )}
               >
                 <span className="flex items-center gap-1.5">
                   <GroupIcon className="w-3 h-3" />
@@ -75,21 +91,20 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
                 <div className="space-y-0.5 mt-1 mb-2">
                   {group.items.map((item) => {
                     const Icon = ICONS[item.icon] ?? Home
-                    const active = pathname === item.href || pathname.startsWith(item.href + '/')
+                    const active = !item.external && (pathname === item.href || pathname.startsWith(item.href + '/'))
                     const badgeCount = item.badge ? badges[item.badge] : undefined
-                    return (
-                      <Link
-                        key={item.id}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
-                          active
-                            ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
-                            : 'text-white/60 hover:text-white hover:bg-white/5',
-                        )}
-                      >
+
+                    const activeClasses = isRed
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-sm'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm'
+
+                    const content = (
+                      <>
                         <Icon className={cn('w-4 h-4 shrink-0', active ? 'text-white' : 'text-white/40')} />
                         <span className="flex-1 truncate">{item.label}</span>
+                        {item.external && (
+                          <ExternalLink className="w-3 h-3 text-white/30 shrink-0" />
+                        )}
                         {typeof badgeCount === 'number' && badgeCount > 0 && (
                           <span className={cn(
                             'inline-flex items-center justify-center min-w-[20px] h-[20px] px-1 rounded-full text-[10px] font-bold',
@@ -98,6 +113,33 @@ export function AdminSidebar({ nomeUtente }: { nomeUtente: string }) {
                             {badgeCount}
                           </span>
                         )}
+                      </>
+                    )
+
+                    const baseClasses = cn(
+                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                      active
+                        ? activeClasses
+                        : 'text-white/60 hover:text-white hover:bg-white/5',
+                    )
+
+                    if (item.external) {
+                      return (
+                        <a
+                          key={item.id}
+                          href={item.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={baseClasses}
+                        >
+                          {content}
+                        </a>
+                      )
+                    }
+
+                    return (
+                      <Link key={item.id} href={item.href} className={baseClasses}>
+                        {content}
                       </Link>
                     )
                   })}

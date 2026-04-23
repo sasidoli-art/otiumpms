@@ -158,5 +158,10 @@ export async function POST(req: NextRequest) {
 
     await auditFromAuth(auth, { azione: 'pos.transazione', entita: 'transazione_pos', dettagli: 'Transazione POS' })
 
+  // Loyalty — accumula punti se l'ospite è membro (silenzioso se no programma/membership)
+  import('@/lib/fedelta').then(({ accumulaPuntiDaPOS }) =>
+    accumulaPuntiDaPOS(transazione.id).catch(() => {}),
+  )
+
 return NextResponse.json(transazione, { status: 201 })
 }

@@ -64,6 +64,7 @@ export async function POST(req: Request) {
   const {
     titolo, descrizione, categoria, priorita,
     strutturaId, unitaId, assegnatoA, costoStimato, note, dataScadenza,
+    immagini,
   } = parsed.data
 
   // Verifica ownership struttura/unità se forniti
@@ -93,6 +94,8 @@ export async function POST(req: Request) {
       costoStimato: costoStimato ?? null,
       note: note ?? null,
       dataScadenza: dataScadenza ? new Date(dataScadenza) : null,
+      immagini: immagini ?? [],
+      immagineUrl: immagini && immagini.length > 0 ? immagini[0] : null,
     },
     include: {
       struttura: { select: { id: true, nome: true } },
@@ -104,6 +107,44 @@ export async function POST(req: Request) {
     segnalazioneId: segnalazione.id,
     hostId: auth.user.hostId,
   })
+
+  // URGENTE + camera occupata → notifica reception con suggerimento cambio camera
+  if (priorita === 'URGENTE' && unitaId) {
+    try {
+      const oggi = new Date()
+      oggi.setHours(0, 0, 0, 0)
+      const domani = new Date(oggi)
+      domani.setDate(domani.getDate() + 1)
+      const prenAttiva = await prisma.prenotazione.findFirst({
+        where: {
+          hostId: auth.user.hostId,
+          unitaId,
+          stato: 'CONFERMATA',
+          deletedAt: null,
+          dataArrivo: { lte: domani },
+          OR: [{ dataPartenza: null }, { dataPartenza: { gt: oggi } }],
+        },
+        select: {
+          id: true, guestNome: true, guestCognome: true,
+          unita: { select: { nome: true } },
+        },
+      })
+      if (prenAttiva) {
+        const ospite = `${prenAttiva.guestNome} ${prenAttiva.guestCognome}`.trim()
+        await prisma.notifica.create({
+          data: {
+            hostId: auth.user.hostId,
+            tipo: 'manutenzione_urgente_occupata',
+            titolo: `Manutenzione URGENTE · camera occupata da ${ospite}`,
+            messaggio: `"${titolo}" · ${prenAttiva.unita?.nome ?? 'camera'}. Valuta un cambio camera per l'ospite.`,
+            linkUrl: `/host/prenotazioni/${prenAttiva.id}`,
+          },
+        })
+      }
+    } catch (err) {
+      logger.warn('Notifica URGENTE occupata fallita', { error: String(err) })
+    }
+  }
 
   return NextResponse.json(segnalazione, { status: 201 })
 }

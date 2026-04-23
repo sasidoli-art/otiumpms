@@ -9,6 +9,7 @@ import {
   Loader2, RefreshCw
 } from 'lucide-react'
 import { formatValuta, cn } from '@/lib/utils'
+import PremiPanel from '@/components/loyalty/premi-panel'
 
 
 
@@ -19,6 +20,7 @@ interface Livello {
   nome: string
   puntiMinimi: number
   scontoPercentuale: number
+  moltiplicatore: number
   colore: string
   ordine: number
   benefici?: string | null
@@ -67,17 +69,17 @@ export default function LoyaltyManager() {
   const [membri, setMembri] = useState<Membro[]>([])
   const [membriTotale, setMembriTotale] = useState(0)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'config' | 'members'>('config')
+  const [tab, setTab] = useState<'config' | 'members' | 'premi'>('config')
 
   // Form state
   const [formNome, setFormNome] = useState('Programma Fedeltà SPA')
   const [formPuntiPerEuro, setFormPuntiPerEuro] = useState(1)
   const [formPuntiPerVisita, setFormPuntiPerVisita] = useState(10)
   const [formLivelli, setFormLivelli] = useState<Livello[]>([
-    { nome: 'Bronze', puntiMinimi: 0, scontoPercentuale: 0, colore: '#cd7f32', ordine: 0 },
-    { nome: 'Silver', puntiMinimi: 100, scontoPercentuale: 5, colore: '#c0c0c0', ordine: 1 },
-    { nome: 'Gold', puntiMinimi: 500, scontoPercentuale: 10, colore: '#ffd700', ordine: 2 },
-    { nome: 'Platinum', puntiMinimi: 1000, scontoPercentuale: 15, colore: '#e5e4e2', ordine: 3 },
+    { nome: 'Bronze', puntiMinimi: 0, scontoPercentuale: 0, moltiplicatore: 1, colore: '#cd7f32', ordine: 0 },
+    { nome: 'Silver', puntiMinimi: 100, scontoPercentuale: 5, moltiplicatore: 1.5, colore: '#c0c0c0', ordine: 1 },
+    { nome: 'Gold', puntiMinimi: 500, scontoPercentuale: 10, moltiplicatore: 2, colore: '#ffd700', ordine: 2 },
+    { nome: 'Platinum', puntiMinimi: 1000, scontoPercentuale: 15, moltiplicatore: 3, colore: '#e5e4e2', ordine: 3 },
   ])
 
   // Add points modal
@@ -199,7 +201,7 @@ export default function LoyaltyManager() {
   const addLevel = () => {
     setFormLivelli([
       ...formLivelli,
-      { nome: '', puntiMinimi: 0, scontoPercentuale: 0, colore: '#6b7280', ordine: formLivelli.length },
+      { nome: '', puntiMinimi: 0, scontoPercentuale: 0, moltiplicatore: 1, colore: '#6b7280', ordine: formLivelli.length },
     ])
   }
 
@@ -254,6 +256,15 @@ export default function LoyaltyManager() {
             )}
           >
             Membri ({programma?.stats?.totaleMembri ?? 0})
+          </button>
+          <button
+            onClick={() => setTab('premi')}
+            className={cn(
+              'px-4 py-2 text-sm font-medium rounded-lg transition-colors',
+              tab === 'premi' ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:bg-gray-100'
+            )}
+          >
+            Premi
           </button>
         </div>
       </div>
@@ -377,6 +388,19 @@ export default function LoyaltyManager() {
                       className="w-20 border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
                     />
                     <span className="text-xs text-gray-400">%</span>
+                  </div>
+                  <div className="flex items-center gap-1" title="Moltiplicatore punti in accumulo">
+                    <input
+                      type="number"
+                      min={1}
+                      max={10}
+                      step={0.1}
+                      placeholder="Moltipl."
+                      value={livello.moltiplicatore}
+                      onChange={(e) => updateLevel(idx, 'moltiplicatore', parseFloat(e.target.value) || 1)}
+                      className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm"
+                    />
+                    <span className="text-xs text-gray-400">x</span>
                   </div>
                   <button
                     onClick={() => removeLevel(idx)}
@@ -516,6 +540,9 @@ export default function LoyaltyManager() {
           )}
         </div>
       )}
+
+      {/* Premi */}
+      {tab === 'premi' && <PremiPanel />}
 
       {/* Points Modal */}
       {pointsModal && (
