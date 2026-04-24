@@ -71,10 +71,19 @@ export interface IcalEvent {
   updatedAt: Date
 }
 
+/**
+ * Dominio per UID iCal — ricavato da `NEXT_PUBLIC_APP_URL` (es. otium-pms.vercel.app)
+ * con fallback hard-coded. UID è opaque per le OTA, serve solo per dedup interno.
+ */
+function getIcalDomain(): string {
+  const url = process.env.NEXT_PUBLIC_APP_URL || 'https://otium-pms.vercel.app'
+  try { return new URL(url).hostname } catch { return 'otium-pms.vercel.app' }
+}
+
 function buildVEvent(e: IcalEvent): string {
   const lines = [
     'BEGIN:VEVENT',
-    `UID:${e.uid}@otiumweek.it`,
+    `UID:${e.uid}@${getIcalDomain()}`,
     `DTSTAMP:${icalDateTime(new Date())}`,
     `CREATED:${icalDateTime(e.createdAt)}`,
     `LAST-MODIFIED:${icalDateTime(e.updatedAt)}`,
@@ -117,7 +126,7 @@ export interface IcalCalendarOptions {
  * con Content-Type: text/calendar.
  */
 export function buildCalendar(opts: IcalCalendarOptions): string {
-  const prodId = opts.prodId ?? '-//Otium Week//Gestionale v1.0//IT'
+  const prodId = opts.prodId ?? '-//Otium PMS//Gestionale v1.0//IT'
   const now = icalDateTime(new Date())
 
   const header = [
