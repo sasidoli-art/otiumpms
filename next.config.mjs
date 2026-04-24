@@ -8,6 +8,30 @@ const nextConfig = {
 
   skipTrailingSlashRedirect: true,
 
+  // Ottimizza tree-shaking di librerie "barrel" pesanti. Riduce il bundle
+  // importando solo le icone/componenti usati invece dell'intera lib.
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',    // ~800 icone; usare solo quelle importate
+      'recharts',        // charting lib, solo i chart usati
+      'framer-motion',   // animation lib
+      'date-fns',        // date utils, solo le funzioni usate
+    ],
+  },
+
+  // Immagini: AVIF/WebP + pattern per sorgenti remote ammesse
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      // Foto caricate via Supabase Storage (upload ospite/host)
+      { protocol: 'https', hostname: '**.supabase.co' },
+      // Foto Envato/stock per OtiumWeek (vetrina pubblica del brand)
+      { protocol: 'https', hostname: 'elements-cover-images-0.imgix.net' },
+      // Avatar host caricati su hosting esterno
+      { protocol: 'https', hostname: 'i.imgur.com' },
+    ],
+  },
+
   async rewrites() {
     return [
       { source: '/api/wifi/wifidog/ping/', destination: '/api/wifi/wifidog/ping' },
@@ -48,6 +72,9 @@ const nextConfig = {
           }] : []),
         ],
       },
+      // Nota: Next.js 16 applica di default `Cache-Control: public, max-age=31536000, immutable`
+      // agli asset `/_next/static/*` (hashed). Non serve header custom — Next avvisa
+      // che override di quella regola può rompere il dev behavior.
       {
         source: '/api/:path*',
         headers: [

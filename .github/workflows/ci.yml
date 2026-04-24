@@ -21,6 +21,9 @@ jobs:
 
       - run: npm ci
 
+      # Nota: lo script `lint` è un no-op (next lint è stato rimosso in Next 16,
+      # eslint diretto non ancora migrato). Lasciamo il job perché diventerà
+      # effettivo appena sostituiamo lo script con eslint.
       - run: npm run lint
 
   typecheck:
@@ -40,9 +43,57 @@ jobs:
 
       - run: npx tsc --noEmit
 
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      # Secret deterministici per test (vedi vitest.setup.ts)
+      ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      NEXTAUTH_SECRET: "ci-test-secret"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # Prisma client deve essere generato per i test che importano @prisma/client
+      - run: npx prisma generate
+
+      # Tutti i test unit (tests/unit/** + tests/integration/** con prisma mockato)
+      # Nota: `vitest run` (single run) vs `vitest` che è watch mode
+      - run: npm run test:run
+
+  integration-tests:
+    name: Integration Tests (mocked DB)
+    runs-on: ubuntu-latest
+    needs: lint
+    env:
+      ENCRYPTION_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      NEXTAUTH_SECRET: "ci-test-secret"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      # Integration test: route handler invocati direttamente con Prisma
+      # mockato (vedi tests/integration/README.md). Non richiedono DB reale.
+      - run: npm run test:integration
+
   build:
     name: Build
     runs-on: ubuntu-latest
+    needs: typecheck
     env:
       # Provide dummy values so the build can complete without real secrets
       DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
@@ -61,3 +112,14 @@ jobs:
       - run: npx prisma generate
 
       - run: npm run build
+
+      # Verifica che la build abbia prodotto output
+      - run: test -d .next
+
+  # ─── E2E skippato in CI ────────────────────────────────────────────────────
+  # Richiede: dev server attivo + DB con seed E2E + 5-10min di runtime.
+  # Eseguibile in locale con `npm run test:e2e` dopo `npm run seed:e2e`.
+  # Per abilitarlo in CI serve:
+  #   1. Secret `DATABASE_URL_TEST` → Neon branch o Postgres service container
+  #   2. Step `prisma db push` + `seed:e2e` prima di playwright
+  #   3. Aumentare timeout job e usare cache npx playwright install

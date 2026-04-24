@@ -6,9 +6,21 @@ import {
   CheckCircle2, Loader2, Waves, Shield, Heart,
   ChevronDown, ChevronUp, AlertTriangle,
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { SignaturePad } from '@/components/spa/signature-pad'
-import { BodyMap } from '@/components/spa/body-map'
 import { cn } from '@/lib/utils'
+
+// BodyMap: SVG complesso con 14 zone interattive. Lazy-load per ridurre il
+// bundle iniziale della pagina waiver (caricato solo quando serve).
+const BodyMap = dynamic(
+  () => import('@/components/spa/body-map').then((m) => ({ default: m.BodyMap })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-[3/4] bg-gray-100 rounded-lg animate-pulse" />
+    ),
+  },
+)
 
 interface SpaRegistrationCardProps {
   appuntamentoId: string

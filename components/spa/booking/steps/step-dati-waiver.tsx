@@ -1,10 +1,21 @@
 'use client'
 
 import { useState, useCallback, useImperativeHandle, forwardRef, type ForwardedRef } from 'react'
+import dynamic from 'next/dynamic'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, AlertTriangle, Shield, Heart } from 'lucide-react'
-import { BodyMapSimple } from '@/components/spa/body-map-simple'
 import { SignaturePad } from '@/components/spa/signature-pad'
+
+// BodyMapSimple: SVG con 14 zone body. Lazy per ridurre bundle booking SPA.
+const BodyMapSimple = dynamic(
+  () => import('@/components/spa/body-map-simple').then((m) => ({ default: m.BodyMapSimple })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full aspect-[3/4] bg-gray-100 rounded-lg animate-pulse" />
+    ),
+  },
+)
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

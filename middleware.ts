@@ -111,7 +111,15 @@ export default withAuth(
     // (response.headers.set non arriva al server component, va su request.headers)
     const requestHeaders = new Headers(req.headers)
     requestHeaders.set('x-pathname', pathname)
-    return NextResponse.next({ request: { headers: requestHeaders } })
+
+    // Request ID per tracing: usa header inbound se presente (proxy chain),
+    // altrimenti genera. Propagato a request (server components) + response (client logs).
+    const requestId = req.headers.get('x-request-id') ?? crypto.randomUUID()
+    requestHeaders.set('x-request-id', requestId)
+
+    const response = NextResponse.next({ request: { headers: requestHeaders } })
+    response.headers.set('x-request-id', requestId)
+    return response
   },
   {
     callbacks: {

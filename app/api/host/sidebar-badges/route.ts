@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { parseModuli } from '@/lib/moduli'
+import { cached } from '@/lib/cache'
 
 /**
  * GET /api/host/sidebar-badges
@@ -18,6 +19,10 @@ export async function GET() {
 
   const hostId = auth.user.hostId
 
+  // Server-side cache: riduce query DB tra client polling (ogni 60s lato UI)
+  // sulla stessa function instance. TTL 15s: i badge non devono essere real-time,
+  // aggiornamento al secondo polling successivo è accettabile.
+  const body = await cached(`sidebar-badges:${hostId}`, 15, async () => {
   // Fetch host moduliAttivi to conditionally skip queries
   const host = await prisma.host.findUnique({
     where: { id: hostId },
@@ -126,17 +131,18 @@ export async function GET() {
     }),
   ])
 
-  const body = {
-    prenotazioniNuove,
-    arriviOggi,
-    partenzeOggi,
-    taskHKAperti,
-    manutenzioneAperta,
-    messaggiNonLetti,
-    notificheNonLette,
-    spaAppuntamentiOggi,
-    ticketAperti,
-  }
+    return {
+      prenotazioniNuove,
+      arriviOggi,
+      partenzeOggi,
+      taskHKAperti,
+      manutenzioneAperta,
+      messaggiNonLetti,
+      notificheNonLette,
+      spaAppuntamentiOggi,
+      ticketAperti,
+    }
+  })
 
   return NextResponse.json(body, {
     headers: {

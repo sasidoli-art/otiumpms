@@ -1056,6 +1056,10 @@ model Prenotazione {
   @@unique([hostId, pin])
   @@index([hostId])
   @@index([hostId, stato])
+  @@index([hostId, dataArrivo]) // dashboard arrivi + calendario
+  @@index([hostId, dataPartenza]) // dashboard partenze + retention 40gg
+  @@index([hostId, statoCheckIn]) // check-in online da verificare
+  @@index([unitaId, dataArrivo]) // calendario per-camera + conflict detection booking
   @@index([guestEmail])
   @@index([gruppoPrenotazioneId])
   @@index([deletedAt])
@@ -2649,6 +2653,11 @@ model AppuntamentoSpa {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, dataOra]) // calendario SPA + availability check
+  @@index([hostId, stato]) // dashboard conteggi SPA
+  @@index([terapistaId, dataOra]) // conflict detection terapista
+  @@index([cabinaId, dataOra]) // conflict detection cabina
+  @@index([prenotazioneId]) // lookup appuntamenti di una prenotazione
   @@map("appuntamenti_spa")
 }
 
