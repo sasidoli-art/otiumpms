@@ -336,9 +336,11 @@ class OpenAIProvider implements AIProvider {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.apiKey}`,
           // OpenRouter richiede HTTP-Referer + X-Title per tracking (facoltativi).
-          // Configurabile via env: NEXT_PUBLIC_APP_URL (fallback: dominio Vercel default).
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://otium-pms.vercel.app',
-          'X-Title': 'Otium PMS',
+          // Mostriamo la vetrina pubblica del brand (otiumweek.com) invece del
+          // backend PMS, così i dashboard provider vedono il brand pubblico Otium
+          // e non il subdomain Vercel del backend. Scelta deliberata.
+          'HTTP-Referer': 'https://www.otiumweek.com',
+          'X-Title': 'Otium Week',
         },
         body: JSON.stringify(body),
       })
