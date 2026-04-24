@@ -6,6 +6,22 @@ const prisma = new PrismaClient()
 async function main() {
   const password = await bcrypt.hash('Otium2025!', 12)
 
+  // ─── Platform singleton ──────────────────────────────────────────────
+  // Riga unica con id="singleton" (default), contiene settings piattaforma
+  // usati dal SuperAdmin (SMTP fallback, AI Concierge platform key, piani).
+  await prisma.platformSettings.upsert({
+    where: { id: 'singleton' },
+    update: {},
+    create: {
+      id: 'singleton',
+      nomePiattaforma: 'Otium PMS',
+      urlBase: 'http://localhost:3000',
+      emailSupporto: 'support@otiumweek.com',
+      emailNoreply: 'noreply@otiumweek.com',
+    },
+  })
+  console.log('✅ PlatformSettings inizializzate')
+
   // ─── Admin ───────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@otiumweek.it' },
@@ -79,6 +95,30 @@ async function main() {
       statoAbbonamento: 'ATTIVO',
       dataInizioAbb: new Date('2025-01-01'),
       dataFineAbb: new Date('2026-12-31'),
+      dpaAccettato: true,
+      onboardingStep: 5,
+      // Tutti i moduli attivi: host PARTNER_PREMIUM — le feature del booking
+      // engine (SPA, ristorazione, concierge, loyalty...) richiedono override
+      // espliciti rispetto ai default del catalogo.
+      moduliAttivi: {
+        prenotazioni: true,
+        spa: true,
+        ristorazione: true,
+        housekeeping: true,
+        manutenzione: true,
+        crm: true,
+        pos: true,
+        cassa: true,
+        canali: true,
+        emailAuto: true,
+        concierge: true,
+        fedelta: true,
+        giftCard: true,
+        upselling: true,
+        magazzino: true,
+        lostFound: true,
+        iCal: true,
+      },
       fattNomeAzienda: 'Agriturismo Il Poggio SRL',
       fattPartitaIva: '01234567890',
       fattIndirizzo: 'Via dei Colli 42',
@@ -1189,18 +1229,171 @@ async function main() {
   ])
   console.log('✅ Appuntamenti SPA creati:', appuntamenti.length)
 
+  // ─── Host 2: B&B piccolo (piano LIGHT, pochi moduli) ─────────────────
+  // Serve per testare il multi-tenant: isolation dei dati per hostId,
+  // piano LIGHT con meno feature, moduli SPA/ristorazione/POS disattivi.
+  const host2User = await prisma.user.upsert({
+    where: { email: 'bnb@otiumweek.it' },
+    update: {},
+    create: {
+      email: 'bnb@otiumweek.it',
+      password,
+      nome: 'Laura',
+      cognome: 'Conti',
+      role: 'HOST',
+    },
+  })
+
+  const host2 = await prisma.host.upsert({
+    where: { userId: host2User.id },
+    update: {},
+    create: {
+      userId: host2User.id,
+      nomeAzienda: 'B&B La Quercia',
+      partitaIva: '09876543210',
+      telefono: '+39 339 9988776',
+      indirizzo: 'Piazza del Duomo 3',
+      citta: 'Orvieto',
+      provincia: 'TR',
+      cap: '05018',
+      regione: 'Umbria',
+      piano: 'LIGHT',
+      statoAbbonamento: 'ATTIVO',
+      dataInizioAbb: new Date('2026-01-15'),
+      dataFineAbb: new Date('2027-01-15'),
+      dpaAccettato: true,
+      onboardingStep: 5,
+      // Solo moduli base + email automatiche e iCal (piano LIGHT)
+      moduliAttivi: {
+        prenotazioni: true,
+        crm: true,
+        housekeeping: true,
+        emailAuto: true,
+        iCal: true,
+        // Esplicitamente OFF (per testare che le pagine protette facciano gate)
+        spa: false,
+        ristorazione: false,
+        pos: false,
+        concierge: false,
+      },
+    },
+  })
+
+  const struttura3 = await prisma.struttura.create({
+    data: {
+      hostId: host2.id,
+      nome: 'B&B La Quercia',
+      tipo: 'ALLOGGIO',
+      descrizione: 'B&B in centro a Orvieto, a due passi dal Duomo',
+      indirizzo: 'Piazza del Duomo 3',
+      citta: 'Orvieto',
+      regione: 'Umbria',
+      capacitaTotale: 3,
+      prezzoBase: 75,
+      attiva: true,
+      colorePrimario: '#b45309', // ambra umbra
+      coloreSecondario: '#d97706',
+    },
+  })
+
+  const camere3 = await Promise.all([
+    prisma.unitaPrenotabile.create({
+      data: {
+        strutturaId: struttura3.id,
+        nome: 'Camera Duomo',
+        descrizione: 'Matrimoniale con vista sul Duomo',
+        capacita: 2,
+        piano: 1,
+        prezzoBase: 95,
+        statoHK: 'PULITA',
+      },
+    }),
+    prisma.unitaPrenotabile.create({
+      data: {
+        strutturaId: struttura3.id,
+        nome: 'Camera Tufo',
+        descrizione: 'Doppia con pareti in tufo originali',
+        capacita: 2,
+        lettiExtra: 1,
+        piano: 1,
+        prezzoBase: 85,
+        prezzoLettoExtra: 20,
+        statoHK: 'PULITA',
+      },
+    }),
+    prisma.unitaPrenotabile.create({
+      data: {
+        strutturaId: struttura3.id,
+        nome: 'Singola Vicolo',
+        descrizione: 'Camera singola economy',
+        capacita: 1,
+        piano: 0,
+        prezzoBase: 55,
+        statoHK: 'PULITA',
+      },
+    }),
+  ])
+
+  // Qualche prenotazione per Host 2 (serve anche a verificare isolation multi-tenant)
+  await Promise.all([
+    prisma.prenotazione.create({
+      data: {
+        hostId: host2.id,
+        strutturaId: struttura3.id,
+        unitaId: camere3[0].id,
+        guestNome: 'Giorgio',
+        guestCognome: 'Pellegrini',
+        guestEmail: 'giorgio.pellegrini@email.it',
+        dataArrivo: giorno(1),
+        dataPartenza: giorno(3),
+        numOspiti: 2,
+        stato: 'CONFERMATA',
+        prezzoTotale: 190,
+        fonte: 'Web',
+      },
+    }),
+    prisma.prenotazione.create({
+      data: {
+        hostId: host2.id,
+        strutturaId: struttura3.id,
+        unitaId: camere3[1].id,
+        guestNome: 'Chiara',
+        guestCognome: 'Santoro',
+        guestEmail: 'chiara.santoro@email.it',
+        dataArrivo: giorno(-5),
+        dataPartenza: giorno(-3),
+        numOspiti: 2,
+        stato: 'COMPLETATA',
+        prezzoTotale: 170,
+        fonte: 'Web',
+      },
+    }),
+  ])
+  console.log('✅ Host 2 creato:', host2User.email, '→', host2.nomeAzienda, `(${camere3.length} camere, piano LIGHT)`)
+
   // ─── Riepilogo ───────────────────────────────────────────────────────
   console.log('\n📋 RIEPILOGO SEED')
   console.log('─────────────────────────────────────────')
-  console.log('Admin:    admin@otiumweek.it / Otium2025!')
-  console.log('Host:     host@otiumweek.it  / Otium2025!')
-  console.log(`Struttura 1: ${struttura1.nome} (ID: ${struttura1.id})`)
-  console.log(`Struttura 2: ${struttura2.nome} (ID: ${struttura2.id})`)
-  console.log(`Pacchetti pubblici: http://localhost:3000/book/${struttura1.id}/pacchetti`)
-  console.log(`Booking SPA:        http://localhost:3000/book/${struttura1.id}/spa`)
-  console.log(`Terapisti: ${terapisti.map(t => `${t.nome} ${t.cognome}`).join(', ')}`)
-  console.log(`Cabine: ${cabine.length} | Trattamenti: ${trattamenti.length} | Percorsi: 3`)
-  console.log(`Appuntamenti demo: ${appuntamenti.length} (oggi/domani/passati)`)
+  console.log('CREDENZIALI (password: Otium2025!)')
+  console.log('  Admin:         admin@otiumweek.it')
+  console.log('  SuperAdmin:    antonio@otiumweek.it, matteo@otiumweek.it')
+  console.log('  Host Premium:  host@otiumweek.it')
+  console.log('  Host Light:    bnb@otiumweek.it')
+  console.log('─────────────────────────────────────────')
+  console.log(`HOST 1 (${host.nomeAzienda}) — PARTNER_PREMIUM`)
+  console.log(`  Struttura 1: ${struttura1.nome} (ID: ${struttura1.id})`)
+  console.log(`  Struttura 2: ${struttura2.nome} (ID: ${struttura2.id})`)
+  console.log(`  Camere: ${camere.length + camere2.length} · Prenotazioni: ${prenotazioni.length}`)
+  console.log(`  SPA: ${terapisti.length} terapisti, ${cabine.length} cabine, ${trattamenti.length} trattamenti, 3 percorsi, ${appuntamenti.length} appuntamenti`)
+  console.log(`HOST 2 (${host2.nomeAzienda}) — LIGHT`)
+  console.log(`  Struttura: ${struttura3.nome} (ID: ${struttura3.id}) · ${camere3.length} camere`)
+  console.log('─────────────────────────────────────────')
+  console.log('URL DEMO')
+  console.log(`  Pacchetti:  http://localhost:3000/book/${struttura1.id}/pacchetti`)
+  console.log(`  Camere:     http://localhost:3000/book/${struttura1.id}/camere`)
+  console.log(`  SPA:        http://localhost:3000/book/${struttura1.id}/spa`)
+  console.log(`  Ristorante: http://localhost:3000/book/${struttura1.id}/ristorante`)
+  console.log(`  B&B Light:  http://localhost:3000/book/${struttura3.id}/camere`)
   console.log('─────────────────────────────────────────')
 }
 

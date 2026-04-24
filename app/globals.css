@@ -4,122 +4,255 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — Otium PMS
+   Identità visiva: premium, affidabile, pulito, elegante (hospitality italiana).
+   Riferimenti estetici: Linear (pulizia), Stripe (densità senza caos),
+   Notion (spazio bianco, stati vuoti), Airbnb (calore).
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── CSS Custom Properties (Light) ────────────────────────────────────────── */
 :root {
-  /* Brand */
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
-  --color-brand-950: #1e1b4b;
+  /* ─── PRIMARY — Indigo profondo (professionale, non freddo) ────────────── */
+  --color-primary-50:  #eef2ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-primary-700: #4338ca;
+  --color-primary-800: #3730a3;
+  --color-primary-900: #312e81;
+  --color-primary-950: #1e1b4b;
 
-  /* Neutrals (zinc scale) */
-  --color-gray-50: #fafafa;
-  --color-gray-100: #f4f4f5;
-  --color-gray-200: #e4e4e7;
-  --color-gray-300: #d4d4d8;
-  --color-gray-400: #a1a1aa;
-  --color-gray-500: #71717a;
-  --color-gray-600: #52525b;
-  --color-gray-700: #3f3f46;
-  --color-gray-800: #27272a;
-  --color-gray-900: #18181b;
-  --color-gray-950: #09090b;
+  /* ─── ACCENT — Ambra calda (il calore dell'hospitality) ────────────────── */
+  --color-accent-50:  #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
 
-  /* Semantic */
-  --color-success: #22c55e;
-  --color-success-light: #f0fdf4;
-  --color-warning: #f59e0b;
-  --color-warning-light: #fffbeb;
-  --color-error: #ef4444;
-  --color-error-light: #fef2f2;
-  --color-info: #3b82f6;
-  --color-info-light: #eff6ff;
+  /* ─── NEUTRAL — Stone scale (grigi caldi, non freddi) ──────────────────── */
+  --color-neutral-25:  #fcfcfd;
+  --color-neutral-50:  #fafaf9;
+  --color-neutral-100: #f5f5f4;
+  --color-neutral-150: #eeeeec;
+  --color-neutral-200: #e7e5e4;
+  --color-neutral-300: #d6d3d1;
+  --color-neutral-400: #a8a29e;
+  --color-neutral-500: #78716c;
+  --color-neutral-600: #57534e;
+  --color-neutral-700: #44403c;
+  --color-neutral-800: #292524;
+  --color-neutral-900: #1c1917;
+  --color-neutral-950: #0c0a09;
 
-  /* Surfaces */
-  --bg-primary: #ffffff;
-  --bg-secondary: var(--color-gray-50);
-  --bg-tertiary: var(--color-gray-100);
-  --bg-elevated: #ffffff;
-  --bg-sidebar: #0f172a;
+  /* ─── SEMANTIC — Morbidi, non aggressivi ────────────────────────────────── */
+  --color-success-50:  #f0fdf4;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-500: #22c55e;
+  --color-success-600: #16a34a;
+  --color-success-700: #15803d;
 
-  /* Text */
-  --text-primary: var(--color-gray-900);
-  --text-secondary: var(--color-gray-500);
-  --text-tertiary: var(--color-gray-400);
-  --text-on-brand: #ffffff;
+  --color-warning-50:  #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-200: #fde68a;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
 
-  /* Borders */
-  --border-default: var(--color-gray-200);
-  --border-hover: var(--color-gray-300);
-  --border-focus: var(--color-brand-500);
+  --color-error-50:  #fef2f2;
+  --color-error-100: #fee2e2;
+  --color-error-200: #fecaca;
+  --color-error-500: #ef4444;
+  --color-error-600: #dc2626;
+  --color-error-700: #b91c1c;
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-2xl: 20px;
+  --color-info-50:  #eff6ff;
+  --color-info-100: #dbeafe;
+  --color-info-200: #bfdbfe;
+  --color-info-500: #3b82f6;
+  --color-info-600: #2563eb;
+  --color-info-700: #1d4ed8;
+
+  /* ─── SURFACES ─────────────────────────────────────────────────────────── */
+  --surface-primary:   #ffffff;
+  --surface-secondary: var(--color-neutral-50);
+  --surface-tertiary:  var(--color-neutral-100);
+  --surface-elevated:  #ffffff;
+  --surface-overlay:   rgba(12, 10, 9, 0.4); /* neutral-950 con alpha */
+  --surface-sidebar:   var(--color-neutral-25);
+
+  /* ─── TEXT ─────────────────────────────────────────────────────────────── */
+  --text-primary:    var(--color-neutral-900);
+  --text-secondary:  var(--color-neutral-500);
+  --text-tertiary:   var(--color-neutral-400);
+  --text-disabled:   var(--color-neutral-300);
+  --text-on-primary: #ffffff;
+  --text-on-accent:  var(--color-neutral-900);
+  --text-link:       var(--color-primary-600);
+  --text-link-hover: var(--color-primary-700);
+
+  /* ─── BORDERS ──────────────────────────────────────────────────────────── */
+  --border-default: var(--color-neutral-200);
+  --border-subtle:  var(--color-neutral-150);
+  --border-hover:   var(--color-neutral-300);
+  --border-focus:   var(--color-primary-500);
+  --border-error:   var(--color-error-500);
+
+  /* ─── RADII — generosi ma non eccessivi ────────────────────────────────── */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
   --radius-full: 9999px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
-  --shadow-focus: 0 0 0 3px rgba(99,102,241,0.15);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-topbar: 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.04);
+  /* ─── SHADOWS — sottili, a più livelli ─────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+  --shadow-xl: 0 20px 40px -8px rgba(0, 0, 0, 0.1), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
 
-  /* Timing */
-  --transition-fast: 150ms ease;
-  --transition-normal: 200ms ease;
-  --transition-slow: 300ms ease;
+  /* Focus ring: 2-layer (inner bianco per contrasto su sfondo colorato + halo) */
+  --shadow-focus:       0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-primary-200);
+  --shadow-focus-error: 0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-error-200);
+
+  /* Legacy shadow tokens — usati da componenti esistenti */
+  --shadow-card:        var(--shadow-sm);
+  --shadow-card-hover:  var(--shadow-md);
+  --shadow-topbar:      var(--shadow-xs);
+  --shadow-dropdown:    var(--shadow-lg);
+
+  /* ─── TIMING ───────────────────────────────────────────────────────────── */
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast:   120ms;
+  --duration-normal: 200ms;
+  --duration-slow:   350ms;
+
+  /* ─── LEGACY ALIASES ───────────────────────────────────────────────────────
+     Mantengono funzionanti 1760+ occorrenze di bg-brand-*, bg-gray-*, ecc.
+     Migration path: nuove feature usano primary-/neutral-/accent-. Le vecchie
+     classi continuano a lavorare via questi alias. */
+
+  /* brand → primary */
+  --color-brand-50:  var(--color-primary-50);
+  --color-brand-100: var(--color-primary-100);
+  --color-brand-200: var(--color-primary-200);
+  --color-brand-300: var(--color-primary-300);
+  --color-brand-400: var(--color-primary-400);
+  --color-brand-500: var(--color-primary-500);
+  --color-brand-600: var(--color-primary-600);
+  --color-brand-700: var(--color-primary-700);
+  --color-brand-800: var(--color-primary-800);
+  --color-brand-900: var(--color-primary-900);
+  --color-brand-950: var(--color-primary-950);
+
+  /* gray → neutral (shift da zinc fredda a stone calda) */
+  --color-gray-50:  var(--color-neutral-50);
+  --color-gray-100: var(--color-neutral-100);
+  --color-gray-200: var(--color-neutral-200);
+  --color-gray-300: var(--color-neutral-300);
+  --color-gray-400: var(--color-neutral-400);
+  --color-gray-500: var(--color-neutral-500);
+  --color-gray-600: var(--color-neutral-600);
+  --color-gray-700: var(--color-neutral-700);
+  --color-gray-800: var(--color-neutral-800);
+  --color-gray-900: var(--color-neutral-900);
+  --color-gray-950: var(--color-neutral-950);
+
+  /* bg-* → surface-* */
+  --bg-primary:   var(--surface-primary);
+  --bg-secondary: var(--surface-secondary);
+  --bg-tertiary:  var(--surface-tertiary);
+  --bg-elevated:  var(--surface-elevated);
+  /* Sidebar legacy: resta dark per non rompere l'UI esistente. La migrazione
+     a --surface-sidebar (light) va fatta quando si aggiorna il componente. */
+  --bg-sidebar:   #0f172a;
+
+  /* text-on-* */
+  --text-on-brand: var(--text-on-primary);
+
+  /* transition-* */
+  --transition-fast:   var(--duration-fast) ease;
+  --transition-normal: var(--duration-normal) ease;
+  --transition-slow:   var(--duration-slow) ease;
+
+  /* Semantic single-color aliases (usati in @layer components) */
+  --color-success:       var(--color-success-500);
+  --color-success-light: var(--color-success-50);
+  --color-warning:       var(--color-warning-500);
+  --color-warning-light: var(--color-warning-50);
+  --color-error:         var(--color-error-500);
+  --color-error-light:   var(--color-error-50);
+  --color-info:          var(--color-info-500);
+  --color-info-light:    var(--color-info-50);
 }
 
 /* ── Dark mode overrides ──────────────────────────────────────────────────── */
 .dark {
-  --bg-primary: var(--color-gray-900);
-  --bg-secondary: var(--color-gray-800);
-  --bg-tertiary: var(--color-gray-700);
-  --bg-elevated: var(--color-gray-800);
-  --text-primary: var(--color-gray-50);
-  --text-secondary: var(--color-gray-400);
-  --text-tertiary: var(--color-gray-500);
-  --border-default: var(--color-gray-700);
-  --border-hover: var(--color-gray-600);
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.5);
-  --shadow-xl: 0 20px 25px rgba(0,0,0,0.5);
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3);
-  --shadow-focus: 0 0 0 3px rgba(99,102,241,0.25);
+  /* Nuove superfici */
+  --surface-primary:   var(--color-neutral-900);
+  --surface-secondary: var(--color-neutral-800);
+  --surface-tertiary:  var(--color-neutral-700);
+  --surface-elevated:  var(--color-neutral-800);
+  --surface-overlay:   rgba(0, 0, 0, 0.6);
+  --surface-sidebar:   var(--color-neutral-950);
+
+  /* Testo invertito */
+  --text-primary:   var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-400);
+  --text-tertiary:  var(--color-neutral-500);
+  --text-disabled:  var(--color-neutral-600);
+
+  /* Bordi */
+  --border-default: var(--color-neutral-700);
+  --border-subtle:  var(--color-neutral-800);
+  --border-hover:   var(--color-neutral-600);
+
+  /* Ombre più profonde su dark */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.5), 0 4px 8px -2px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 20px 40px -8px rgba(0, 0, 0, 0.55), 0 8px 16px -4px rgba(0, 0, 0, 0.35);
+  --shadow-focus:       0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-primary-700);
+  --shadow-focus-error: 0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-error-700);
+
+  /* Legacy aliases dark */
+  --bg-primary:   var(--surface-primary);
+  --bg-secondary: var(--surface-secondary);
+  --bg-tertiary:  var(--surface-tertiary);
+  --bg-elevated:  var(--surface-elevated);
+
+  --shadow-card:       var(--shadow-sm);
+  --shadow-card-hover: var(--shadow-md);
+  --shadow-topbar:     var(--shadow-xs);
+  --shadow-dropdown:   var(--shadow-lg);
+
   color-scheme: dark;
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
-* { box-sizing: border-box; }
-
-html {
-  font-size: 14px; /* SaaS dashboard standard */
-  scroll-behavior: smooth;
+* {
+  box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  font-size: 14px; /* SaaS dashboard standard */
+  scroll-behavior: smooth;
+}
+
 body {
-  background-color: var(--bg-secondary);
+  background-color: var(--surface-secondary);
   color: var(--text-primary);
   text-rendering: optimizeLegibility;
 }
@@ -127,36 +260,51 @@ body {
 /* Smooth transitions on interactive elements */
 a, button, input, select, textarea {
   transition-property: color, background-color, border-color, box-shadow, opacity, transform;
-  transition-duration: 150ms;
-  transition-timing-function: ease;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
 }
 
 /* ── Typography — Montserrat headings ─────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+  font-family: var(--font-sans), Inter, system-ui, sans-serif;
   letter-spacing: -0.01em;
 }
 
-/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+/* ── Scrollbar — sottile e discreta ───────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-gray-300); border-radius: var(--radius-full); }
-::-webkit-scrollbar-thumb:hover { background: var(--color-gray-400); }
-.dark ::-webkit-scrollbar-thumb { background: var(--color-gray-700); }
-.dark ::-webkit-scrollbar-thumb:hover { background: var(--color-gray-600); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-400); }
+.dark ::-webkit-scrollbar-thumb { background: var(--color-neutral-700); }
+.dark ::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-600); }
 
 /* Hide scrollbar for pills/tabs */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ── Selection ────────────────────────────────────────────────────────────── */
-::selection { background: var(--color-brand-100); color: var(--color-brand-900); }
-.dark ::selection { background: var(--color-brand-800); color: var(--color-brand-100); }
+::selection {
+  background: var(--color-primary-100);
+  color: var(--color-primary-900);
+}
+.dark ::selection {
+  background: var(--color-primary-800);
+  color: var(--color-primary-100);
+}
 
-/* ── Focus visible ────────────────────────────────────────────────────────── */
+/* ── Focus visible — solo keyboard navigation ────────────────────────────── */
+:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 :focus-visible {
-  outline: 2px solid var(--color-brand-500);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
 }
 
 /* ── Safe area for iOS ────────────────────────────────────────────────────── */
@@ -169,15 +317,17 @@ h1, h2, h3, h4, h5, h6 {
 @layer components {
   /* ── Card ────────────────────────────────────────────────────────────────── */
   .card {
-    background: var(--bg-elevated);
+    background: var(--surface-elevated);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-xl);
     padding: 1.25rem 1.5rem;
-    box-shadow: var(--shadow-card);
-    transition: box-shadow 200ms ease, border-color 200ms ease, transform 200ms ease;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--duration-normal) var(--ease-out),
+                border-color var(--duration-normal) var(--ease-out),
+                transform var(--duration-normal) var(--ease-out);
   }
   .card:hover {
-    box-shadow: var(--shadow-card-hover);
+    box-shadow: var(--shadow-md);
     border-color: var(--border-hover);
   }
 
@@ -191,7 +341,7 @@ h1, h2, h3, h4, h5, h6 {
   }
   .card-interactive:active { transform: translateY(0); }
 
-  /* Card con accent gradient sul bordo sinistro (senza border-l tailwind) */
+  /* Card con accent gradient sul bordo sinistro */
   .card-accent {
     @apply card;
     position: relative;
@@ -202,7 +352,7 @@ h1, h2, h3, h4, h5, h6 {
     position: absolute;
     top: 0; left: 0; bottom: 0;
     width: 4px;
-    background: linear-gradient(180deg, var(--card-accent-from, #10b981), var(--card-accent-to, #059669));
+    background: linear-gradient(180deg, var(--card-accent-from, var(--color-success-500)), var(--card-accent-to, var(--color-success-600)));
     border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   }
 
@@ -215,7 +365,7 @@ h1, h2, h3, h4, h5, h6 {
     height: 2.25rem;
     border-radius: var(--radius-lg);
     background: linear-gradient(135deg, var(--tile-from, rgba(99,102,241,0.12)), var(--tile-to, rgba(99,102,241,0.05)));
-    color: var(--tile-color, #6366f1);
+    color: var(--tile-color, var(--color-primary-500));
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
     flex-shrink: 0;
   }
@@ -228,37 +378,37 @@ h1, h2, h3, h4, h5, h6 {
   /* ── Buttons ─────────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply px-4 py-2.5 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed;
-    background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-700));
-    color: var(--text-on-brand);
+    background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+    color: var(--text-on-primary);
     border-radius: var(--radius-lg);
-    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.2), var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.2), var(--shadow-xs);
   }
   .btn-primary:hover {
-    background: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-800));
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25), var(--shadow-md);
+    background: linear-gradient(135deg, var(--color-primary-700), var(--color-primary-800));
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25), var(--shadow-sm);
     transform: translateY(-0.5px);
   }
   .btn-primary:active { transform: translateY(0); }
 
   .btn-secondary {
     @apply px-4 py-2.5 font-semibold text-sm;
-    background: var(--bg-primary);
+    background: var(--surface-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
   }
   .btn-secondary:hover {
-    background: var(--bg-secondary);
+    background: var(--surface-secondary);
     border-color: var(--border-hover);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
   }
 
   .btn-danger {
     @apply px-4 py-2.5 font-semibold text-sm;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: var(--text-on-brand);
+    background: linear-gradient(135deg, var(--color-error-500), var(--color-error-600));
+    color: var(--text-on-primary);
     border-radius: var(--radius-lg);
-    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.2), var(--shadow-sm);
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.2), var(--shadow-xs);
   }
   .btn-danger:hover { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); transform: translateY(-0.5px); }
   .btn-danger:active { transform: translateY(0); }
@@ -268,29 +418,36 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-secondary);
     border-radius: var(--radius-lg);
   }
-  .btn-ghost:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .btn-ghost:hover { background: var(--surface-tertiary); color: var(--text-primary); }
 
   .btn-icon {
     @apply p-2 transition-all;
     color: var(--text-secondary);
     border-radius: var(--radius-lg);
   }
-  .btn-icon:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .btn-icon:hover { background: var(--surface-tertiary); color: var(--text-primary); }
 
   /* ── Inputs ──────────────────────────────────────────────────────────────── */
   .input {
     @apply w-full px-3.5 py-2.5 text-sm;
-    background: var(--bg-primary);
+    background: var(--surface-primary);
     color: var(--text-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-lg);
-    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out),
+                background var(--duration-fast) var(--ease-out);
   }
   .input::placeholder { color: var(--text-tertiary); }
   .input:hover { border-color: var(--border-hover); }
-  .input:focus { outline: none; border-color: var(--color-brand-500); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: var(--bg-elevated); }
-  .input-error { border-color: var(--color-error); }
-  .input-error:focus { box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+  .input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--color-primary-100);
+    background: var(--surface-elevated);
+  }
+  .input-error { border-color: var(--border-error); }
+  .input-error:focus { box-shadow: 0 0 0 3px var(--color-error-100); }
 
   .label {
     @apply block text-sm font-medium mb-1.5;
@@ -314,7 +471,7 @@ h1, h2, h3, h4, h5, h6 {
   .table-th {
     @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider;
     color: var(--text-secondary);
-    background: var(--bg-secondary);
+    background: var(--surface-secondary);
   }
   .table-td {
     @apply px-4 py-3.5 text-sm;
@@ -327,7 +484,7 @@ h1, h2, h3, h4, h5, h6 {
   .stat-card .stat-value {
     @apply text-2xl font-extrabold;
     color: var(--text-primary);
-    font-family: var(--font-montserrat), 'Montserrat', system-ui;
+    font-family: var(--font-sans), Inter, system-ui;
   }
   .stat-card .stat-label {
     @apply text-xs font-medium mt-0.5;
@@ -342,7 +499,7 @@ h1, h2, h3, h4, h5, h6 {
   .page-title {
     @apply text-xl font-bold m-0;
     color: var(--text-primary);
-    font-family: var(--font-montserrat), 'Montserrat', system-ui;
+    font-family: var(--font-sans), Inter, system-ui;
   }
   .page-subtitle {
     @apply text-sm mt-0.5;
@@ -351,7 +508,7 @@ h1, h2, h3, h4, h5, h6 {
   .section-title {
     @apply text-sm font-bold;
     color: var(--text-primary);
-    font-family: var(--font-montserrat), 'Montserrat', system-ui;
+    font-family: var(--font-sans), Inter, system-ui;
   }
 
   /* ── Empty state ─────────────────────────────────────────────────────────── */
@@ -360,14 +517,14 @@ h1, h2, h3, h4, h5, h6 {
   .empty-state p { @apply text-sm; }
 
   /* ── Skeleton ────────────────────────────────────────────────────────────── */
-  .skeleton { @apply animate-pulse; background: var(--bg-tertiary); border-radius: var(--radius-md); }
+  .skeleton { @apply animate-pulse; background: var(--surface-tertiary); border-radius: var(--radius-md); }
   .skeleton-shimmer {
-    background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--color-gray-200) 50%, var(--bg-tertiary) 100%);
+    background: linear-gradient(90deg, var(--surface-tertiary) 0%, var(--color-neutral-200) 50%, var(--surface-tertiary) 100%);
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
   }
   .dark .skeleton-shimmer {
-    background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--color-gray-600) 50%, var(--bg-tertiary) 100%);
+    background: linear-gradient(90deg, var(--surface-tertiary) 0%, var(--color-neutral-600) 50%, var(--surface-tertiary) 100%);
     background-size: 200% 100%;
   }
   .skeleton-text { @apply skeleton h-4 w-3/4; }
@@ -421,11 +578,11 @@ h1, h2, h3, h4, h5, h6 {
   .table-responsive tbody { display: flex; flex-direction: column; gap: 0.75rem; }
   .table-responsive tr {
     display: block;
-    background: var(--bg-primary);
+    background: var(--surface-primary);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default);
     padding: 1rem;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
   }
   .table-responsive td {
     display: block;
@@ -449,13 +606,13 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-fadeIn { animation: fadeIn 0.2s ease-out; }
+.animate-fadeIn { animation: fadeIn 0.2s var(--ease-out); }
 
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-slideUp { animation: slideUp 0.3s ease-out; }
+.animate-slideUp { animation: slideUp 0.3s var(--ease-out); }
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
@@ -467,8 +624,156 @@ h1, h2, h3, h4, h5, h6 {
   animation: shimmer 1.5s infinite;
 }
 
+/* SlideDown — usato per error messaging nei form (2px translate + fade) */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slideDown { animation: slideDown var(--duration-fast) var(--ease-out); }
+
+/* Select dropdown open — scaleY 95% + fade */
+@keyframes selectIn {
+  from { opacity: 0; transform: scaleY(0.95); }
+  to   { opacity: 1; transform: scaleY(1); }
+}
+
 /* ── Dark mode select fix ─────────────────────────────────────────────────── */
 .dark select option {
-  background-color: var(--color-gray-800);
-  color: var(--color-gray-200);
+  background-color: var(--color-neutral-800);
+  color: var(--color-neutral-200);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TYPE SCALE
+   Il serif (DM Serif Display) è usato SOLO per:
+     - Titoli delle pagine pubbliche (booking, check-in, landing)
+     - Nome struttura nel header booking
+     - Heading nelle email premium
+   NON per la dashboard host, che resta tutta sans-serif (Inter).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Utility per forzare il serif dove serve */
+.font-serif {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+}
+
+/* ── Dashboard host (14px base) ─────────────────────────────────────────── */
+
+.text-page-title {
+  font-size: 1.375rem; /* 22px */
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.text-section-title {
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.text-card-title {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.text-body {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.text-body-sm {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.text-caption {
+  font-size: 0.75rem; /* 12px */
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
+.text-label {
+  font-size: 0.8125rem; /* 13px */
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.text-badge {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ── Pagine pubbliche (booking, check-in) — più arie, più taglia ───────── */
+
+.text-hero-title {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-size: 2.5rem; /* 40px */
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.text-public-title {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-size: 1.75rem; /* 28px */
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.text-public-subtitle {
+  font-size: 1.125rem; /* 18px */
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.text-public-body {
+  font-size: 1rem; /* 16px */
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+/* ── Numeri e dati ──────────────────────────────────────────────────────── */
+
+/* Allineamento tabellare — per colonne prezzo/quantità */
+.text-data {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.text-price {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.text-stat {
+  font-size: 2rem; /* 32px */
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-primary);
 }

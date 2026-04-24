@@ -63,7 +63,8 @@ export default function StepServizio({
   onSelectTrattamento, onSelectPercorso,
   accentColor, strutturaTelefono,
 }: Props) {
-  const accent = accentColor || '#4f46e5'
+  const accent = accentColor || 'var(--brand-primary, #4f46e5)'
+  const onAccent = 'var(--brand-on-primary, #ffffff)'
   const [tab, setTab] = useState<'trattamenti' | 'percorsi'>('trattamenti')
   const [filtro, setFiltro] = useState<string>('ALL')
   const [expandedDesc, setExpandedDesc] = useState<string | null>(null)
@@ -95,8 +96,8 @@ export default function StepServizio({
         </p>
         {strutturaTelefono && (
           <a href={`tel:${strutturaTelefono}`}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold"
-            style={{ backgroundColor: accent }}>
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold"
+            style={{ backgroundColor: accent, color: onAccent }}>
             <Phone className="w-4 h-4" /> {strutturaTelefono}
           </a>
         )}
@@ -134,10 +135,10 @@ export default function StepServizio({
                 <button key={cat} type="button" onClick={() => setFiltro(cat)}
                   className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
                     filtro === cat
-                      ? 'text-white shadow-sm'
+                      ? 'shadow-sm'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
-                  style={filtro === cat ? { backgroundColor: accent } : undefined}>
+                  style={filtro === cat ? { backgroundColor: accent, color: onAccent } : undefined}>
                   {cat === 'ALL' ? 'Tutti' : CATEGORIE_LABEL[cat] || cat}
                 </button>
               ))}
@@ -172,8 +173,8 @@ export default function StepServizio({
                     </div>
                     {isSelected && (
                       <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ml-2"
-                        style={{ backgroundColor: accent }}>
-                        <Check className="w-3.5 h-3.5 text-white" />
+                        style={{ backgroundColor: accent, color: onAccent }}>
+                        <Check className="w-3.5 h-3.5" />
                       </div>
                     )}
                   </div>
@@ -248,8 +249,8 @@ export default function StepServizio({
                   </div>
                   {isSelected && (
                     <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: accent }}>
-                      <Check className="w-4 h-4 text-white" />
+                      style={{ backgroundColor: accent, color: onAccent }}>
+                      <Check className="w-4 h-4" />
                     </div>
                   )}
                 </div>

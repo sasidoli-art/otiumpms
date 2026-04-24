@@ -42,7 +42,8 @@ export default function StepSlot({
   selectedSlot, onSelectSlot, terapisti,
   dateSoggiorno, accentColor,
 }: Props) {
-  const accent = accentColor || '#4f46e5'
+  const accent = accentColor || 'var(--brand-primary, #4f46e5)'
+  const onAccent = 'var(--brand-on-primary, #ffffff)'
   const today = startOfDay(new Date())
 
   // Date da mostrare: prossimi 14 gg o date soggiorno
@@ -172,10 +173,10 @@ export default function StepSlot({
                 onClick={() => handleDateSelect(date)}
                 className={`flex flex-col items-center shrink-0 w-14 py-2.5 rounded-xl transition-all duration-200 ${
                   isSelected
-                    ? 'text-white shadow-md'
+                    ? 'shadow-md'
                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                 }`}
-                style={isSelected ? { backgroundColor: accent, minHeight: 44 } : { minHeight: 44 }}
+                style={isSelected ? { backgroundColor: accent, color: onAccent, minHeight: 44 } : { minHeight: 44 }}
               >
                 <span className="text-[9px] font-medium uppercase tracking-wider opacity-70">
                   {showMonth ? format(date, 'MMM', { locale: it }) : dayName}
@@ -219,10 +220,10 @@ export default function StepSlot({
                   transition={{ delay: i * 0.03 }}
                   className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                     selectedOra === slot.ora
-                      ? 'text-white shadow-md'
+                      ? 'shadow-md'
                       : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
                   }`}
-                  style={selectedOra === slot.ora ? { backgroundColor: accent, minHeight: 44 } : { minHeight: 44 }}
+                  style={selectedOra === slot.ora ? { backgroundColor: accent, color: onAccent, minHeight: 44 } : { minHeight: 44 }}
                 >
                   {slot.ora}
                 </motion.button>
@@ -269,8 +270,8 @@ export default function StepSlot({
                     }`}
                     style={isSelected ? { borderColor: accent } : undefined}
                   >
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                      style={{ backgroundColor: accent }}>
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                      style={{ backgroundColor: accent, color: onAccent }}>
                       {t.nome[0]}{t.cognome[0]}
                     </div>
                     <div className="flex-1 text-left min-w-0">

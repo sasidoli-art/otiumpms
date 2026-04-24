@@ -75,7 +75,8 @@ export function SpaBookingStepper({
   steps, currentStep, onStepChange, children, onComplete,
   completing = false, completeLabel = 'Conferma prenotazione', accentColor,
 }: Props) {
-  const accent = accentColor || '#4f46e5'
+  const accent = accentColor || 'var(--brand-primary, #4f46e5)'
+  const onAccent = 'var(--brand-on-primary, #ffffff)'
   const [direction, setDirection] = useState(0)
   const isLast = currentStep === steps.length - 1
   const isFirst = currentStep === 0
@@ -114,9 +115,9 @@ export function SpaBookingStepper({
                     onClick={() => { if (isDone) { setDirection(i < currentStep ? -1 : 1); onStepChange(i) } }}
                     disabled={!isDone && !isActive}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 shrink-0 ${
-                      isActive ? 'text-white shadow-md scale-110' : isDone ? 'text-white cursor-pointer' : 'bg-gray-100 text-gray-400'
+                      isActive ? 'shadow-md scale-110' : isDone ? 'cursor-pointer' : 'bg-gray-100 text-gray-400'
                     }`}
-                    style={(isActive || isDone) ? { backgroundColor: accent } : undefined}
+                    style={(isActive || isDone) ? { backgroundColor: accent, color: onAccent } : undefined}
                   >
                     {isDone ? <Check className="w-3.5 h-3.5" /> : i + 1}
                   </button>
@@ -156,8 +157,8 @@ export function SpaBookingStepper({
           </button>
           <span className="flex-1 text-center text-xs text-gray-400">{currentStep + 1}/{steps.length}</span>
           <button type="button" onClick={goNext} disabled={completing}
-            className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold text-white shadow-md hover:shadow-lg active:scale-[0.97] transition-all disabled:opacity-50"
-            style={{ backgroundColor: accent }}>
+            className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg active:scale-[0.97] transition-all disabled:opacity-50"
+            style={{ backgroundColor: accent, color: onAccent }}>
             {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : isLast ? (
               <>{completeLabel} <Check className="w-4 h-4" /></>
             ) : (

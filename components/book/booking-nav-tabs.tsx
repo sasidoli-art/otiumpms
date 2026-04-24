@@ -36,12 +36,18 @@ export default function BookingNavTabs({ struttura }: { struttura: StrutturaPubb
           <Link
             key={t.href}
             href={t.href}
-            className={`flex items-center gap-1.5 px-3 md:px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-              active
-                ? 'text-white'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            className={`flex items-center gap-1.5 px-3 md:px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+              active ? '' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
-            style={active ? { backgroundColor: 'var(--brand-primary)' } : undefined}
+            style={
+              active
+                ? {
+                    backgroundColor: 'var(--brand-primary)',
+                    color: 'var(--brand-on-primary)',
+                    borderRadius: 'var(--brand-radius)',
+                  }
+                : { borderRadius: 'var(--brand-radius)' }
+            }
           >
             <Icon className="w-4 h-4" />
             {t.label}

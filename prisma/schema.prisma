@@ -455,6 +455,9 @@ model Host {
   registratoreRt    RegistratoreRtConfig?
   scontriniRt       ScontrinoRT[]
 
+  // Prenotazioni ristorante (tavoli)
+  prenotazioniRistorante PrenotazioneRistorante[]
+
   @@map("hosts")
 }
 
@@ -804,6 +807,7 @@ model Struttura {
   contrattiAllotment ContrattoAllotment[]
   wifiDevices       WifiDevice[]
   exportAlloggiati  ExportAlloggiati[]
+  prenotazioniRistorante PrenotazioneRistorante[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -820,11 +824,21 @@ model Struttura {
   logo              String?  // URL logo struttura
   colorePrimario    String?  @default("#4f46e5") // hex
   coloreSecondario  String?  @default("#6366f1") // hex
+  coloreSfondo      String? // hex (default applicato runtime: #ffffff)
+  coloreTesto       String? // hex (default applicato runtime: #18181b)
+  fontFamily        String? // es. "Inter", "Montserrat", "Playfair Display"
+  borderRadius      String? // es. "4px", "8px", "16px"
   fotoHero          String?  // URL foto principale (per email + landing)
   messaggioChiusura String?  // es. "Un caro saluto dalla Romagna"
   linkFacebook      String?
   linkInstagram     String?
   linkSitoWeb       String?
+
+  // ─── Custom domain per booking engine (white-label URL) ───────────────────
+  // Es. "prenota.villamargherita.it" — richiede CNAME verso cname.otiumweek.com
+  // + configurazione domain su Vercel (manuale o via API).
+  customDomain       String?  @unique
+  customDomainVerificatoAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1047,6 +1061,7 @@ model Prenotazione {
   transazioniPOS    TransazionePOS[]
   waitingListSpa    WaitingListSpa[]
   incassi           Incasso[]
+  prenotazioniRistorante PrenotazioneRistorante[] @relation("PrenotazioneRistoranteSoggiorno")
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -1145,6 +1160,11 @@ model ConfigPastoStruttura {
   luogo         String? // "Sala colazioni piano terra", "Ristorante La Terrazza"
   note          String? // "Buffet", "Servito al tavolo", ecc.
 
+  // Capacita ristorante: numero massimo coperti contemporanei per questa fascia
+  // (usato dal booking ristorante pubblico per calcolare slot disponibili).
+  // null = illimitato / non gestito (es. colazione B&B)
+  maxCoperti    Int?
+
   createdAt DateTime @default(now())
 
   @@unique([strutturaId, tipoPasto])
@@ -1173,6 +1193,41 @@ model PastoPrenotazione {
 
   @@unique([prenotazioneId])
   @@map("pasti_prenotazione")
+}
+
+// ─── Prenotazione ristorante (tavolo) ─────────────────────────────────────────
+// Ospite esterno (non necessariamente in-house) prenota un tavolo al ristorante.
+// Si distingue da PastoPrenotazione (piano pasto di un soggiorno) e da
+// SceltaPastoOspite (scelta piatti in-house).
+model PrenotazioneRistorante {
+  id          String    @id @default(cuid())
+  hostId      String
+  host        Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  guestNome     String
+  guestCognome  String
+  guestEmail    String
+  guestTelefono String?
+
+  dataOra    DateTime // data e ora della prenotazione (slot di 30 min)
+  numPersone Int
+  note       String? // "tavolo esterno", "compleanno", "allergia arachidi"
+
+  stato String @default("CONFERMATA") // CONFERMATA | ANNULLATA | COMPLETATA | NO_SHOW
+
+  // Collegamento opzionale al soggiorno (se l'ospite e` in-house)
+  prenotazioneId String?
+  prenotazione   Prenotazione? @relation("PrenotazioneRistoranteSoggiorno", fields: [prenotazioneId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, dataOra])
+  @@index([strutturaId, dataOra])
+  @@index([prenotazioneId])
+  @@map("prenotazioni_ristorante")
 }
 
 // ─── Magazzino (Inventory) ────────────────────────────────────────────────────

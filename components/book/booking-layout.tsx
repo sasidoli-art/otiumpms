@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { MapPin, Phone, Mail, Globe } from 'lucide-react'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
 import type { StrutturaPubblica } from '@/lib/book/get-struttura-pubblica'
+import { getBrandTheme, brandThemeToCssVars } from '@/lib/branding'
 import BookingNavTabs from './booking-nav-tabs'
 
 type Props = {
@@ -16,24 +17,19 @@ type Props = {
  * Layout condiviso per tutte le pagine pubbliche /book/[strutturaId]/*.
  * White-label completo: l'ospite vede solo il brand della struttura.
  *
- * Branding dinamico via CSS custom properties iniettate nel root:
- *   --brand-primary, --brand-secondary
- * Usare `style={{ backgroundColor: 'var(--brand-primary)' }}` nei componenti.
+ * Branding dinamico via CSS custom properties iniettate nel root
+ * (--brand-primary, --brand-secondary, --brand-on-primary, --brand-radius, …).
+ * I componenti figli li consumano con `style={{ background: 'var(--brand-primary)' }}`.
  */
 export default function BookingLayout({ struttura, children, hero }: Props) {
-  const colorePrimario = struttura.colorePrimario ?? '#4f46e5'
-  const coloreSecondario = struttura.coloreSecondario ?? '#6366f1'
+  const theme = getBrandTheme(struttura)
+  const cssVars = brandThemeToCssVars(theme)
   const anno = new Date().getFullYear()
 
   return (
     <div
       className="min-h-screen flex flex-col bg-gray-50"
-      style={
-        {
-          '--brand-primary': colorePrimario,
-          '--brand-secondary': coloreSecondario,
-        } as React.CSSProperties
-      }
+      style={{ ...cssVars, fontFamily: 'var(--brand-font)' } as React.CSSProperties}
     >
       {/* ─── Header ───────────────────────────────────────────────────── */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-30">
@@ -53,8 +49,12 @@ export default function BookingLayout({ struttura, children, hero }: Props) {
                 />
               ) : (
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-lg"
-                  style={{ backgroundColor: colorePrimario }}
+                  className="w-10 h-10 flex items-center justify-center font-bold text-lg"
+                  style={{
+                    backgroundColor: 'var(--brand-primary)',
+                    color: 'var(--brand-on-primary)',
+                    borderRadius: 'var(--brand-radius)',
+                  }}
                 >
                   {struttura.nome.charAt(0)}
                 </div>

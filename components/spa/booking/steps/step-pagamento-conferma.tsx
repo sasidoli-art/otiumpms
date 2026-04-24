@@ -55,7 +55,8 @@ export default function StepPagamentoConferma({
   prenotazioneId, unitaNome, unitaId,
   onGoToStep, onReset, accentColor, hostTelefono,
 }: Props) {
-  const accent = accentColor || '#4f46e5'
+  const accent = accentColor || 'var(--brand-primary, #4f46e5)'
+  const onAccent = 'var(--brand-on-primary, #ffffff)'
   const servizio = trattamento || percorso
   const isInHouse = !!prenotazioneId
 
@@ -215,8 +216,8 @@ export default function StepPagamentoConferma({
             <Download className="w-4 h-4" /> Aggiungi al calendario
           </button>
           <button type="button" onClick={onReset}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-semibold"
-            style={{ backgroundColor: accent }}>
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold"
+            style={{ backgroundColor: accent, color: onAccent }}>
             <ArrowRight className="w-4 h-4" /> Prenota altro
           </button>
         </div>
@@ -244,12 +245,12 @@ export default function StepPagamentoConferma({
         <div className="flex gap-3">
           {errorSlot ? (
             <button type="button" onClick={() => onGoToStep(1)}
-              className="px-6 py-3 rounded-xl text-white font-semibold text-sm" style={{ backgroundColor: accent }}>
+              className="px-6 py-3 rounded-xl font-semibold text-sm" style={{ backgroundColor: accent, color: onAccent }}>
               Scegli altro orario
             </button>
           ) : (
             <button type="button" onClick={submit}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold text-sm" style={{ backgroundColor: accent }}>
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm" style={{ backgroundColor: accent, color: onAccent }}>
               <RotateCcw className="w-4 h-4" /> Riprova
             </button>
           )}
@@ -310,8 +311,8 @@ export default function StepPagamentoConferma({
                   isSelected ? 'shadow-sm' : 'border-gray-100 hover:border-gray-200'
                 }`}
                 style={isSelected ? { borderColor: accent } : undefined}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'text-white' : 'bg-gray-100 text-gray-500'}`}
-                  style={isSelected ? { backgroundColor: accent } : undefined}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? '' : 'bg-gray-100 text-gray-500'}`}
+                  style={isSelected ? { backgroundColor: accent, color: onAccent } : undefined}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div>
@@ -338,8 +339,8 @@ export default function StepPagamentoConferma({
 
       {/* CTA Conferma */}
       <button type="button" onClick={submit} disabled={status === 'loading'}
-        className="w-full py-4 rounded-xl text-white font-semibold text-base shadow-lg hover:shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-        style={{ backgroundColor: accent }}>
+        className="w-full py-4 rounded-xl font-semibold text-base shadow-lg hover:shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        style={{ backgroundColor: accent, color: onAccent }}>
         {status === 'loading' ? (
           <><Loader2 className="w-5 h-5 animate-spin" /> Prenotazione in corso...</>
         ) : (

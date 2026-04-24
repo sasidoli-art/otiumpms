@@ -294,8 +294,12 @@ export default function StepDatiOspite({ onAvanti }: Props) {
 
       <button
         onClick={submit}
-        className="w-full py-3 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2 hover:brightness-110 transition-all"
-        style={{ backgroundColor: 'var(--brand-primary)' }}
+        className="w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 hover:brightness-110 transition-all"
+        style={{
+          backgroundColor: 'var(--brand-primary)',
+          color: 'var(--brand-on-primary)',
+          borderRadius: 'var(--brand-radius)',
+        }}
       >
         Continua <ArrowRight className="w-4 h-4" />
       </button>
@@ -375,8 +379,12 @@ export default function StepDatiOspite({ onAvanti }: Props) {
             <div className="p-4 border-t border-gray-100 bg-gray-50">
               <button
                 onClick={() => setTosModalOpen(false)}
-                className="w-full py-2.5 rounded-lg text-sm font-semibold text-white"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
+                className="w-full py-2.5 text-sm font-semibold"
+                style={{
+                  backgroundColor: 'var(--brand-primary)',
+                  color: 'var(--brand-on-primary)',
+                  borderRadius: 'var(--brand-radius)',
+                }}
               >
                 Ho capito
               </button>

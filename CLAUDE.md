@@ -14,8 +14,16 @@ npm run lint         # ESLint
 npm run db:push      # Push Prisma schema to database (no migration)
 npm run db:generate  # Regenerate Prisma client after schema changes
 npm run db:studio    # Open Prisma Studio GUI (http://localhost:5555)
-npm run db:seed      # Seed database (ts-node seed.ts — creates admin@otiumweek.it)
+npm run db:seed      # Seed database via ts-node (equivalente a: npx prisma db seed)
+# npx prisma db seed # Alternativa: usa la config `prisma.seed` in package.json
 ```
+
+Il seed popola un ambiente di sviluppo realistico:
+- 2 host multi-tenant (`host@otiumweek.it` = Partner Premium, `bnb@otiumweek.it` = LIGHT)
+- 3 strutture, 11 camere, 10+ prenotazioni (passate/presenti/future)
+- SPA completa: 3 terapisti, 3 cabine, 10 trattamenti, 3 percorsi, 12 appuntamenti
+- CRM, pacchetti, notifiche, task HK, segnalazioni manutenzione
+- Password comune: `Otium2025!`
 
 **E2E Tests** (Playwright, Chromium):
 ```bash
@@ -392,3 +400,174 @@ Host-guest messaging via Server-Sent Events (SSE), not WebSocket.
 - **Sentry** (`@sentry/nextjs`): Error tracking and performance monitoring. Disabled in development.
 - **GitHub Actions**: `ci.yml` (lint + build + Playwright tests on PR), `deploy.yml` (production deployment)
 - **Playwright**: E2E tests in `/e2e/` directory, Chromium browser, auto-starts dev server if needed
+- **Health**: `GET /api/health` — pubblico, 503 se DB down, usato da uptime checker e dashboard `/superadmin/monitoring`
+
+## Environment Variables
+
+La lista è generata da grep `process.env.*` nel codice. Non tutte sono obbligatorie: alcune sono fallback o feature-gated.
+
+### Core (obbligatorie in prod)
+
+```bash
+DATABASE_URL=postgresql://...                 # Neon serverless Postgres
+NEXTAUTH_SECRET=<random-32b>                  # JWT signing
+NEXTAUTH_URL=http://localhost:3000            # base URL per callbacks
+ENCRYPTION_KEY=<32-bytes-hex>                 # AES-256-GCM per secret cifrati in DB
+# Genera: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+CRON_SECRET=<random>                          # Bearer token richiesto da /api/cron/*
+```
+
+### SMTP piattaforma (fallback per host senza SMTP proprio)
+
+```bash
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...                                  # alternativa accettata: SMTP_PASSWORD
+SMTP_FROM="Otium <noreply@otiumweek.com>"
+```
+
+### Sentry
+
+```bash
+SENTRY_DSN=...                                 # server-side
+NEXT_PUBLIC_SENTRY_DSN=...                     # client-side (può essere identico)
+```
+
+### AI Concierge (platform key strategy)
+
+Le chiavi AI vanno salvate su `PlatformSettings.aiApiKey` (cifrate). Env var usate solo come fallback/locali:
+
+```bash
+ANTHROPIC_KEY=...                              # claude
+ANTHROPIC_MODEL=claude-sonnet-4-5
+OPENROUTER_KEY=...
+OPENROUTER_MODEL=...
+OLLAMA_BASE_URL=http://localhost:11434         # dev locale
+```
+
+### Integrazioni opzionali
+
+```bash
+# Booking engine custom domain (vedi /host/booking-engine)
+BOOKING_CNAME_TARGET=cname.otiumweek.com       # target CNAME verificato dalla API DNS
+
+# Stripe (piattaforma abbonamenti)
+STRIPE_PRICE_ID_LIGHT=price_...
+STRIPE_PRICE_ID_EVENTO=price_...
+STRIPE_PRICE_ID_VISIBILITA=price_...
+STRIPE_PRICE_ID_PARTNER=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# IMAP inbound email → chat (cron/inbound-email)
+IMAP_HOST=imap.example.com
+IMAP_PORT=993
+IMAP_USER=...
+IMAP_PASS=...
+
+# Fatture in Cloud (fatturazione elettronica)
+FIC_API_KEY=...
+FIC_COMPANY_ID=...
+
+# Aruba (FatturaPA alternativa)
+ARUBA_USERNAME=...
+ARUBA_API_KEY=...
+
+# WhatsApp Business (per AI Concierge)
+WHATSAPP_APP_SECRET=...                        # verify webhook signature
+
+# SuperAdmin hardening
+SUPERADMIN_ALLOWED_IPS=1.2.3.4,5.6.7.8         # IP allowlist (CSV). Vuoto = nessun gate IP.
+
+# Notifiche operative
+SLACK_WEBHOOK_URL=...                          # alert incident
+SUPPORT_EMAIL=support@otiumweek.com
+```
+
+### Auto-popolate da Vercel
+
+Settate automaticamente in produzione, non servono in `.env.local`:
+
+```bash
+VERCEL_ENV=production                          # production | preview | development
+VERCEL_GIT_COMMIT_SHA=...
+VERCEL_REGION=...
+NEXT_PUBLIC_COMMIT_SHA=...                     # duplicata client-side
+NEXT_PUBLIC_APP_URL=https://otium-pms.vercel.app
+```
+
+## Comandi utili
+
+```bash
+# Development
+npm run dev                  # next dev (Turbopack, port 3000)
+npm run build                # production build
+npm run start                # production server
+
+# Database
+npx prisma db push           # applica schema (no migration — Neon)
+npx prisma generate          # rigenera client TypeScript
+npx prisma studio            # GUI su http://localhost:5555
+npx prisma db seed           # popola dati dev (vedi prisma/seed.ts)
+
+# Testing
+npm run type-check           # tsc --noEmit
+npm run test                 # vitest watch
+npm run test:run             # vitest one-shot
+npm run test:unit            # solo tests/unit
+npm run test:integration     # solo tests/integration (tocca Prisma mockato)
+npm run test:e2e             # Playwright (avvia dev se necessario)
+npm run test:all             # lint + type-check + unit + integration
+
+# Seed E2E (dati deterministici per Playwright — IDs noti come e2e-host-001)
+npm run seed:e2e
+```
+
+## Gotcha / Errori comuni
+
+1. **Multi-tenant isolation**: ogni query Prisma sotto `/api/host/*` DEVE filtrare per `hostId` dalla sessione (`requireHost()`). MAI fidarsi di `hostId` passato dal client nel body/querystring.
+2. **Schema changes**: dopo ogni modifica a `schema.prisma` serve `npx prisma generate` + `npx prisma db push`. Il `postinstall` hook esegue già `prisma generate`, ma `db push` no.
+3. **Secret cifrati**: i campi sensibili (SMTP pass, WhatsApp token, Stripe keys host) vanno letti/scritti SOLO via `lib/host-secrets.ts` (`getHostSecret` / `setHostSecret`). Scrivere direttamente in DB bypassa la cifratura AES-GCM.
+4. **Timezone Europe/Rome**: la codebase NON usa `date-fns-tz` o `dayjs` (non installati). Per date sensibili al fuso (`/host/oggi`, sidebar badges, cron), usa `Intl.DateTimeFormat` con `timeZone: 'Europe/Rome'` per ottenere il YMD locale, poi costruisci `Date` esplicito. Vedi `app/api/host/sidebar-badges/route.ts` come reference.
+5. **Email templates**: layout HTML a tabelle (table/tr/td), non div/flex — Outlook non supporta flexbox. Style inline, no class. Riferimento: `lib/email-templates.ts`.
+6. **Alloggiati file**: formato a **larghezza fissa posizionale** (vedi `lib/alloggiati.ts`). Il padding (spaces/zero) conta — un carattere fuori posto invalida l'intero file lato Questura.
+7. **GDPR consent append-only**: `UserConsent` è immutabile. Per revocare un consenso si marca `revocatoAt` sul record esistente (unica UPDATE ammessa) e si inserisce un nuovo record attivo. MAI cambiare `accettato` o la versione a posteriori. Vedi `lib/consent.ts`.
+8. **PIN prenotazione**: unique per `(hostId, pin)` (vincolo `@@unique` sullo schema). Usa `lib/guest-pin.ts::generateUniquePin(hostId)` — retry automatico in caso di collisione.
+9. **Cron Vercel 60s**: tutti i cron su piano Hobby/Pro hanno **60 secondi hard-cap**. `gdpr-retention` e `ical-sync` usano un budget di **50s** con checkpoint (`PlatformSettings.ultimaEsecuzione*`) per riprendere dalla policy/host rimasti alla chiamata successiva. Vedi memory `reference_vercel_hobby_limits.md`: su Hobby c'è anche il limite di **1 cron/day**, motivo per cui `ical-sync` è giornaliero.
+10. **Image upload**: `/api/host/upload` accetta base64 data URL, **max 2MB dopo encoding**. NON c'è compressione client-side: se l'immagine è più grande, comprimerla lato client PRIMA di chiamare l'endpoint (es. canvas resize a 1200px lato lungo). Stoccaggio base64 in DB è MVP, migrazione a R2/S3 è TODO.
+11. **Server actions**: non sono usate. Tutte le mutation passano da REST API route + `router.refresh()` lato client — regola assoluta, confermata anche dal pattern "Data Flow Pattern" sopra. Non aggiungere `'use server'`.
+12. **Neon adapter**: il client Prisma usa `@prisma/adapter-neon` per connessioni serverless. In locale con DB Postgres standard potrebbe dare warning su websocket — accettabile in dev.
+
+## Convenzioni di naming
+
+| Artefatto | Convenzione | Esempio |
+|-----------|-------------|---------|
+| File source | kebab-case | `spa-booking-stepper.tsx` |
+| Componenti React | PascalCase | `SpaBookingStepper` |
+| Custom hook | camelCase con prefix `use` | `useChat`, `useSidebarBadges` |
+| API route segment | kebab-case | `/api/host/sidebar-badges` |
+| Prisma model | PascalCase (italiano) | `PrenotazioneCanale`, `OspiteCRM` |
+| Prisma field | camelCase (italiano) | `guestCognome`, `dataArrivo` |
+| Enum Prisma | PascalCase, values UPPER_SNAKE | `StatoPrenotazione.CONFERMATA` |
+| CSS var | kebab-case, prefisso `--brand-*` | `--brand-primary`, `--brand-on-primary` |
+| i18n namespace | kebab-case | `spa-booking`, `camere-flow` |
+| Module id | camelCase (`lib/moduli.ts`) | `spa`, `giftCard`, `emailAuto` |
+
+## Aggiungere un nuovo modulo
+
+Passi standard per collegare una feature al sistema moduli:
+
+1. **Catalogo**: aggiungi entry in `lib/moduli.ts::CATALOGO_MODULI` con `id`, `nome`, `categoria`, `defaultAttivo`, `descrizione`.
+2. **Prezzo add-on**: se vendibile separatamente, aggiungi in `PREZZI_ADDON` (stessa lib).
+3. **Piani**: in `lib/billing.ts::PLAN_DEFINITIONS` includi l'id modulo nei piani che lo offrono di default (`moduliInclusi[]`).
+4. **Sidebar**: in `lib/sidebar-config.ts` aggiungi una voce `SidebarItem` con `modulo: 'nomeModulo'` (hidden automaticamente se off). Se è un gruppo intero dedicato al modulo, usa `moduloGruppo`.
+5. **Guard API**: nelle route `/api/host/<modulo>/*` controlla `isModuloAttivo(parseModuli(host.moduliAttivi), 'nomeModulo')` dopo `requireHost()`. Ritorna 404 se off (non 403 — l'ospite curioso non deve capire che esiste).
+6. **Pagine host**: crea sotto `app/host/<modulo>/`. Il server component dovrebbe controllare il modulo e reindirizzare a `/host/moduli` se off.
+7. **Componenti**: raggruppa sotto `components/<modulo>/` (es. `components/spa/`, `components/booking/ristorante/`).
+8. **Seed**: se serve per dev, aggiungi dati in `prisma/seed.ts` e abilita esplicitamente il modulo su `host.moduliAttivi`.
+9. **GDPR**: se il modulo tratta dati personali/sensibili, aggiungi policy in `lib/gdpr-retention.ts` e documenta in `docs/GDPR.md`.
+10. **Audit**: mutation importanti chiamano `audit({ hostId, azione: '<modulo>.<azione>', entita, entitaId, dettagli })`.
+
+## Architecture document
+
+Per flussi end-to-end (prenotazione, check-in, SPA+waiver, fatturazione, Alloggiati, GDPR, concierge AI) + ERD core + elenco cron: vedi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

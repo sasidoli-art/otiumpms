@@ -78,7 +78,8 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
   { prenotazioneGuest, categoriaTrattamento, regCardSpaTerminiHtml, onChange, accentColor }: Props,
   ref: ForwardedRef<StepDatiWaiverRef>,
 ) {
-  const accent = accentColor || '#4f46e5'
+  const accent = accentColor || 'var(--brand-primary, #4f46e5)'
+  const onAccent = 'var(--brand-on-primary, #ffffff)'
   const cat = categoriaTrattamento || 'MASSAGGIO'
   const isReadonly = !!prenotazioneGuest?.nome
 
@@ -162,7 +163,8 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
   const inp = 'w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors'
   const label = 'block text-xs font-semibold text-gray-700 mb-1.5'
   const errMsg = 'text-[10px] text-red-500 mt-0.5'
-  const pill = (active: boolean) => `px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${active ? 'text-white shadow-sm' : 'bg-gray-100 text-gray-600'}`
+  const pill = (active: boolean) => `px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 ${active ? 'shadow-sm' : 'bg-gray-100 text-gray-600'}`
+  const pillActiveStyle = { backgroundColor: accent, color: onAccent } as const
 
   return (
     <div className="space-y-6 pb-4 px-4">
@@ -329,7 +331,7 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
               <div className="flex gap-2">
                 {['Leggera', 'Media', 'Forte'].map(p => (
                   <button key={p} type="button" onClick={() => setPressione(p)}
-                    className={pill(pressione === p)} style={pressione === p ? { backgroundColor: accent } : undefined}>{p}</button>
+                    className={pill(pressione === p)} style={pressione === p ? pillActiveStyle : undefined}>{p}</button>
                 ))}
               </div>
             </div>
@@ -339,7 +341,7 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
                 <div className="flex gap-2">
                   {['Fresco', 'Tiepido', 'Caldo'].map(t => (
                     <button key={t} type="button" onClick={() => setTemperatura(t)}
-                      className={pill(temperatura === t)} style={temperatura === t ? { backgroundColor: accent } : undefined}>{t}</button>
+                      className={pill(temperatura === t)} style={temperatura === t ? pillActiveStyle : undefined}>{t}</button>
                   ))}
                 </div>
               </div>
@@ -349,7 +351,7 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
               <div className="flex gap-2">
                 {['Sì', 'No', 'Indifferente'].map(m => (
                   <button key={m} type="button" onClick={() => setMusica(m)}
-                    className={pill(musica === m)} style={musica === m ? { backgroundColor: accent } : undefined}>{m}</button>
+                    className={pill(musica === m)} style={musica === m ? pillActiveStyle : undefined}>{m}</button>
                 ))}
               </div>
             </div>
@@ -358,7 +360,7 @@ const StepDatiWaiver = forwardRef(function StepDatiWaiver(
               <div className="flex gap-2">
                 {['Sì', 'Senza'].map(a => (
                   <button key={a} type="button" onClick={() => setAromi(a)}
-                    className={pill(aromi === a)} style={aromi === a ? { backgroundColor: accent } : undefined}>{a}</button>
+                    className={pill(aromi === a)} style={aromi === a ? pillActiveStyle : undefined}>{a}</button>
                 ))}
               </div>
             </div>

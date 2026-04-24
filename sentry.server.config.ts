@@ -12,6 +12,8 @@ const IGNORE_URL_PATTERNS = [
 ]
 
 const PII_KEYS = /password|token|secret|authorization|cookie|api[_-]?key|smtp|sdi/i
+// Chiavi ospite da scrubbare nei breadcrumbs `data` (GDPR — no nome/telefono nei logs)
+const GUEST_PII_KEYS = /^guest(Nome|Cognome|Email|Telefono|DataNascita|NumeroDocumento|CodiceFiscale)$/
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
@@ -55,13 +57,24 @@ Sentry.init({
       delete event.request.data
     }
 
-    // Scrub breadcrumbs con URL sensibili
+    // Scrub breadcrumbs con URL sensibili + scrub PII ospite nei data
     if (event.breadcrumbs) {
-      event.breadcrumbs = event.breadcrumbs.filter((b) => {
-        const url = b.data?.url
-        if (typeof url === 'string' && IGNORE_URL_PATTERNS.some((p) => p.test(url))) return false
-        return true
-      })
+      event.breadcrumbs = event.breadcrumbs
+        .filter((b) => {
+          const url = b.data?.url
+          if (typeof url === 'string' && IGNORE_URL_PATTERNS.some((p) => p.test(url))) return false
+          return true
+        })
+        .map((b) => {
+          if (b.data && typeof b.data === 'object') {
+            const cleaned: Record<string, unknown> = {}
+            for (const [k, v] of Object.entries(b.data)) {
+              cleaned[k] = GUEST_PII_KEYS.test(k) || PII_KEYS.test(k) ? '[scrubbed]' : v
+            }
+            return { ...b, data: cleaned }
+          }
+          return b
+        })
     }
 
     return event

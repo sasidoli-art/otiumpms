@@ -145,9 +145,9 @@ export default function StepConferma(props: Props) {
         <div className="bg-white rounded-xl border border-gray-100 p-6 md:p-8 text-center">
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 animate-in zoom-in duration-500"
-            style={{ backgroundColor: 'var(--brand-primary)' }}
+            style={{ backgroundColor: 'var(--brand-primary)', color: 'var(--brand-on-primary)' }}
           >
-            <Check className="w-8 h-8 text-white" />
+            <Check className="w-8 h-8" />
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -198,8 +198,12 @@ export default function StepConferma(props: Props) {
             {moduloSpaAttivo && (
               <a
                 href={`/book/${strutturaId}/spa${esito.pin ? `?pin=${esito.pin}` : ''}`}
-                className="px-4 py-2.5 text-sm font-semibold rounded-lg text-white flex items-center justify-center gap-1.5"
-                style={{ backgroundColor: 'var(--brand-primary)' }}
+                className="px-4 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: 'var(--brand-primary)',
+                  color: 'var(--brand-on-primary)',
+                  borderRadius: 'var(--brand-radius)',
+                }}
               >
                 <Sparkles className="w-3.5 h-3.5" /> Prenota un trattamento SPA
               </a>
@@ -399,8 +403,12 @@ export default function StepConferma(props: Props) {
       <button
         onClick={confermaPrenotazione}
         disabled={loading}
-        className="w-full py-4 rounded-lg text-base font-bold text-white flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-60 transition-all"
-        style={{ backgroundColor: 'var(--brand-primary)' }}
+        className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 hover:brightness-110 disabled:opacity-60 transition-all"
+        style={{
+          backgroundColor: 'var(--brand-primary)',
+          color: 'var(--brand-on-primary)',
+          borderRadius: 'var(--brand-radius)',
+        }}
       >
         {loading ? (
           <><Loader2 className="w-5 h-5 animate-spin" /> Prenotazione in corso…</>

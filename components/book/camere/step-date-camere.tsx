@@ -270,8 +270,12 @@ export default function StepDateCamere({ strutturaId, capacitaMax, onConferma }:
                         )}
                         {u.tariffaNome && (
                           <span
-                            className="absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold text-white uppercase tracking-wider"
-                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                            className="absolute top-2 left-2 px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+                            style={{
+                              backgroundColor: 'var(--brand-primary)',
+                              color: 'var(--brand-on-primary)',
+                              borderRadius: 'var(--brand-radius)',
+                            }}
                           >
                             {u.tariffaNome}
                           </span>
@@ -330,8 +334,12 @@ export default function StepDateCamere({ strutturaId, capacitaMax, onConferma }:
                           <div>
                             {u.scontoApplicato && u.prezzoTotaleScontato !== null && (
                               <span
-                                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded mb-1"
-                                style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
+                                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 mb-1"
+                                style={{
+                                  backgroundColor: 'var(--brand-primary)',
+                                  color: 'var(--brand-on-primary)',
+                                  borderRadius: 'var(--brand-radius)',
+                                }}
                               >
                                 <Tag className="w-2.5 h-2.5" />
                                 Sconto {u.scontoApplicato.nottiMinime}+ notti
@@ -362,8 +370,12 @@ export default function StepDateCamere({ strutturaId, capacitaMax, onConferma }:
                               unita: u,
                               lettoExtra,
                             })}
-                            className="px-4 md:px-5 py-2.5 rounded-lg text-sm font-semibold text-white flex items-center gap-1.5 hover:brightness-110 transition-all"
-                            style={{ backgroundColor: 'var(--brand-primary)' }}
+                            className="px-4 md:px-5 py-2.5 text-sm font-semibold flex items-center gap-1.5 hover:brightness-110 transition-all"
+                            style={{
+                              backgroundColor: 'var(--brand-primary)',
+                              color: 'var(--brand-on-primary)',
+                              borderRadius: 'var(--brand-radius)',
+                            }}
                           >
                             Prenota <ArrowRight className="w-3.5 h-3.5" />
                           </button>
