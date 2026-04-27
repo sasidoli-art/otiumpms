@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
-import { BedDouble, Sparkles, UtensilsCrossed, Package, ArrowRight } from 'lucide-react'
+import { BedDouble, Sparkles, UtensilsCrossed, Package, ArrowRight, type LucideIcon } from 'lucide-react'
 import BookingLayout from '@/components/book/booking-layout'
 import { getStrutturaPubblica } from '@/lib/book/get-struttura-pubblica'
 import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
@@ -22,6 +22,14 @@ export async function generateMetadata({
   return { title: s.nome, description: s.descrizione ?? undefined }
 }
 
+type Servizio = {
+  id: string
+  titolo: string
+  descrizione: string
+  href: string
+  icon: LucideIcon
+}
+
 export default async function LandingStrutturaPage({
   params: paramsPromise,
 }: {
@@ -31,19 +39,12 @@ export default async function LandingStrutturaPage({
   const struttura = await getStrutturaPubblica(params.strutturaId)
   if (!struttura) notFound()
 
-  // Costruisci l'elenco dei servizi prenotabili
-  const servizi: {
-    id: string
-    titolo: string
-    descrizione: string
-    href: string
-    icon: React.ComponentType<{ className?: string }>
-  }[] = []
+  const servizi: Servizio[] = []
   if (struttura.moduli.prenotazioni) {
     servizi.push({
       id: 'camere',
-      titolo: 'Prenota una camera',
-      descrizione: 'Scegli la sistemazione e le date del tuo soggiorno.',
+      titolo: 'Soggiorno',
+      descrizione: 'Scegli la camera e le date del tuo soggiorno.',
       href: `/book/${struttura.id}/camere`,
       icon: BedDouble,
     })
@@ -51,8 +52,8 @@ export default async function LandingStrutturaPage({
   if (struttura.moduli.spa) {
     servizi.push({
       id: 'spa',
-      titolo: 'Prenota un trattamento SPA',
-      descrizione: 'Massaggi, rituali e percorsi benessere.',
+      titolo: 'SPA & Benessere',
+      descrizione: 'Massaggi, rituali e percorsi di benessere.',
       href: `/book/${struttura.id}/spa`,
       icon: Sparkles,
     })
@@ -60,8 +61,8 @@ export default async function LandingStrutturaPage({
   if (struttura.moduli.ristorazione) {
     servizi.push({
       id: 'ristorante',
-      titolo: 'Prenota al ristorante',
-      descrizione: 'Riserva il tuo tavolo per colazione, pranzo o cena.',
+      titolo: 'Ristorante',
+      descrizione: 'Riserva il tuo tavolo per pranzo o cena.',
       href: `/book/${struttura.id}/ristorante`,
       icon: UtensilsCrossed,
     })
@@ -69,8 +70,8 @@ export default async function LandingStrutturaPage({
   if (struttura.moduli.pacchetti) {
     servizi.push({
       id: 'pacchetti',
-      titolo: 'Pacchetti e offerte',
-      descrizione: 'Offerte combinate soggiorno + esperienze.',
+      titolo: 'Pacchetti',
+      descrizione: 'Esperienze combinate soggiorno + attività.',
       href: `/book/${struttura.id}/pacchetti`,
       icon: Package,
     })
@@ -79,66 +80,99 @@ export default async function LandingStrutturaPage({
   // Se c'è un solo servizio attivo, redirect diretto
   if (servizi.length === 1) redirect(servizi[0].href)
 
-  return (
-    <BookingLayout struttura={struttura} hero>
-      {!struttura.fotoHero && (
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">{struttura.nome}</h1>
-          {struttura.descrizione && (
-            <p className="mt-3 text-base text-gray-600 max-w-2xl mx-auto">
-              {struttura.descrizione}
-            </p>
-          )}
-        </div>
-      )}
+  const primaryService = servizi[0]
+  const heroActions = primaryService && (
+    <>
+      <Link
+        href={primaryService.href}
+        className="inline-flex items-center justify-center gap-2 h-11 px-6 text-[15px] font-semibold rounded-md transition-all hover:brightness-110 hover:-translate-y-px"
+        style={{
+          backgroundColor: 'var(--brand-primary)',
+          color: 'var(--brand-on-primary)',
+          borderRadius: 'var(--brand-radius)',
+        }}
+      >
+        Prenota ora
+        <ArrowRight className="w-4 h-4" />
+      </Link>
+      <a
+        href="#servizi"
+        className="inline-flex items-center justify-center h-11 px-6 text-[15px] font-semibold rounded-md border border-white/60 text-white hover:bg-white/10 backdrop-blur-sm transition-all"
+        style={{ borderRadius: 'var(--brand-radius)' }}
+      >
+        Scopri di più
+      </a>
+    </>
+  )
 
-      <div className="mt-4">
-        <h2 className="text-xl font-bold text-gray-900 mb-4 text-center md:text-left">
-          Cosa vuoi prenotare?
-        </h2>
+  return (
+    <BookingLayout struttura={struttura} hero heroActions={heroActions}>
+      <section id="servizi" className="scroll-mt-24">
+        <div className="text-center mb-10 md:mb-12">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-500 mb-3">
+            Cosa puoi prenotare
+          </p>
+          <h2 className="font-serif text-[28px] md:text-[32px] text-neutral-900 leading-tight tracking-[-0.02em]">
+            Un soggiorno su misura
+          </h2>
+        </div>
 
         {servizi.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-8 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="bg-white rounded-2xl border border-neutral-150 p-10 text-center max-w-lg mx-auto">
+            <p className="text-[14px] text-neutral-500">
               Al momento non ci sono servizi prenotabili online.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            className={
+              servizi.length >= 3
+                ? 'grid grid-cols-1 md:grid-cols-3 gap-5'
+                : 'grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto'
+            }
+          >
             {servizi.map((s) => {
               const Icon = s.icon
               return (
                 <Link
                   key={s.id}
                   href={s.href}
-                  className="group bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md hover:-translate-y-0.5 transition-all"
+                  className="group bg-white rounded-2xl border border-neutral-150 p-6 md:p-7 flex flex-col hover:shadow-lg hover:-translate-y-1 hover:border-neutral-200 transition-all duration-normal ease-out"
                 >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
-                      style={{ backgroundColor: 'var(--brand-primary)' }}
+                  {/* Illustration icon */}
+                  <div
+                    className="w-14 h-14 flex items-center justify-center mb-5 shrink-0"
+                    style={{
+                      backgroundColor: 'var(--brand-primary-light, #e0e7ff)',
+                      color: 'var(--brand-primary)',
+                      borderRadius: 'var(--brand-radius)',
+                    }}
+                  >
+                    <Icon className="w-7 h-7" />
+                  </div>
+
+                  <h3 className="font-serif text-[20px] leading-tight text-neutral-900 mb-2">
+                    {s.titolo}
+                  </h3>
+                  <p className="text-[14px] leading-relaxed text-neutral-500 flex-1">
+                    {s.descrizione}
+                  </p>
+
+                  <div className="mt-5 pt-5 border-t border-neutral-100">
+                    <span
+                      className="inline-flex items-center gap-1.5 text-[13px] font-semibold group-hover:gap-2.5 transition-all"
+                      style={{ color: 'var(--brand-primary)' }}
                     >
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-gray-950">
-                        {s.titolo}
-                      </h3>
-                      <p className="text-sm text-gray-500 mt-1">{s.descrizione}</p>
-                      <span
-                        className="inline-flex items-center gap-1 text-xs font-semibold mt-3 group-hover:gap-2 transition-all"
-                        style={{ color: 'var(--brand-primary)' }}
-                      >
-                        Continua <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
+                      Prenota
+                      <ArrowRight className="w-4 h-4" />
+                    </span>
                   </div>
                 </Link>
               )
             })}
           </div>
         )}
-      </div>
+      </section>
 
       <PublicConciergeWidget
         strutturaId={struttura.id}

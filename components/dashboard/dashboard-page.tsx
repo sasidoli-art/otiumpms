@@ -1,10 +1,11 @@
 'use client'
 
 import { useRef, useEffect, useState, type ReactNode } from 'react'
-import { Loader2, AlertCircle, RotateCcw, Rocket } from 'lucide-react'
+import { Loader2, AlertCircle, RotateCcw, Rocket, ChevronDown, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useDashboard, type DashboardData } from '@/hooks/use-dashboard'
+import { useDashboard } from '@/hooks/use-dashboard'
 import { useStruttura } from '@/components/layout/host-layout'
+import { cn } from '@/lib/utils'
 import { SezioneQuickActions } from './sezione-quick-actions'
 import { SezioneAzioni } from './sezione-azioni'
 import { SezioneOggi } from './sezione-oggi'
@@ -47,22 +48,19 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
     return (
       <div className="space-y-6 animate-pulse">
         <DashboardHeader greeting={greeting} firstName={firstName} />
-        {/* Quick actions skeleton */}
         <div className="flex gap-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="w-20 h-16 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <div key={i} className="w-20 h-16 rounded-md bg-neutral-100" />
           ))}
         </div>
-        {/* Azioni skeleton */}
         <div className="flex gap-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-12 flex-1 rounded-lg bg-slate-200 dark:bg-slate-800" />
+            <div key={i} className="h-10 flex-1 rounded-md bg-neutral-100" />
           ))}
         </div>
-        {/* Oggi skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-64 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <div key={i} className="h-64 rounded-lg bg-neutral-100" />
           ))}
         </div>
       </div>
@@ -75,15 +73,15 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
       <div className="space-y-6">
         <DashboardHeader greeting={greeting} firstName={firstName} />
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <div className="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-            <AlertCircle size={24} className="text-red-500" />
+          <div className="w-14 h-14 rounded-full bg-error-50 flex items-center justify-center">
+            <AlertCircle size={24} className="text-error-600" />
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-[14px] text-neutral-600">
             Impossibile caricare la dashboard. Riprova.
           </p>
           <button
             onClick={refresh}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary-600 text-white text-[13px] font-semibold hover:bg-primary-700 transition-colors"
           >
             <RotateCcw size={14} /> Riprova
           </button>
@@ -98,20 +96,20 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
       <div className="space-y-6">
         <DashboardHeader greeting={greeting} firstName={firstName} />
         <div className="flex flex-col items-center justify-center py-20 gap-5 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <Rocket size={28} className="text-blue-600 dark:text-blue-400" />
+          <div className="w-16 h-16 rounded-xl bg-primary-50 flex items-center justify-center">
+            <Rocket size={28} className="text-primary-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-1">
-              Benvenuto su Otium!
+            <h2 className="font-serif text-[22px] text-neutral-900 mb-1">
+              Benvenuto su Otium
             </h2>
-            <p className="text-sm text-slate-500 max-w-sm">
+            <p className="text-[14px] text-neutral-500 max-w-sm">
               Inizia configurando la tua prima struttura. Poi potrai gestire prenotazioni, check-in e molto altro.
             </p>
           </div>
           <Link
             href="/host/onboarding"
-            className="px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-colors"
+            className="px-6 py-3 rounded-md bg-primary-600 text-white font-semibold text-[14px] hover:bg-primary-700 transition-colors"
           >
             Configura la tua struttura
           </Link>
@@ -173,30 +171,66 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
 }
 
 // ─── Dashboard header ───────────────────────────────────────────────────────
+//
+// Sobrio — niente gradient fancy. "{Saluto}, {nome}" in text-page-title, data
+// estesa sotto come caption, struttura selector a destra se multi-struttura.
 
 function DashboardHeader({ greeting, firstName }: { greeting: string; firstName: string }) {
+  const { strutturaCorrente, strutture, setStruttura } = useStruttura()
+  const [open, setOpen] = useState(false)
+
   const oggi = new Date().toLocaleDateString('it-IT', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
+
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-purple-600 p-6 md:p-7 shadow-lg shadow-indigo-500/20">
-      {/* Pattern decorativo */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.8) 0%, transparent 40%), radial-gradient(circle at 80% 80%, rgba(255,255,255,0.6) 0%, transparent 40%)',
-        }}
-      />
-      <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-wider text-white/70 mb-1 capitalize">
-          {oggi}
-        </p>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-          {greeting}, <span className="text-yellow-200">{firstName}</span>
+    <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-[22px] font-semibold text-neutral-900 tracking-[-0.02em] leading-tight">
+          {greeting}, {firstName}
         </h1>
-        <p className="text-sm text-white/80 mt-1">
-          Ecco cosa ti aspetta oggi.
-        </p>
+        <p className="mt-1 text-[13px] text-neutral-500 capitalize">{oggi}</p>
       </div>
+
+      {strutture.length >= 2 && strutturaCorrente && (
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setOpen(v => !v)}
+            className={cn(
+              'inline-flex items-center gap-1.5 h-9 px-3 text-[13px] font-medium',
+              'bg-white text-neutral-700 border border-neutral-200 rounded-md',
+              'hover:bg-neutral-50 hover:border-neutral-300 transition-colors',
+            )}
+          >
+            <span className="truncate max-w-[180px]">{strutturaCorrente.nome}</span>
+            <ChevronDown size={14} className="text-neutral-400 shrink-0" />
+          </button>
+
+          {open && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] bg-white border border-neutral-200 rounded-md shadow-lg py-1">
+                <div className="px-3 py-1.5 border-b border-neutral-100">
+                  <p className="text-[10px] uppercase tracking-[0.02em] text-neutral-400 font-semibold">
+                    Cambia struttura
+                  </p>
+                </div>
+                {strutture.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => { setStruttura(s.id); setOpen(false) }}
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                  >
+                    <span className="truncate">{s.nome}</span>
+                    {s.id === strutturaCorrente.id && <Check size={14} className="text-primary-600 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

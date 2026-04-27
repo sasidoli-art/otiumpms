@@ -1,171 +1,259 @@
-import { X } from 'lucide-react'
+/**
+ * Badge — status / count / tag con palette soft.
+ *
+ * Design rules:
+ *   - Font 11px semibold uppercase, letter-spacing 0.02em
+ *   - Height 20px (sm) o 24px (md), padding 0 8px
+ *   - Radius full (pillola), nessun bordo — solo background colorato
+ *   - Icona opzionale 12px prima del testo
+ *
+ * Palette (soft, non saturi):
+ *   success purple pink teal amber info warning error neutral
+ *
+ * Varianti:
+ *   - status: pill con testo (+ dot opzionale, + pulse per stati "live")
+ *   - count:  cerchio numerico (18/22 px). Clamp a "99+".
+ *   - tag:    pill + bottone X a destra (removable)
+ *
+ * Back-compat: 27 file usano il componente. Manteniamo i colori legacy
+ * (green/yellow/red/blue/gray/brand) mappati ai nuovi nomi.
+ */
+import { forwardRef, type ReactNode, type MouseEvent } from 'react'
+import { X, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-// ─── Color tokens ───────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
+// Colors
+// ────────────────────────────────────────────────────────────────────────────
 
-type BadgeColor = 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'
+export type BadgeColor =
+  | 'success' | 'warning' | 'error' | 'info' | 'neutral'
+  | 'purple'  | 'pink'    | 'teal'  | 'amber' | 'primary'
+  // Legacy aliases (mantieni funzionanti i 27 file esistenti)
+  | 'brand' | 'gray' | 'green' | 'yellow' | 'red' | 'blue' | 'orange'
 
-/** @deprecated Use BadgeColor instead */
+/** @deprecated Usa `BadgeColor`. */
 export type BadgeVariant = 'gray' | 'yellow' | 'green' | 'red' | 'blue' | 'purple' | 'orange'
 
-const COLOR_MAP: Record<BadgeColor, { bg: string; text: string; dot: string }> = {
-  brand:   { bg: 'bg-brand-50 dark:bg-brand-950/30',       text: 'text-brand-700 dark:text-brand-300',     dot: 'bg-brand-500' },
-  success: { bg: 'bg-emerald-50 dark:bg-emerald-950/30',   text: 'text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
-  warning: { bg: 'bg-amber-50 dark:bg-amber-950/30',       text: 'text-amber-700 dark:text-amber-400',     dot: 'bg-amber-500' },
-  error:   { bg: 'bg-red-50 dark:bg-red-950/30',           text: 'text-red-700 dark:text-red-400',         dot: 'bg-red-500' },
-  info:    { bg: 'bg-blue-50 dark:bg-blue-950/30',         text: 'text-blue-700 dark:text-blue-400',       dot: 'bg-blue-500' },
-  gray:    { bg: 'bg-slate-100 dark:bg-slate-800',         text: 'text-slate-600 dark:text-slate-400',     dot: 'bg-slate-400' },
+type ColorTokens = { bg: string; text: string; dot: string }
+
+// Palette NEW (soft — bg-50 / text-700 / dot-500)
+const COLORS: Record<BadgeColor, ColorTokens> = {
+  success: { bg: 'bg-success-50',  text: 'text-success-700',  dot: 'bg-success-500' },
+  warning: { bg: 'bg-warning-50',  text: 'text-warning-700',  dot: 'bg-warning-500' },
+  error:   { bg: 'bg-error-50',    text: 'text-error-700',    dot: 'bg-error-500'   },
+  info:    { bg: 'bg-info-50',     text: 'text-info-700',     dot: 'bg-info-500'    },
+  neutral: { bg: 'bg-neutral-100', text: 'text-neutral-600',  dot: 'bg-neutral-400' },
+  purple:  { bg: 'bg-violet-50',   text: 'text-violet-700',   dot: 'bg-violet-500'  },
+  pink:    { bg: 'bg-pink-50',     text: 'text-pink-700',     dot: 'bg-pink-500'    },
+  teal:    { bg: 'bg-teal-50',     text: 'text-teal-700',     dot: 'bg-teal-500'    },
+  amber:   { bg: 'bg-amber-50',    text: 'text-amber-800',    dot: 'bg-amber-500'   },
+  primary: { bg: 'bg-primary-50',  text: 'text-primary-700',  dot: 'bg-primary-500' },
+  // Legacy aliases
+  brand:   { bg: 'bg-primary-50',  text: 'text-primary-700',  dot: 'bg-primary-500' },
+  gray:    { bg: 'bg-neutral-100', text: 'text-neutral-600',  dot: 'bg-neutral-400' },
+  green:   { bg: 'bg-success-50',  text: 'text-success-700',  dot: 'bg-success-500' },
+  yellow:  { bg: 'bg-warning-50',  text: 'text-warning-700',  dot: 'bg-warning-500' },
+  red:     { bg: 'bg-error-50',    text: 'text-error-700',    dot: 'bg-error-500'   },
+  blue:    { bg: 'bg-info-50',     text: 'text-info-700',     dot: 'bg-info-500'    },
+  orange:  { bg: 'bg-warning-50',  text: 'text-warning-700',  dot: 'bg-warning-500' },
 }
 
-// ─── Props ──────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
+// Sizes
+// ────────────────────────────────────────────────────────────────────────────
 
-interface BadgeProps {
-  children: React.ReactNode
-  /** New API: 'status' | 'count' | 'tag'. Legacy: color string like 'gray', 'green', 'red' */
-  variant?: 'status' | 'count' | 'tag' | BadgeVariant
+type Size = 'sm' | 'md'
+
+// Font 11px uppercase per entrambi — cambia solo l'altezza/padding.
+const SIZE_PILL: Record<Size, string> = {
+  sm: 'h-5 px-2 gap-1',    // 20 px
+  md: 'h-6 px-2 gap-1.5',  // 24 px (default)
+}
+
+const SIZE_COUNT: Record<Size, string> = {
+  sm: 'min-w-[18px] h-[18px] px-1 text-[10px]',
+  md: 'min-w-[22px] h-[22px] px-1.5 text-[11px]',
+}
+
+const DOT_SIZE = 'w-1.5 h-1.5'      // 6px
+const ICON_SIZE = 12
+
+// ────────────────────────────────────────────────────────────────────────────
+// Types
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface BadgeProps {
+  children?: ReactNode
+  /** 'status' (default) | 'count' | 'tag'. Accetta anche i color-string legacy per back-compat. */
+  variant?: 'status' | 'count' | 'tag' | 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'orange' | 'gray'
   color?: BadgeColor
-  size?: 'sm' | 'md'
+  size?: Size
+  /** Mostra un pallino 6px prima del testo (default true su 'status') */
   dot?: boolean
+  /** Fa pulsare il pallino — per stati "live" (es. check-in appena arrivato) */
+  pulse?: boolean
+  /** Icona LucideIcon 12px prima del testo (esclusa in variant='count'). Ha priorità sul dot. */
+  icon?: LucideIcon
+  /** Variant='tag': mostra bottone X cliccabile */
   removable?: boolean
   onRemove?: () => void
   className?: string
+  title?: string
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
-
-// Legacy variant → color mapping
-const LEGACY_MAP: Record<string, BadgeColor> = {
-  gray: 'gray', yellow: 'warning', green: 'success', red: 'error',
-  blue: 'info', purple: 'brand', orange: 'warning',
+// Legacy: se `variant` è una stringa colore (es. 'green'), interpreta come tag con quel colore.
+const LEGACY_VARIANT_TO_COLOR: Partial<Record<NonNullable<BadgeProps['variant']>, BadgeColor>> = {
+  green: 'success', yellow: 'warning', red: 'error', blue: 'info',
+  purple: 'purple', orange: 'warning', gray: 'neutral',
 }
 
-export function Badge({
-  children, variant = 'tag', color,
-  size = 'md', dot, removable, onRemove, className,
-}: BadgeProps) {
-  // Detect legacy usage: variant is a color string like "gray", "green"
-  const isLegacyVariant = variant && LEGACY_MAP[variant] !== undefined
-  const resolvedColor = color || (isLegacyVariant ? LEGACY_MAP[variant] : 'gray') || 'gray'
-  const resolvedVariant = isLegacyVariant ? 'tag' : variant
+// ────────────────────────────────────────────────────────────────────────────
+// Component
+// ────────────────────────────────────────────────────────────────────────────
 
-  const c = COLOR_MAP[resolvedColor]
-  const isSmall = size === 'sm'
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  { children, variant = 'status', color, size = 'md', dot, pulse, icon: Icon, removable, onRemove, className, title },
+  ref,
+) {
+  // Risoluzione legacy: se variant è un color-string, normalizza.
+  const legacyColor = LEGACY_VARIANT_TO_COLOR[variant as keyof typeof LEGACY_VARIANT_TO_COLOR]
+  const resolvedColor: BadgeColor = color ?? legacyColor ?? 'neutral'
+  const resolvedVariant: 'status' | 'count' | 'tag' =
+    variant === 'count' ? 'count' :
+    variant === 'tag' ? 'tag' :
+    legacyColor ? 'tag' :
+    'status'
 
-  // ── Count badge (circle with number) ──
+  const c = COLORS[resolvedColor] ?? COLORS.neutral
+
+  // ── Count variant (cerchio con numero)
   if (resolvedVariant === 'count') {
+    // Clamp a "99+" se numerico
+    let content = children
+    if (typeof children === 'number') {
+      content = children > 99 ? '99+' : String(children)
+    } else if (typeof children === 'string' && /^\d+$/.test(children)) {
+      const n = parseInt(children, 10)
+      content = n > 99 ? '99+' : children
+    }
     return (
-      <span className={cn(
-        'inline-flex items-center justify-center rounded-full font-bold leading-none',
-        isSmall ? 'min-w-[16px] h-4 px-1 text-[9px]' : 'min-w-[20px] h-5 px-1.5 text-[10px]',
-        c.bg, c.text,
-        className,
-      )}>
-        {children}
-      </span>
-    )
-  }
-
-  // ── Status badge (dot + text) ──
-  if (resolvedVariant === 'status') {
-    return (
-      <span className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-semibold',
-        isSmall ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-0.5 text-xs',
-        c.bg, c.text,
-        className,
-      )}>
-        {dot !== false && (
-          <span className={cn('rounded-full shrink-0', isSmall ? 'w-1.5 h-1.5' : 'w-2 h-2', c.dot)} />
+      <span
+        ref={ref}
+        title={title}
+        className={cn(
+          'inline-flex items-center justify-center rounded-full font-bold leading-none tabular-nums',
+          SIZE_COUNT[size],
+          c.bg,
+          c.text,
+          className,
         )}
-        {children}
+      >
+        {content}
       </span>
     )
   }
 
-  // ── Tag badge (chip) ──
+  // ── Status / Tag (pill)
+  const showDot = !Icon && (resolvedVariant === 'status' ? (dot ?? true) : !!dot)
+
   return (
-    <span className={cn(
-      'inline-flex items-center gap-1 rounded-full font-semibold',
-      isSmall ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
-      c.bg, c.text,
-      className,
-    )}>
+    <span
+      ref={ref}
+      title={title}
+      className={cn(
+        'inline-flex items-center rounded-full font-semibold uppercase whitespace-nowrap',
+        'text-[11px] leading-none tracking-[0.02em]',
+        SIZE_PILL[size],
+        c.bg,
+        c.text,
+        className,
+      )}
+    >
+      {showDot && (
+        <span className="relative inline-flex shrink-0">
+          <span className={cn('rounded-full', DOT_SIZE, c.dot)} />
+          {pulse && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                'absolute inset-0 rounded-full animate-pulseDot',
+                c.dot,
+                'opacity-70',
+              )}
+            />
+          )}
+        </span>
+      )}
+      {Icon && <Icon aria-hidden="true" width={ICON_SIZE} height={ICON_SIZE} className="shrink-0" />}
       {children}
-      {removable && (
+      {resolvedVariant === 'tag' && removable && (
         <button
-          onClick={e => { e.stopPropagation(); onRemove?.() }}
-          className="ml-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 p-0.5 transition-colors"
+          type="button"
+          onClick={(e: MouseEvent) => { e.stopPropagation(); onRemove?.() }}
+          aria-label="Rimuovi"
+          className="ml-0.5 -mr-1 p-0.5 rounded-full opacity-60 hover:opacity-100 hover:bg-black/10 transition-opacity"
         >
-          <X size={isSmall ? 10 : 12} />
+          <X width={ICON_SIZE} height={ICON_SIZE} strokeWidth={2.5} />
         </button>
       )}
     </span>
   )
-}
+})
 
-// ─── Status mappings ────────────────────────────────────────────────────────
+Badge.displayName = 'Badge'
 
+export default Badge
+
+// ────────────────────────────────────────────────────────────────────────────
+// Legacy status mappings — mantieni funzionante /host/prenotazioni ecc.
+// NUOVO CODICE: usa `lib/status-badges.ts` (PRENOTAZIONE_BADGES, ecc.).
+// ────────────────────────────────────────────────────────────────────────────
+
+/** @deprecated Usa lib/status-badges.ts */
 export type StatusConfig = { color: BadgeColor; label: string }
 
-export const STATO_PRENOTAZIONE: Record<string, StatusConfig> = {
-  RICHIESTA:  { color: 'warning', label: 'Da confermare' },
-  CONFERMATA: { color: 'success', label: 'Confermata' },
-  ANNULLATA:  { color: 'error',   label: 'Annullata' },
-  COMPLETATA: { color: 'info',    label: 'Completata' },
-  NO_SHOW:    { color: 'gray',    label: 'No show' },
-}
+import {
+  PRENOTAZIONE_BADGES, HK_BADGES, MANUTENZIONE_BADGES,
+  SPA_APPUNTAMENTO_BADGES, FATTURA_BADGES, TICKET_BADGES, TRACE_BADGES,
+} from '@/lib/status-badges'
 
-export const STATO_HK: Record<string, StatusConfig> = {
-  PULITA:          { color: 'success', label: 'Pulita' },
-  SPORCA:          { color: 'error',   label: 'Sporca' },
-  IN_PULIZIA:      { color: 'warning', label: 'In pulizia' },
-  NON_DISTURBARE:  { color: 'info',    label: 'Non disturb.' },
-  MANUTENZIONE:    { color: 'brand',   label: 'Manutenzione' },
-  FUORI_SERVIZIO:  { color: 'gray',    label: 'Fuori servizio' },
-}
+/** @deprecated Usa PRENOTAZIONE_BADGES da lib/status-badges.ts */
+export const STATO_PRENOTAZIONE: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(PRENOTAZIONE_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-export const STATO_MANUTENZIONE: Record<string, StatusConfig> = {
-  APERTA:            { color: 'error',   label: 'Aperta' },
-  IN_LAVORAZIONE:    { color: 'warning', label: 'In lavorazione' },
-  IN_ATTESA_PARTI:   { color: 'info',    label: 'Attesa parti' },
-  RISOLTA:           { color: 'success', label: 'Risolta' },
-  ANNULLATA:         { color: 'gray',    label: 'Annullata' },
-}
+/** @deprecated Usa HK_BADGES */
+export const STATO_HK: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(HK_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-export const STATO_APPUNTAMENTO_SPA: Record<string, StatusConfig> = {
-  PRENOTATO:  { color: 'info',    label: 'Prenotato' },
-  CONFERMATO: { color: 'success', label: 'Confermato' },
-  IN_CORSO:   { color: 'brand',   label: 'In corso' },
-  COMPLETATO: { color: 'gray',    label: 'Completato' },
-  ANNULLATO:  { color: 'error',   label: 'Annullato' },
-  NO_SHOW:    { color: 'warning', label: 'No show' },
-}
+/** @deprecated Usa MANUTENZIONE_BADGES */
+export const STATO_MANUTENZIONE: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(MANUTENZIONE_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-export const STATO_FATTURA: Record<string, StatusConfig> = {
-  BOZZA:    { color: 'gray',    label: 'Bozza' },
-  EMESSA:   { color: 'info',    label: 'Emessa' },
-  INVIATA:  { color: 'brand',   label: 'Inviata' },
-  PAGATA:   { color: 'success', label: 'Pagata' },
-  SCADUTA:  { color: 'error',   label: 'Scaduta' },
-  ANNULLATA:{ color: 'gray',    label: 'Annullata' },
-}
+/** @deprecated Usa SPA_APPUNTAMENTO_BADGES */
+export const STATO_APPUNTAMENTO_SPA: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(SPA_APPUNTAMENTO_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-export const STATO_TICKET: Record<string, StatusConfig> = {
-  APERTO:              { color: 'error',   label: 'Aperto' },
-  IN_LAVORAZIONE:      { color: 'warning', label: 'In lavorazione' },
-  IN_ATTESA_RISPOSTA:  { color: 'info',    label: 'Attesa risposta' },
-  RISOLTO:             { color: 'success', label: 'Risolto' },
-  CHIUSO:              { color: 'gray',    label: 'Chiuso' },
-}
+/** @deprecated Usa FATTURA_BADGES */
+export const STATO_FATTURA: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(FATTURA_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-export const STATO_TRACE: Record<string, StatusConfig> = {
-  APERTO:     { color: 'error',   label: 'Aperto' },
-  IN_CORSO:   { color: 'warning', label: 'In corso' },
-  COMPLETATO: { color: 'success', label: 'Completato' },
-  ANNULLATO:  { color: 'gray',    label: 'Annullato' },
-}
+/** @deprecated Usa TICKET_BADGES */
+export const STATO_TICKET: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(TICKET_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
 
-/** Helper: get badge config for any stato value across all enums */
+/** @deprecated Usa TRACE_BADGES */
+export const STATO_TRACE: Record<string, StatusConfig> = Object.fromEntries(
+  Object.entries(TRACE_BADGES).map(([k, v]) => [k, { color: v.color, label: v.label }]),
+)
+
+/** @deprecated Usa getBadgeConfig() da lib/status-badges.ts */
 export function getStatoConfig(stato: string): StatusConfig {
   return STATO_PRENOTAZIONE[stato]
     || STATO_HK[stato]
@@ -174,5 +262,5 @@ export function getStatoConfig(stato: string): StatusConfig {
     || STATO_FATTURA[stato]
     || STATO_TICKET[stato]
     || STATO_TRACE[stato]
-    || { color: 'gray', label: stato }
+    || { color: 'neutral', label: stato }
 }

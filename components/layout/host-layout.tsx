@@ -12,6 +12,7 @@ import { BugReportButton } from '@/components/layout/bug-report-button'
 import { QuickSwitcher } from '@/components/layout/quick-switcher'
 import { MobileNav } from '@/components/layout/mobile-nav'
 import { PageLoader } from '@/components/ui/page-loader'
+import { PageTransition } from '@/components/ui/page-transition'
 import { useSidebarBadges, type BadgeCounts } from '@/hooks/use-sidebar-badges'
 
 // ─── Sidebar context ────────────────────────────────────────────────────────
@@ -241,8 +242,8 @@ export function HostLayout({
               ref={mainRef}
               className="flex-1 overflow-y-auto bg-[var(--bg-secondary)] p-4 md:p-6 lg:p-8 pb-20 md:pb-6 lg:pb-8"
             >
-              <div className="max-w-7xl mx-auto animate-fadeIn">
-                {children}
+              <div className="max-w-7xl mx-auto">
+                <PageTransition>{children}</PageTransition>
               </div>
             </main>
           </div>

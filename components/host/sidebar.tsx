@@ -13,8 +13,8 @@ import {
   MessageSquare, Bell, Mail, Bot, ClipboardCheck,
   Settings, Building2, UserCog, Puzzle, Crown, TrendingUp, Shield, Lock,
   ClipboardList, HelpCircle, LayoutDashboard,
-  ChevronRight, PanelLeftClose, PanelLeftOpen, LogOut, X, Eye,
-  ExternalLink, MessageCircle, Wallet,
+  ChevronRight, PanelLeftClose, PanelLeftOpen, LogOut, X,
+  MessageCircle, Wallet, User,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,7 @@ import { parseModuli } from '@/lib/moduli'
 import { filterSidebarGroups, type SidebarGroup, type SidebarItem, type BadgeType } from '@/lib/sidebar-config'
 import { getAllowedSections, type StaffRole } from '@/lib/permissions'
 import type { BadgeCounts } from '@/hooks/use-sidebar-badges'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 // ─── Icon registry ──────────────────────────────────────────────────────────
 
@@ -165,7 +166,6 @@ export function HostSidebar({
     [moduli, allowedSections, staffRole],
   )
 
-  // Separate settings group from rest
   const mainGroups = useMemo(() => groups.filter(g => g.id !== 'impostazioni'), [groups])
   const settingsGroup = useMemo(() => groups.find(g => g.id === 'impostazioni'), [groups])
 
@@ -174,6 +174,7 @@ export function HostSidebar({
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
   const [search, setSearch] = useState('')
   const [strutDropdown, setStrutDropdown] = useState(false)
+  const [userDropdown, setUserDropdown] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
   const hid = hostId || 'default'
@@ -189,7 +190,17 @@ export function HostSidebar({
     setOpenGroups(initial)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cmd+K / Ctrl+K is handled by QuickSwitcher in host-layout
+  // ⌘K / Ctrl+K shortcut → focus search (compatibile con QuickSwitcher globale)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // ── Handlers ──
   const toggleGroup = useCallback((id: string) => {
@@ -237,12 +248,10 @@ export function HostSidebar({
   // ── Active path check ──
   function isActive(href: string): boolean {
     if (pathname === href) return true
-    // Don't match /host/prenotazioni for /host/prenotazioni/nuova
     if (href === '/host/prenotazioni' || href === '/host/spa') return pathname === href
     return pathname.startsWith(href + '/')
   }
 
-  // ── Group has active item ──
   function groupHasActive(group: SidebarGroup): boolean {
     return group.items.some(i => isActive(i.href))
   }
@@ -258,6 +267,15 @@ export function HostSidebar({
 
   const strutturaAttiva = struttureHost.find(s => s.id === strutturaAttivaId) ?? null
   const initials = nomeUtente.split(' ').map(w => w[0]?.toUpperCase() ?? '').slice(0, 2).join('')
+  const planLabel = piano ? PLAN_LABELS[piano] ?? piano : null
+
+  // Label opacity choreography:
+  //   collapse → labels fade out (100ms) first, THEN width shrinks (handled da
+  //   CSS su aside: transitions sono staggered tramite delay)
+  //   expand   → width grows first, THEN labels fade in (delay 200ms)
+  const labelTransition = collapsed
+    ? 'opacity-0 duration-100 delay-0'
+    : 'opacity-100 duration-100 delay-200'
 
   // ════════════════════════════════════════════════════════════════════════════
   // RENDER
@@ -266,82 +284,96 @@ export function HostSidebar({
   return (
     <aside
       className={cn(
-        'flex flex-col h-full text-white shrink-0 overflow-hidden',
-        'transition-[width] duration-300 ease-in-out',
-        'bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950',
-        collapsed ? 'w-16' : 'w-[260px]',
+        'relative flex flex-col h-full shrink-0 overflow-hidden',
+        'bg-neutral-25 border-r border-neutral-150',
+        'transition-[width] ease-in-out',
+        collapsed ? 'w-16 duration-slow' : 'w-64 duration-slow',
       )}
     >
-      {/* ═══ HEADER: Logo + Plan + Structure ═══════════════════════════════ */}
+      {/* ═══ HEADER: Logo + Azienda + Plan ══════════════════════════════════ */}
       <div className={cn(
-        'shrink-0 border-b border-white/10',
-        collapsed ? 'px-2 py-3' : 'px-4 py-3',
+        'shrink-0 border-b border-neutral-150',
+        collapsed ? 'px-2 py-3' : 'px-5 py-4',
       )}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          {/* Logo */}
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Logo o iniziale azienda */}
           {logo ? (
-            <img src={logo} alt="" className="w-9 h-9 rounded-xl object-cover shrink-0 ring-1 ring-white/10" />
+            <img
+              src={logo}
+              alt=""
+              className={cn(
+                'shrink-0 object-contain',
+                collapsed ? 'h-7 w-7' : 'h-8 max-w-[140px]',
+              )}
+            />
           ) : (
-            <div className="w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 rounded-xl flex items-center justify-center text-sm font-bold shrink-0 select-none shadow-lg shadow-brand-500/20">
+            <div className={cn(
+              'shrink-0 flex items-center justify-center font-bold select-none',
+              'bg-primary-100 text-primary-700 rounded-md',
+              collapsed ? 'w-7 h-7 text-xs' : 'w-8 h-8 text-sm',
+            )}>
               {nomeAzienda.charAt(0)}
             </div>
           )}
 
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              {struttureHost.length >= 2 ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setStrutDropdown(v => !v)}
-                    className="flex items-center gap-1 text-left min-w-0 hover:opacity-80 transition-opacity w-full"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white text-sm leading-tight truncate">
-                        {strutturaAttiva?.nome ?? 'Seleziona struttura'}
-                      </p>
-                      <p className="text-slate-400 text-[10px] truncate">
-                        {nomeAzienda} · cambia ▾
-                      </p>
-                    </div>
-                  </button>
+          {/* Nome azienda + plan (nascosto in collapsed) */}
+          <div className={cn(
+            'flex-1 min-w-0 transition-opacity',
+            labelTransition,
+            collapsed && 'pointer-events-none',
+          )}>
+            {struttureHost.length >= 2 ? (
+              <div className="relative">
+                <button
+                  onClick={() => setStrutDropdown(v => !v)}
+                  className="text-left min-w-0 w-full hover:opacity-70 transition-opacity"
+                >
+                  <p className="font-serif text-[16px] leading-tight text-neutral-900 truncate">
+                    {strutturaAttiva?.nome ?? 'Seleziona struttura'}
+                  </p>
+                  <p className="text-[11px] text-neutral-400 truncate">
+                    {nomeAzienda} · cambia
+                  </p>
+                </button>
 
-                  {strutDropdown && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setStrutDropdown(false)} />
-                      <div className="absolute left-0 top-full mt-2 w-60 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 z-50">
-                        <div className="px-3 py-2 border-b border-slate-700">
-                          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-                            Le tue strutture ({struttureHost.length})
-                          </p>
-                        </div>
-                        {struttureHost.map(s => (
-                          <button key={s.id} onClick={() => cambiaStruttura(s.id)}
-                            className="w-full text-left px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 flex items-center justify-between gap-2">
-                            <span className="truncate">{s.nome}</span>
-                            {s.id === strutturaAttivaId && <span className="text-emerald-400 text-xs">✓</span>}
-                          </button>
-                        ))}
+                {strutDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setStrutDropdown(false)} />
+                    <div className="absolute left-0 top-full mt-2 w-60 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50">
+                      <div className="px-3 py-1.5 border-b border-neutral-100">
+                        <p className="text-[10px] uppercase tracking-[0.02em] text-neutral-400 font-semibold">
+                          Strutture ({struttureHost.length})
+                        </p>
                       </div>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="min-w-0">
-                  <p className="font-bold text-white text-sm leading-tight truncate">{nomeAzienda}</p>
-                  {piano && (
-                    <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-brand-500/20 to-brand-600/20 text-brand-300 border border-brand-500/20">
-                      {PLAN_LABELS[piano] || piano}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                      {struttureHost.map(s => (
+                        <button key={s.id} onClick={() => cambiaStruttura(s.id)}
+                          className="w-full text-left px-3 py-2 text-[13px] text-neutral-700 hover:bg-neutral-100 flex items-center justify-between gap-2">
+                          <span className="truncate">{s.nome}</span>
+                          {s.id === strutturaAttivaId && <span className="text-primary-600 text-xs">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                <p className="font-serif text-[16px] leading-tight text-neutral-900 truncate">
+                  {nomeAzienda}
+                </p>
+                {planLabel && (
+                  <span className="inline-block mt-1 px-1.5 py-[1px] text-[10px] font-semibold bg-primary-50 text-primary-600 rounded-sm">
+                    {planLabel}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
 
           {/* Mobile close */}
           {!collapsed && onMobileClose && (
             <button onClick={onMobileClose}
-              className="lg:hidden text-slate-500 hover:text-white p-1 rounded transition-colors shrink-0">
+              className="lg:hidden text-neutral-400 hover:text-neutral-700 p-1 rounded transition-colors shrink-0">
               <X size={18} />
             </button>
           )}
@@ -350,25 +382,30 @@ export function HostSidebar({
 
       {/* ═══ SEARCH ═══════════════════════════════════════════════════════ */}
       {!collapsed && (
-        <div className="px-3 py-2 shrink-0">
+        <div className={cn('shrink-0 px-3 py-2 transition-opacity', labelTransition)}>
           <div className="relative">
-            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" />
             <input
               ref={searchRef}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Cerca..."
-              className="w-full pl-8 pr-8 py-1.5 text-xs bg-white/[0.06] border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500/50 focus:bg-white/[0.08] transition-all"
+              className={cn(
+                'w-full h-8 pl-8 pr-10 text-[13px]',
+                'bg-neutral-100 text-neutral-800 placeholder:text-neutral-400',
+                'border border-transparent rounded-full',
+                'focus:outline-none focus:bg-white focus:border-primary-300 focus:shadow-xs',
+                'transition-[background-color,border-color,box-shadow] duration-fast ease-out',
+              )}
             />
-            {!search && (
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-600 bg-slate-800 border border-slate-700 rounded px-1 py-0.5 font-mono pointer-events-none hidden lg:block">
-                /
+            {!search ? (
+              <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-neutral-400 bg-white border border-neutral-200 rounded px-1.5 py-0.5 pointer-events-none hidden lg:block">
+                ⌘K
               </kbd>
-            )}
-            {search && (
+            ) : (
               <button onClick={() => setSearch('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
                 <X size={12} />
               </button>
             )}
@@ -378,11 +415,10 @@ export function HostSidebar({
 
       {/* ═══ NAVIGATION ═══════════════════════════════════════════════════ */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-1 sidebar-scroll" role="navigation" aria-label="Menu principale">
-        {/* Search results (flat list) */}
         {searchResults !== null ? (
           <div className="px-2 py-1">
             {searchResults.length === 0 ? (
-              <p className="text-xs text-slate-500 text-center py-6">Nessuna pagina trovata</p>
+              <p className="text-[12px] text-neutral-400 text-center py-6">Nessuna pagina trovata</p>
             ) : (
               searchResults.map(item => (
                 <NavItem
@@ -398,30 +434,31 @@ export function HostSidebar({
           </div>
         ) : (
           <>
-            {/* Main groups */}
-            {mainGroups.map(group => (
+            {mainGroups.map((group, idx) => (
               <NavGroup
                 key={group.id}
                 group={group}
                 open={openGroups[group.id] ?? group.defaultOpen}
                 onToggle={() => toggleGroup(group.id)}
                 collapsed={collapsed}
+                labelTransition={labelTransition}
                 pathname={pathname}
                 isActive={isActive}
                 badges={badges}
                 onNavigate={onMobileClose}
+                isFirst={idx === 0}
               />
             ))}
 
-            {/* Divider before settings */}
             {settingsGroup && (
               <>
-                <div className={cn('my-2', collapsed ? 'mx-2' : 'mx-3', 'border-t border-white/10')} />
+                <div className={cn('my-2 mx-3 border-t border-neutral-150')} />
                 <NavGroup
                   group={settingsGroup}
                   open={openGroups[settingsGroup.id] ?? settingsGroup.defaultOpen}
                   onToggle={() => toggleGroup(settingsGroup.id)}
                   collapsed={collapsed}
+                  labelTransition={labelTransition}
                   pathname={pathname}
                   isActive={isActive}
                   badges={badges}
@@ -434,54 +471,89 @@ export function HostSidebar({
       </nav>
 
       {/* ═══ FOOTER: User + collapse ═════════════════════════════════════ */}
-      <div className="border-t border-white/10 shrink-0 py-2 px-2">
-        {/* User info */}
-        {!collapsed ? (
-          <div className="px-2 py-1.5 mb-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-xs font-bold shrink-0 select-none ring-2 ring-brand-500/20">
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-white truncate">{nomeUtente}</p>
-                <p className="text-[10px] text-slate-500 truncate">{ruolo === 'STAFF' && staffRole ? staffRole : ruolo}</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex justify-center py-1" title={nomeUtente}>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-xs font-bold select-none ring-2 ring-brand-500/20">
+      <div className="border-t border-neutral-150 shrink-0 p-2">
+        {/* User avatar + menu */}
+        <div className="relative">
+          <button
+            onClick={() => setUserDropdown(v => !v)}
+            className={cn(
+              'w-full flex items-center gap-2.5 rounded-md transition-colors',
+              'hover:bg-neutral-100',
+              collapsed ? 'justify-center p-1.5' : 'p-1.5',
+            )}
+            aria-haspopup="menu"
+            aria-expanded={userDropdown}
+          >
+            <div className={cn(
+              'rounded-full flex items-center justify-center font-semibold select-none shrink-0',
+              'bg-primary-100 text-primary-700',
+              collapsed ? 'w-7 h-7 text-[11px]' : 'w-8 h-8 text-[12px]',
+            )}>
               {initials}
             </div>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className={cn('flex gap-0.5', collapsed ? 'flex-col items-center' : 'items-center')}>
-          {/* Collapse toggle — desktop only */}
-          <button onClick={toggleCollapse} title={collapsed ? 'Espandi' : 'Comprimi'}
-            className={cn(
-              'hidden lg:flex items-center gap-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100 transition-all',
-              collapsed ? 'justify-center w-10 h-9' : 'px-3 py-2 flex-1',
+            <div className={cn(
+              'flex-1 min-w-0 text-left transition-opacity',
+              labelTransition,
+              collapsed && 'hidden',
             )}>
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-            {!collapsed && <span className="text-xs">Comprimi</span>}
+              <p className="text-[13px] font-medium text-neutral-800 truncate leading-tight">{nomeUtente}</p>
+              <p className="text-[11px] text-neutral-400 truncate">
+                {ruolo === 'STAFF' && staffRole ? staffRole : ruolo}
+              </p>
+            </div>
           </button>
 
-          {/* Logout */}
-          <button onClick={() => signOut({ callbackUrl: '/login' })} title="Esci"
-            className={cn(
-              'flex items-center gap-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-100 transition-all',
-              collapsed ? 'justify-center w-10 h-9' : 'px-3 py-2',
-            )}>
-            <LogOut size={16} className="shrink-0" />
-            {!collapsed && <span className="text-xs">Esci</span>}
-          </button>
+          {userDropdown && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setUserDropdown(false)} />
+              <div className={cn(
+                'absolute bottom-full mb-2 z-50 bg-white border border-neutral-200 rounded-lg shadow-lg py-1',
+                collapsed ? 'left-full ml-2 w-44' : 'left-0 right-0',
+              )}>
+                <Link
+                  href="/host/profilo"
+                  onClick={() => setUserDropdown(false)}
+                  className="flex items-center gap-2 px-3 py-2 text-[13px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                >
+                  <User size={14} className="text-neutral-400" />
+                  Profilo
+                </Link>
+                <div className="my-1 border-t border-neutral-100" />
+                <button
+                  onClick={() => { setUserDropdown(false); signOut({ callbackUrl: '/login' }) }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                >
+                  <LogOut size={14} className="text-neutral-400" />
+                  Esci
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-        {!collapsed && (
-          <p className="text-[9px] text-slate-600 text-center mt-1">Powered by OtiumPMS</p>
-        )}
+        {/* Footer actions: theme toggle + collapse */}
+        <div className={cn(
+          'mt-1 flex items-center gap-1',
+          collapsed ? 'flex-col' : 'flex-row',
+        )}>
+          <ThemeToggle size="sm" />
+
+          {/* Collapse toggle — desktop only */}
+          <button
+            onClick={toggleCollapse}
+            title={collapsed ? 'Espandi' : 'Comprimi'}
+            className={cn(
+              'hidden lg:flex items-center gap-2 rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-colors',
+              'dark:text-neutral-500 dark:hover:bg-neutral-800 dark:hover:text-neutral-200',
+              collapsed ? 'justify-center w-8 h-8' : 'flex-1 px-2 py-1.5',
+            )}
+          >
+            {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            <span className={cn('text-[12px] font-medium transition-opacity', labelTransition, collapsed && 'hidden')}>
+              Comprimi
+            </span>
+          </button>
+        </div>
       </div>
     </aside>
   )
@@ -490,21 +562,22 @@ export function HostSidebar({
 // ─── NavGroup ───────────────────────────────────────────────────────────────
 
 const NavGroup = memo(function NavGroup({
-  group, open, onToggle, collapsed, pathname, isActive, badges, onNavigate,
+  group, open, onToggle, collapsed, labelTransition, pathname, isActive, badges, onNavigate, isFirst,
 }: {
   group: SidebarGroup
   open: boolean
   onToggle: () => void
   collapsed: boolean
+  labelTransition: string
   pathname: string
   isActive: (href: string) => boolean
   badges: BadgeCounts
   onNavigate?: () => void
+  isFirst?: boolean
 }) {
   const GroupIcon = getIcon(group.icon)
   const label = t(group.label)
 
-  // Collapsed: icon with flyout
   if (collapsed) {
     return (
       <CollapsedGroup
@@ -519,24 +592,25 @@ const NavGroup = memo(function NavGroup({
   }
 
   return (
-    <div className="mb-0.5">
-      {/* Group header */}
+    <div className={cn(isFirst ? '' : 'mt-4')}>
       <button
         onClick={onToggle}
         aria-expanded={open}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-widest hover:text-slate-300 transition-colors group"
+        className={cn(
+          'w-full flex items-center gap-1.5 px-4 py-2 group transition-colors',
+          'text-[11px] font-semibold uppercase tracking-[0.02em] text-neutral-400 hover:text-neutral-600',
+        )}
       >
-        <motion.div
+        <motion.span
           animate={{ rotate: open ? 90 : 0 }}
-          transition={{ duration: 0.15 }}
-          className="shrink-0"
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="shrink-0 inline-flex"
         >
-          <ChevronRight size={10} />
-        </motion.div>
-        <span className="truncate">{label}</span>
+          <ChevronRight size={12} />
+        </motion.span>
+        <span className={cn('truncate transition-opacity', labelTransition)}>{label}</span>
       </button>
 
-      {/* Items */}
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
@@ -546,7 +620,7 @@ const NavGroup = memo(function NavGroup({
             transition={{ duration: 0.2, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-2 pb-1">
+            <div className="py-0.5">
               {group.items.map(item => (
                 <NavItem
                   key={item.id}
@@ -586,35 +660,58 @@ const NavItem = memo(function NavItem({
       title={collapsed ? label : undefined}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'relative flex items-center gap-2.5 rounded-lg text-sm font-medium transition-all group',
-        collapsed ? 'justify-center w-10 h-10 mx-auto' : 'px-3 py-[7px]',
-        active
-          ? 'bg-brand-500/15 text-brand-300 border-l-[3px] border-brand-400 shadow-sm shadow-brand-500/5'
-          : 'text-slate-400 hover:bg-white/[0.06] hover:text-slate-200',
+        'group relative flex items-center rounded-md transition-colors duration-fast ease-out',
+        collapsed
+          ? 'justify-center w-10 h-10 mx-auto my-[1px]'
+          : 'gap-2.5 mx-2 my-[1px] px-3 py-[6px]',
+        // Stato default
+        !active && 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800',
+        // Stato attivo (no border-left — solo bg)
+        active && 'bg-primary-50 text-primary-700 font-medium',
       )}
     >
-      <Icon size={16} className="shrink-0" />
+      <Icon
+        size={16}
+        className={cn(
+          'shrink-0 transition-colors',
+          !active && 'text-neutral-400 group-hover:text-neutral-600',
+          active && 'text-primary-600',
+        )}
+      />
 
       {!collapsed && (
         <>
-          <span className="flex-1 truncate">{label}</span>
-          {badge != null && badge > 0 && <BadgePill count={badge} type={item.badge} />}
+          <span className="flex-1 truncate text-[13px]">{label}</span>
+          {badge != null && badge > 0 && <SidebarBadge count={badge} type={item.badge} />}
         </>
       )}
 
-      {/* Collapsed tooltip */}
+      {/* Tooltip (collapsed only) */}
       {collapsed && (
-        <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-800 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl border border-white/10">
+        <span
+          role="tooltip"
+          className={cn(
+            'absolute left-full ml-3 px-2.5 py-1.5 text-[12px] whitespace-nowrap rounded-md shadow-lg z-50 pointer-events-none',
+            'bg-neutral-800 text-white',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200 delay-[200ms]',
+          )}
+        >
           {label}
           {badge != null && badge > 0 && (
-            <span className="ml-1.5 text-[10px] font-bold text-blue-400">({badge})</span>
+            <span className="ml-1.5 text-[10px] font-bold text-primary-300">({badge})</span>
           )}
         </span>
       )}
 
       {/* Collapsed badge dot */}
       {collapsed && badge != null && badge > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full" />
+        <span
+          aria-label={`${badge} elementi`}
+          className={cn(
+            'absolute top-1 right-1 w-2 h-2 rounded-full',
+            item.badge === 'manutenzioneAperta' ? 'bg-error-500' : 'bg-primary-500',
+          )}
+        />
       )}
     </Link>
   )
@@ -640,16 +737,16 @@ function CollapsedGroup({
   function leave() { timerRef.current = setTimeout(() => setHover(false), 200) }
 
   return (
-    <div className="relative mb-0.5" onMouseEnter={enter} onMouseLeave={leave}>
-      {/* Group icon */}
+    <div className="relative my-1" onMouseEnter={enter} onMouseLeave={leave}>
       <div className={cn(
-        'flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-all cursor-pointer',
-        hasActive ? 'bg-blue-600/20 text-blue-400' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300',
+        'flex items-center justify-center w-10 h-10 mx-auto rounded-md transition-colors cursor-default',
+        hasActive
+          ? 'bg-primary-50 text-primary-600'
+          : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600',
       )}>
         {icon}
       </div>
 
-      {/* Flyout */}
       <AnimatePresence>
         {hover && (
           <motion.div
@@ -657,11 +754,11 @@ function CollapsedGroup({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -8 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-full top-0 ml-2 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl py-1 z-50"
+            className="absolute left-full top-0 ml-2 w-52 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 z-50"
             onMouseEnter={enter}
             onMouseLeave={leave}
           >
-            <p className="px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{label}</p>
+            <p className="px-3 py-1.5 text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.02em]">{label}</p>
             {items.map(item => {
               const ItemIcon = getIcon(item.icon)
               const itemLabel = t(item.label)
@@ -671,12 +768,12 @@ function CollapsedGroup({
               return (
                 <Link key={item.id} href={item.href} onClick={() => { setHover(false); onNavigate?.() }}
                   className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 text-sm transition-colors',
-                    active ? 'text-blue-400 bg-blue-600/10' : 'text-slate-300 hover:bg-slate-700',
+                    'flex items-center gap-2.5 px-3 py-[7px] text-[13px] transition-colors',
+                    active ? 'text-primary-700 bg-primary-50 font-medium' : 'text-neutral-700 hover:bg-neutral-100',
                   )}>
-                  <ItemIcon size={14} className="shrink-0" />
+                  <ItemIcon size={14} className={cn('shrink-0', active ? 'text-primary-600' : 'text-neutral-400')} />
                   <span className="flex-1 truncate">{itemLabel}</span>
-                  {badge != null && badge > 0 && <BadgePill count={badge} type={item.badge} />}
+                  {badge != null && badge > 0 && <SidebarBadge count={badge} type={item.badge} />}
                 </Link>
               )
             })}
@@ -687,21 +784,20 @@ function CollapsedGroup({
   )
 }
 
-// ─── Badge pill ─────────────────────────────────────────────────────────────
+// ─── Sidebar badge counter ─────────────────────────────────────────────────
 
-function BadgePill({ count, type }: { count: number; type?: BadgeType }) {
+function SidebarBadge({ count, type }: { count: number; type?: BadgeType }) {
   const isUrgent = type === 'manutenzioneAperta'
-  const isInfo = type === 'prenotazioniNuove' || type === 'notificheNonLette' || type === 'spaAppuntamentiOggi' || type === 'messaggiNonLetti'
-
   return (
-    <span className={cn(
-      'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none',
-      isUrgent
-        ? 'bg-red-500/20 text-red-400'
-        : isInfo
-          ? 'bg-blue-500/20 text-blue-400'
-          : 'bg-slate-600/50 text-slate-400',
-    )}>
+    <span
+      className={cn(
+        'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none tabular-nums',
+        'transition-all',
+        isUrgent
+          ? 'bg-error-600 text-white'
+          : 'bg-primary-600 text-white',
+      )}
+    >
       {count > 99 ? '99+' : count}
     </span>
   )

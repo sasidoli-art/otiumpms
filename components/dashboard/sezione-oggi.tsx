@@ -251,18 +251,22 @@ function CardPartenze({ partenze }: { partenze: DashboardData['oggi']['partenze'
 function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazione'] }) {
   const { percentuale, unitaOccupate, unitaTotali, settimana } = occupazione
 
-  const donutStroke = percentuale > 90 ? '#ef4444'
-    : percentuale > 70 ? '#f59e0b' : '#10b981'
-  const donutGradientId = `donut-grad-${percentuale > 90 ? 'red' : percentuale > 70 ? 'amber' : 'emerald'}`
+  // Dynamic color: primary <70%, warning 70-90%, error >90%
+  const donutColor = percentuale > 90 ? 'var(--color-error-500)'
+    : percentuale > 70 ? 'var(--color-warning-500)'
+    : 'var(--color-primary-500)'
+  const donutTextClass = percentuale > 90 ? 'text-error-600'
+    : percentuale > 70 ? 'text-warning-600'
+    : 'text-primary-600'
 
-  const donutTextColor = percentuale > 90 ? 'text-red-500 dark:text-red-400'
-    : percentuale > 70 ? 'text-amber-500 dark:text-amber-400'
-    : 'text-emerald-500 dark:text-emerald-400'
+  // Donut circonferenza: 2πr dove r=50 (spec: stroke 10, diametro totale 120)
+  const RADIUS = 50
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS // 314.159
 
   const maxOcc = Math.max(...settimana.map((d) => d.occupate), 1)
 
   return (
-    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('violet')}>
+    <div className="card-accent flex flex-col p-0 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('violet')}>
       <CardHeader
         accent="violet"
         icon={<TrendingUp size={16} />}
@@ -270,78 +274,82 @@ function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazi
       />
 
       <div className="flex-1 flex flex-col items-center justify-center px-5 py-5 gap-5">
-        <div className="relative w-36 h-36">
+        {/* ── Donut 120×120, stroke 10px, animato da 0 via transition ── */}
+        <div className="relative w-[120px] h-[120px]">
           <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-            <defs>
-              <linearGradient id={donutGradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={donutStroke} stopOpacity="0.9" />
-                <stop offset="100%" stopColor={donutStroke} stopOpacity="1" />
-              </linearGradient>
-            </defs>
             <circle
-              cx="60" cy="60" r="50"
+              cx="60" cy="60" r={RADIUS}
               fill="none"
-              stroke="currentColor"
-              strokeWidth="11"
-              className="text-slate-100 dark:text-slate-800"
+              stroke="var(--color-neutral-200)"
+              strokeWidth="10"
             />
             <circle
-              cx="60" cy="60" r="50"
+              cx="60" cy="60" r={RADIUS}
               fill="none"
-              stroke={`url(#${donutGradientId})`}
-              strokeWidth="11"
+              stroke={donutColor}
+              strokeWidth="10"
               strokeLinecap="round"
-              strokeDasharray={`${(percentuale / 100) * 314.16} 314.16`}
-              className="transition-all duration-700 ease-out"
-              style={{ filter: `drop-shadow(0 2px 4px ${donutStroke}40)` }}
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={CIRCUMFERENCE * (1 - percentuale / 100)}
+              style={{ transition: 'stroke-dashoffset 800ms var(--ease-out), stroke 300ms ease-out' }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-3xl font-extrabold tracking-tight', donutTextColor)}>
+            <span className={cn('text-[28px] font-bold tabular-nums tracking-[-0.02em] leading-none', donutTextClass)}>
               {percentuale}%
-            </span>
-            <span className="text-[11px] font-medium text-slate-400">
-              {unitaOccupate}/{unitaTotali} camere
             </span>
           </div>
         </div>
+        <p className="text-[12px] text-neutral-500 -mt-2 tabular-nums">
+          {unitaOccupate}/{unitaTotali} camere
+        </p>
 
+        {/* ── BARCHART SETTIMANA — 7 barre verticali ── */}
         {settimana.length > 0 && (
-          <div className="w-full space-y-1.5">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Prossimi 7 giorni</p>
-            {settimana.map((day, i) => {
-              const barWidth = maxOcc > 0 ? (day.occupate / maxOcc) * 100 : 0
-              const isMax = day.occupate === maxOcc && maxOcc > 0
-              const isToday = i === 0
-
-              return (
-                <div key={day.data} className="flex items-center gap-2">
-                  <span className={cn(
-                    'text-[11px] w-7 shrink-0 text-right font-medium',
-                    isToday ? 'text-slate-800 dark:text-slate-100 font-bold' : 'text-slate-400',
-                  )}>
-                    {isToday ? 'Oggi' : day.giorno}
-                  </span>
-                  <div className="flex-1 h-4 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className={cn(
-                        'h-full rounded-full transition-all duration-500',
-                        isMax
-                          ? 'bg-gradient-to-r from-violet-500 to-violet-600 dark:from-violet-400 dark:to-violet-500'
-                          : 'bg-gradient-to-r from-violet-200 to-violet-300 dark:from-violet-700 dark:to-violet-600',
-                      )}
-                      style={{ width: `${barWidth}%` }}
-                    />
+          <div className="w-full">
+            <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.02em] mb-2 text-center">
+              Prossimi 7 giorni
+            </p>
+            <div className="flex items-end justify-center gap-1">
+              {settimana.slice(0, 7).map((day, i) => {
+                const barHeight = maxOcc > 0 ? (day.occupate / maxOcc) * 80 : 0
+                const isToday = i === 0
+                return (
+                  <div
+                    key={day.data}
+                    className="group relative flex flex-col items-center gap-1.5"
+                    title={`${isToday ? 'Oggi' : day.giorno}: ${day.occupate}/${day.totali}`}
+                  >
+                    {/* Barra */}
+                    <div className="flex items-end h-[80px]">
+                      <div
+                        className={cn(
+                          'w-[24px] rounded-t-sm transition-all duration-500 ease-out',
+                          isToday
+                            ? 'bg-primary-600 group-hover:bg-primary-700'
+                            : 'bg-primary-200 group-hover:bg-primary-300',
+                        )}
+                        style={{ height: `${Math.max(barHeight, 2)}px` }}
+                      />
+                    </div>
+                    {/* Label giorno — iniziale */}
+                    <span className={cn(
+                      'text-[11px] leading-none tabular-nums',
+                      isToday ? 'font-semibold text-neutral-800' : 'text-neutral-400',
+                    )}>
+                      {day.giorno.charAt(0).toUpperCase()}
+                    </span>
+                    {/* Tooltip on hover */}
+                    <span
+                      role="tooltip"
+                      className="absolute bottom-full mb-1 px-2 py-1 bg-neutral-800 text-white text-[11px] font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 tabular-nums"
+                    >
+                      {day.occupate}/{day.totali}
+                    </span>
                   </div>
-                  <span className={cn(
-                    'text-[11px] w-10 shrink-0 tabular-nums',
-                    isMax ? 'font-bold text-violet-600 dark:text-violet-400' : 'text-slate-400',
-                  )}>
-                    {day.occupate}/{day.totali}
-                  </span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

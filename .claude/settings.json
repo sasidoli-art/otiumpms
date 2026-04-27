@@ -243,7 +243,11 @@
       "Bash(tasklist //FI \"IMAGENAME eq node.exe\")",
       "Bash(git remote *)",
       "Bash(git reset *)",
-      "Bash(grep \"\\\\\"marked\\\\\\\\|\\\\\"remark\\\\\\\\|\\\\\"unified\\\\\\\\|\\\\\"react-markdown\" package.json)"
+      "Bash(grep \"\\\\\"marked\\\\\\\\|\\\\\"remark\\\\\\\\|\\\\\"unified\\\\\\\\|\\\\\"react-markdown\" package.json)",
+      "Bash(awk '{print $9, $5}')",
+      "Bash(xargs echo *)",
+      "Bash(curl -s https://otium-pms.vercel.app/api/health)",
+      "Bash(npx vitest *)"
     ]
   }
 }

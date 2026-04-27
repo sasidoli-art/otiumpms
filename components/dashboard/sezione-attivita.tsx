@@ -3,23 +3,23 @@
 import Link from 'next/link'
 import {
   BookOpen, UserCheck, MessageSquare, Wrench, Flower2,
-  CreditCard, Activity, ChevronRight,
+  CreditCard, Activity, ChevronRight, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardData } from '@/hooks/use-dashboard'
 
-// ─── Icon + color per tipo ──────────────────────────────────────────────────
+// ─── Tipo → colore del dot sulla timeline ──────────────────────────────────
 
-const TIPO_CONFIG: Record<string, { icon: typeof BookOpen; color: string; dot: string }> = {
-  prenotazione: { icon: BookOpen,       color: 'text-blue-500',    dot: 'bg-blue-500' },
-  checkin:      { icon: UserCheck,      color: 'text-emerald-500', dot: 'bg-emerald-500' },
-  messaggio:    { icon: MessageSquare,  color: 'text-teal-500',    dot: 'bg-teal-500' },
-  manutenzione: { icon: Wrench,         color: 'text-orange-500',  dot: 'bg-orange-500' },
-  spa:          { icon: Flower2,        color: 'text-violet-500',  dot: 'bg-violet-500' },
-  pagamento:    { icon: CreditCard,     color: 'text-emerald-500', dot: 'bg-emerald-500' },
+const TIPO_CONFIG: Record<string, { icon: LucideIcon; dot: string }> = {
+  prenotazione: { icon: BookOpen,      dot: 'bg-info-500' },
+  checkin:      { icon: UserCheck,     dot: 'bg-success-500' },
+  messaggio:    { icon: MessageSquare, dot: 'bg-teal-500' },
+  manutenzione: { icon: Wrench,        dot: 'bg-amber-500' },
+  spa:          { icon: Flower2,       dot: 'bg-violet-500' },
+  pagamento:    { icon: CreditCard,    dot: 'bg-success-500' },
 }
 
-const DEFAULT_CONFIG = { icon: Activity, color: 'text-slate-400', dot: 'bg-slate-400' }
+const DEFAULT_CONFIG = { icon: Activity, dot: 'bg-neutral-400' }
 
 // ─── Relative time ──────────────────────────────────────────────────────────
 
@@ -47,69 +47,72 @@ export function SezioneAttivita({ attivita }: Props) {
   const items = attivita.slice(0, MAX_VISIBLE)
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700">
+    <section className="bg-white rounded-lg border border-neutral-150">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+      <header className="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
+        <h3 className="text-[14px] font-semibold text-neutral-900">
           Attività recente
         </h3>
         <Link
           href="/host/audit"
-          className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+          className="inline-flex items-center gap-0.5 text-[12px] text-neutral-400 hover:text-neutral-700 transition-colors"
         >
-          Mostra tutto <ChevronRight size={12} className="inline" />
+          Mostra tutto <ChevronRight size={12} />
         </Link>
-      </div>
+      </header>
 
       {/* Timeline */}
       {items.length === 0 ? (
-        <div className="px-4 py-8 text-center">
-          <p className="text-sm text-slate-400">Nessuna attività recente</p>
+        <div className="px-5 py-10 text-center">
+          <p className="text-[13px] text-neutral-400">Nessuna attività recente</p>
         </div>
       ) : (
-        <div className="px-4 py-2">
+        <div className="relative px-5 py-2">
+          {/* Linea verticale continua (1px) dietro tutti i pallini */}
+          <span
+            aria-hidden="true"
+            className="absolute left-[26px] top-5 bottom-5 w-px bg-neutral-200"
+          />
           {items.map((item, i) => (
-            <TimelineRow key={`${item.tempo}-${i}`} item={item} isLast={i === items.length - 1} />
+            <TimelineRow key={`${item.tempo}-${i}`} item={item} />
           ))}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
 // ─── Timeline row ───────────────────────────────────────────────────────────
 
-function TimelineRow({ item, isLast }: { item: DashboardData['attivitaRecente'][number]; isLast: boolean }) {
+function TimelineRow({ item }: { item: DashboardData['attivitaRecente'][number] }) {
   const cfg = TIPO_CONFIG[item.tipo] || DEFAULT_CONFIG
-  const Icon = cfg.icon
 
   const content = (
     <>
-      <div className="flex flex-col items-center shrink-0 pt-1">
-        <div className={cn('w-2 h-2 rounded-full shrink-0', cfg.dot)} />
-        {!isLast && (
-          <div className="w-px flex-1 bg-slate-200 dark:bg-slate-700 mt-1" style={{ minHeight: 24 }} />
-        )}
-      </div>
-      <div className="shrink-0 mt-0.5">
-        <Icon size={14} className={cfg.color} />
-      </div>
+      {/* Dot 8px sulla linea — posizione allineata al centro della riga */}
+      <span className="relative flex items-center justify-center w-3 shrink-0">
+        <span className={cn('w-2 h-2 rounded-full ring-2 ring-white', cfg.dot)} />
+      </span>
+
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-700 dark:text-slate-300 truncate leading-snug">
+        <p className="text-[13px] text-neutral-700 leading-snug">
           {item.testo}
         </p>
       </div>
-      <span className="text-[11px] text-slate-400 shrink-0 mt-0.5 tabular-nums">
+      <span className="text-[12px] text-neutral-400 shrink-0 tabular-nums">
         {tempoRelativo(item.tempo)}
       </span>
     </>
   )
 
-  const baseClass = 'flex items-start gap-3 py-2.5'
+  const baseClass = 'flex items-center gap-3 py-3 -mx-2 px-2 rounded-md'
 
   if (item.linkUrl) {
     return (
-      <Link href={item.linkUrl} className={cn(baseClass, 'hover:bg-slate-50 dark:hover:bg-slate-800/50 -mx-2 px-2 rounded-lg transition-colors')}>
+      <Link
+        href={item.linkUrl}
+        className={cn(baseClass, 'hover:bg-neutral-50 transition-colors')}
+      >
         {content}
       </Link>
     )

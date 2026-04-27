@@ -23,7 +23,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:all": "npm run lint && npm run type-check && npm run test:run"
+    "test:all": "npm run lint && npm run type-check && npm run test:run",
+    "audit:visual": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/visual-audit.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",

@@ -195,41 +195,93 @@
   --color-info-light:    var(--color-info-50);
 }
 
-/* ── Dark mode overrides ──────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   DARK MODE
+   - Superfici scure ma non nero puro (warm neutrals)
+   - Testo bianco caldo (neutral-50, non #fff)
+   - Primary palette flippa più chiara per contrasto su sfondo scuro
+   - Semantici -50 diventano rgba con alpha 10% (no flash bianco-azzurro)
+   - Semantici -700 diventano i tone -400 originali (più chiari per leggibilità)
+   ═══════════════════════════════════════════════════════════════════════════ */
 .dark {
-  /* Nuove superfici */
-  --surface-primary:   var(--color-neutral-900);
-  --surface-secondary: var(--color-neutral-800);
-  --surface-tertiary:  var(--color-neutral-700);
-  --surface-elevated:  var(--color-neutral-800);
+  /* ── Surfaces — warm dark, not pure black ──────────────────────────────── */
+  --surface-primary:   #0c0a09;  /* neutral-950 */
+  --surface-secondary: #1c1917;  /* neutral-900 */
+  --surface-tertiary:  #292524;  /* neutral-800 */
+  --surface-elevated:  #1c1917;
   --surface-overlay:   rgba(0, 0, 0, 0.6);
-  --surface-sidebar:   var(--color-neutral-950);
+  --surface-sidebar:   #0f0e0d;
 
-  /* Testo invertito */
-  --text-primary:   var(--color-neutral-50);
-  --text-secondary: var(--color-neutral-400);
-  --text-tertiary:  var(--color-neutral-500);
-  --text-disabled:  var(--color-neutral-600);
+  /* ── Text — warm white, not pure white ────────────────────────────────── */
+  --text-primary:    #fafaf9;
+  --text-secondary:  #a8a29e;
+  --text-tertiary:   #78716c;
+  --text-disabled:   #57534e;
+  --text-on-primary: #ffffff;
+  --text-on-accent:  #1c1917;
+  --text-link:       var(--color-primary-400);
+  --text-link-hover: var(--color-primary-300);
 
-  /* Bordi */
-  --border-default: var(--color-neutral-700);
-  --border-subtle:  var(--color-neutral-800);
-  --border-hover:   var(--color-neutral-600);
+  /* ── Borders — visible but discreet ───────────────────────────────────── */
+  --border-default: #292524;
+  --border-subtle:  #1c1917;
+  --border-hover:   #44403c;
+  --border-focus:   var(--color-primary-400);
+  --border-error:   var(--color-error-500);
 
-  /* Ombre più profonde su dark */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.25);
+  /* ── Shadows — più scure e diffuse su dark ────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 12px 24px -4px rgba(0, 0, 0, 0.5), 0 4px 8px -2px rgba(0, 0, 0, 0.35);
-  --shadow-xl: 0 20px 40px -8px rgba(0, 0, 0, 0.55), 0 8px 16px -4px rgba(0, 0, 0, 0.35);
-  --shadow-focus:       0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-primary-700);
-  --shadow-focus-error: 0 0 0 2px var(--surface-primary), 0 0 0 4px var(--color-error-700);
+  --shadow-xl: 0 20px 40px -8px rgba(0, 0, 0, 0.6), 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+  --shadow-focus:       0 0 0 2px var(--surface-primary), 0 0 0 4px rgba(99, 102, 241, 0.35);
+  --shadow-focus-error: 0 0 0 2px var(--surface-primary), 0 0 0 4px rgba(239, 68, 68, 0.35);
 
-  /* Legacy aliases dark */
+  /* ── Primary palette in dark — più chiaro per contrasto ───────────────── */
+  /* Lo step intermedio: 500 diventa quello che era 400, 600 diventa 500.   */
+  --color-primary-500: #818cf8;
+  --color-primary-600: #6366f1;
+
+  /* ── Semantici — bg in alpha 10% (no flash), text -700 più chiaro ────── */
+  --color-success-50:  rgba(34, 197, 94, 0.10);
+  --color-success-100: rgba(34, 197, 94, 0.16);
+  --color-success-700: #4ade80;
+  --color-warning-50:  rgba(245, 158, 11, 0.10);
+  --color-warning-100: rgba(245, 158, 11, 0.16);
+  --color-warning-700: #fbbf24;
+  --color-error-50:    rgba(239, 68, 68, 0.10);
+  --color-error-100:   rgba(239, 68, 68, 0.16);
+  --color-error-700:   #f87171;
+  --color-info-50:     rgba(59, 130, 246, 0.10);
+  --color-info-100:    rgba(59, 130, 246, 0.16);
+  --color-info-700:    #60a5fa;
+
+  /* ── Scrollbar tokens ────────────────────────────────────────────────── */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #44403c;
+  --scrollbar-thumb-hover: #57534e;
+
+  /* ── Legacy aliases (gray/bg/shadow-card/text-on-brand) ──────────────── */
+  --color-gray-50:  var(--color-neutral-50);
+  --color-gray-100: var(--color-neutral-100);
+  --color-gray-200: #292524;
+  --color-gray-300: #44403c;
+  --color-gray-400: var(--color-neutral-400);
+  --color-gray-500: var(--color-neutral-500);
+  --color-gray-600: var(--color-neutral-600);
+  --color-gray-700: var(--color-neutral-700);
+  --color-gray-800: var(--color-neutral-800);
+  --color-gray-900: var(--color-neutral-900);
+  --color-gray-950: var(--color-neutral-950);
+
   --bg-primary:   var(--surface-primary);
   --bg-secondary: var(--surface-secondary);
   --bg-tertiary:  var(--surface-tertiary);
   --bg-elevated:  var(--surface-elevated);
+  --bg-sidebar:   var(--surface-sidebar);
+
+  --text-on-brand: var(--text-on-primary);
 
   --shadow-card:       var(--shadow-sm);
   --shadow-card-hover: var(--shadow-md);
@@ -237,6 +289,46 @@
   --shadow-dropdown:   var(--shadow-lg);
 
   color-scheme: dark;
+}
+
+/* Scrollbar dark — usa i token dedicati */
+.dark ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+.dark ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+.dark ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* ─── PUBLIC BOOKING — forza tema light, ignora preferenza host ──────────────
+   Il booking pubblico è branded per ogni hotel. Se l'host (autenticato in
+   un'altra tab) ha dark attivo, NON deve invertire i colori del booking
+   dell'ospite. Il marker `[data-public-booking]` resetta i token a light. */
+[data-public-booking] {
+  --surface-primary:   #ffffff;
+  --surface-secondary: var(--color-neutral-50);
+  --surface-tertiary:  var(--color-neutral-100);
+  --surface-elevated:  #ffffff;
+  --surface-overlay:   rgba(12, 10, 9, 0.4);
+  --text-primary:    var(--color-neutral-900);
+  --text-secondary:  var(--color-neutral-500);
+  --text-tertiary:   var(--color-neutral-400);
+  --text-disabled:   var(--color-neutral-300);
+  --text-on-primary: #ffffff;
+  --text-link:       var(--color-primary-600);
+  --text-link-hover: var(--color-primary-700);
+  --border-default: var(--color-neutral-200);
+  --border-subtle:  var(--color-neutral-150);
+  --border-hover:   var(--color-neutral-300);
+  --color-primary-500: #6366f1;
+  --color-primary-600: #4f46e5;
+  --color-success-50: #f0fdf4;
+  --color-success-700: #15803d;
+  --color-warning-50: #fffbeb;
+  --color-warning-700: #b45309;
+  --color-error-50: #fef2f2;
+  --color-error-700: #b91c1c;
+  --color-info-50: #eff6ff;
+  --color-info-700: #1d4ed8;
+  --color-gray-200: var(--color-neutral-200);
+  --color-gray-300: var(--color-neutral-300);
+  color-scheme: light;
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
@@ -284,6 +376,30 @@ h1, h2, h3, h4, h5, h6 {
 /* Hide scrollbar for pills/tabs */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Scroll fade-mask: usata su carousel orizzontali (pills filtro/tab/giorni)
+   per indicare che c'è contenuto fuori dalla viewport. Combinare con
+   .no-scrollbar. Il fade è 16px su entrambi i lati. */
+.scroll-fade-x {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+          mask-image: linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent);
+}
+
+/* Interactive hover — riga tabella, card cliccabili, voci lista.
+   Pattern uniforme: bg neutral-50 hover, neutral-100 active, cursor pointer. */
+.interactive-hover {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.interactive-hover:hover { background-color: var(--color-neutral-50); }
+.interactive-hover:active { background-color: var(--color-neutral-100); }
+.dark .interactive-hover:hover { background-color: var(--color-neutral-800); }
+.dark .interactive-hover:active { background-color: var(--color-neutral-700); }
+
+/* Tabular numbers — applicare ovunque ci siano valori numerici allineati
+   in colonna (tabelle, badge contatori, prezzi). */
+.tnum { font-variant-numeric: tabular-nums; }
 
 /* ── Selection ────────────────────────────────────────────────────────────── */
 ::selection {
@@ -635,6 +751,55 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes selectIn {
   from { opacity: 0; transform: scaleY(0.95); }
   to   { opacity: 1; transform: scaleY(1); }
+}
+
+/* Badge pulse dot — per stati "live" (spec: scale 1→1.5→1 + opacity 1→0.5→1) */
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%      { transform: scale(1.5); opacity: 0.5; }
+}
+.animate-pulseDot { animation: pulseDot 2s var(--ease-in-out) infinite; }
+
+/* Theme toggle icon swap — rotazione 180° + crossfade */
+@keyframes themeIconIn {
+  from { opacity: 0; transform: rotate(-180deg) scale(0.6); }
+  to   { opacity: 1; transform: rotate(0)        scale(1);   }
+}
+
+/* EmptyState mount — scale 0.9→1 + fade in (one-shot, ease-out) */
+@keyframes emptyStateIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+
+/* SuccessFeedback — cerchio scale spring 0→1 (poi il check si disegna) */
+@keyframes successCircleIn {
+  0%   { transform: scale(0);   opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* SuccessFeedback — check disegnato via stroke-dashoffset.
+   La path ha stroke-dasharray=24 + stroke-dashoffset=24 (vuoto), va a 0. */
+@keyframes drawCheck {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0;  }
+}
+
+/* Tooltip in — fade + translateY -4px (top) o +4px (bottom) */
+@keyframes tooltipInTop {
+  from { opacity: 0; transform: translate(-50%, -4px); }
+  to   { opacity: 1; transform: translate(-50%, 0);    }
+}
+@keyframes tooltipInBottom {
+  from { opacity: 0; transform: translate(-50%, 4px); }
+  to   { opacity: 1; transform: translate(-50%, 0);   }
+}
+
+/* Page transition fade — 100ms opacity 0→1 al cambio route /host/* */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── Dark mode select fix ─────────────────────────────────────────────────── */
