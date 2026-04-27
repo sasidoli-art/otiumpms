@@ -140,6 +140,7 @@ const config: Config = {
 
         /* Semantic tokens (non-scala) — surfaces, text, border */
         surface: {
+          app:       'var(--surface-app)',
           primary:   'var(--surface-primary)',
           secondary: 'var(--surface-secondary)',
           tertiary:  'var(--surface-tertiary)',
@@ -219,10 +220,28 @@ const config: Config = {
         lg:           'var(--shadow-lg)',
         xl:           'var(--shadow-xl)',
         card:         'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
         topbar:       'var(--shadow-topbar)',
         dropdown:     'var(--shadow-dropdown)',
         focus:        'var(--shadow-focus)',
         'focus-error':'var(--shadow-focus-error)',
+      },
+
+      /* ── Background images: gradient + KPI card sfondi ─────────────── */
+      backgroundImage: {
+        'gradient-primary':       'var(--gradient-primary)',
+        'gradient-primary-light': 'var(--gradient-primary-light)',
+        'gradient-success':       'var(--gradient-success)',
+        'gradient-info':          'var(--gradient-info)',
+        'gradient-warning':       'var(--gradient-warning)',
+        'gradient-error':         'var(--gradient-error)',
+        'gradient-violet':        'var(--gradient-violet)',
+        'kpi-indigo':             'var(--kpi-indigo-bg)',
+        'kpi-green':              'var(--kpi-green-bg)',
+        'kpi-amber':              'var(--kpi-amber-bg)',
+        'kpi-violet':             'var(--kpi-violet-bg)',
+        'kpi-rose':               'var(--kpi-rose-bg)',
+        'kpi-teal':               'var(--kpi-teal-bg)',
       },
 
       /* ── Transitions ─────────────────────────────────────────────────── */
