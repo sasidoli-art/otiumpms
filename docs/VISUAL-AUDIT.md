@@ -1,6 +1,6 @@
 # Visual Audit — Otium PMS
 
-> Generato: 2026-04-27 10:10:23 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
+> Generato: 2026-04-27 10:32:36 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
 
 ## Cosa è questo report
 

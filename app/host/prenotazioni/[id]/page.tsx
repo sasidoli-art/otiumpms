@@ -8,6 +8,7 @@ import { ArrowLeft, Mail, Phone, Calendar, Users, Euro } from 'lucide-react'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { Badge, type BadgeVariant } from '@/components/ui/badge'
+import { formatValuta, formatData } from '@/lib/formatters'
 import { KioskButton } from './kiosk-button'
 import { RegCardDownload } from './regcard-download'
 import PrenotazioneActions from './prenotazione-actions'
@@ -85,7 +86,7 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
             </Badge>
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
-            Prenotazione · {format(new Date(prenotazione.createdAt), 'd MMM yyyy HH:mm', { locale: it })}
+            Prenotazione · {formatData(prenotazione.createdAt, 'datetime')}
             {prenotazione.fonte ? ` · ${prenotazione.fonte}` : ''}
           </p>
         </div>
@@ -136,33 +137,33 @@ export default async function PrenotazioneDetailPage({ params: paramsPromise }: 
               <div>
                 <dt className="flex items-center gap-1 text-gray-500"><Calendar className="w-3.5 h-3.5" /> Arrivo</dt>
                 <dd className="font-medium text-gray-900">
-                  {format(new Date(prenotazione.dataArrivo), 'd MMMM yyyy', { locale: it })}
+                  {formatData(prenotazione.dataArrivo, 'long')}
                 </dd>
               </div>
               <div>
                 <dt className="flex items-center gap-1 text-gray-500"><Calendar className="w-3.5 h-3.5" /> Partenza</dt>
                 <dd className="font-medium text-gray-900">
                   {prenotazione.dataPartenza
-                    ? format(new Date(prenotazione.dataPartenza), 'd MMMM yyyy', { locale: it })
+                    ? formatData(prenotazione.dataPartenza, 'long')
                     : '—'}
                 </dd>
               </div>
               {prenotazione.prezzoTotale != null && (
                 <div>
                   <dt className="flex items-center gap-1 text-gray-500"><Euro className="w-3.5 h-3.5" /> Totale</dt>
-                  <dd className="font-semibold text-brand-600">€{prenotazione.prezzoTotale.toFixed(2)}</dd>
+                  <dd className="font-semibold text-brand-600 tabular-nums">{formatValuta(prenotazione.prezzoTotale)}</dd>
                 </div>
               )}
               {prenotazione.acconto != null && (
                 <div>
                   <dt className="text-gray-500">Acconto</dt>
-                  <dd className="font-medium text-gray-900">€{prenotazione.acconto.toFixed(2)}</dd>
+                  <dd className="font-medium text-gray-900 tabular-nums">{formatValuta(prenotazione.acconto)}</dd>
                 </div>
               )}
               {prenotazione.tassaSoggiorno != null && (
                 <div>
                   <dt className="text-gray-500">Tassa soggiorno</dt>
-                  <dd className="font-medium text-gray-900">€{prenotazione.tassaSoggiorno.toFixed(2)}/notte</dd>
+                  <dd className="font-medium text-gray-900 tabular-nums">{formatValuta(prenotazione.tassaSoggiorno)}/notte</dd>
                 </div>
               )}
             </dl>

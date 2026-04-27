@@ -9,7 +9,7 @@ import {
   TrendingUp, Loader2, Calendar, DollarSign, BarChart3, PieChart as PieIcon,
   ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
-import { CHART_PALETTE, CHART_COLORS, CHART_STYLE } from '@/lib/chart-tokens'
+import { useChartTokens } from '@/lib/chart-tokens'
 
 type BIData = {
   forecast: { forecast30: number; forecast60: number; forecast90: number }
@@ -23,14 +23,16 @@ type BIData = {
   yoyComparison: { mese: string; annoCorrente: number; annoPrecedente: number }[]
 }
 
-const COLORS = CHART_PALETTE
-
 const fmt = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
 const fmtFull = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n)
 
 export default function BIDashboard() {
   const [data, setData] = useState<BIData | null>(null)
   const [loading, setLoading] = useState(true)
+  const tokens = useChartTokens()
+  const COLORS = tokens.palette
+  const CHART_COLORS = tokens.colors
+  const CHART_STYLE = tokens.style
 
   useEffect(() => {
     fetch('/api/host/business-intelligence')

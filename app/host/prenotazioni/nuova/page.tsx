@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Loader2 } from 'lucide-react'
+import { formatValuta } from '@/lib/formatters'
 
 type Struttura = { id: string; nome: string; unita: UnitaPrenotabile[] }
 type UnitaPrenotabile = { id: string; nome: string }
@@ -208,7 +209,7 @@ export default function NuovaPrenotazionePage() {
               {calcolando && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
               {prezzoSuggerito !== null && !calcolando && (
                 <span className="text-[11px] font-normal text-brand-600 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> suggerito: €{prezzoSuggerito.toFixed(2)}
+                  <Sparkles className="w-3 h-3" /> suggerito: {formatValuta(prezzoSuggerito)}
                 </span>
               )}
             </label>

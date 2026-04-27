@@ -7,6 +7,7 @@ import {
   isWeekend, isSameDay, isToday,
 } from 'date-fns'
 import { it } from 'date-fns/locale'
+import { formatValuta } from '@/lib/formatters'
 import {
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut,
   Calendar, Users, BedDouble, ArrowRightLeft,
@@ -364,7 +365,7 @@ export default function CalendarioTimeline({ strutture }: { strutture: Struttura
                               borderBottomRightRadius: bar.clippedRight ? 0 : undefined,
                             }}
                             title={`${pren.guestNome} ${pren.guestCognome} · ${pren.numOspiti} ospiti${
-                              pren.prezzoTotale ? ` · €${pren.prezzoTotale}` : ''
+                              pren.prezzoTotale ? ` · ${formatValuta(pren.prezzoTotale)}` : ''
                             }`}
                             onMouseEnter={e => setTooltip({ pren, x: e.clientX, y: e.clientY })}
                             onMouseLeave={() => setTooltip(null)}

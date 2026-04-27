@@ -67,24 +67,24 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
   ], [t])
 
   return (
-    <aside className="flex flex-col h-full bg-gray-950 text-white w-[220px] shrink-0">
+    <aside className="flex flex-col h-full bg-neutral-25 border-r border-neutral-150 w-[220px] shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 h-16 px-4 border-b border-white/10">
-        <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center text-base shrink-0">
+      <div className="flex items-center gap-2.5 h-16 px-4 border-b border-neutral-150">
+        <div className="w-8 h-8 bg-error-100 text-error-700 rounded-md flex items-center justify-center shrink-0">
           <Shield className="w-4 h-4" />
         </div>
-        <div>
-          <p className="font-bold text-white text-sm">Otium Week</p>
-          <p className="text-red-400 text-[10px] font-semibold">{t('superadmin')}</p>
+        <div className="leading-tight">
+          <p className="font-serif text-[15px] text-neutral-900 leading-none">Otium Week</p>
+          <p className="text-error-600 text-[10px] font-semibold mt-0.5">{t('superadmin')}</p>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
+      <nav className="flex-1 overflow-y-auto py-2">
         {navGroups.map((group, gi) => (
-          <div key={gi} className="space-y-0.5">
+          <div key={gi} className={gi === 0 ? '' : 'mt-3'}>
             {group.label && (
-              <p className="px-3 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-600">
+              <p className="px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.04em] text-neutral-400">
                 {group.label}
               </p>
             )}
@@ -96,13 +96,15 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
                   key={href}
                   href={href}
                   className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                    'group flex items-center gap-2.5 mx-2 my-[1px] px-3 py-[6px] rounded-md text-[13px] transition-colors',
                     isActive
-                      ? 'bg-red-600/20 text-red-400'
-                      : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
+                      ? 'bg-error-50 text-error-700 font-medium'
+                      : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800'
                   )}
                 >
-                  <Icon size={16} className="shrink-0" />
+                  <Icon size={16} className={cn('shrink-0 transition-colors',
+                    isActive ? 'text-error-600' : 'text-neutral-400 group-hover:text-neutral-600',
+                  )} />
                   <span>{label}</span>
                 </Link>
               )
@@ -112,14 +114,14 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 p-3 space-y-1">
-        <div className="px-2 py-1">
-          <p className="text-[10px] text-gray-500">{tc('loggedInAs')}</p>
-          <p className="text-xs font-medium text-gray-300 truncate">{nomeUtente}</p>
+      <div className="border-t border-neutral-150 p-2 space-y-0.5">
+        <div className="px-3 py-1.5">
+          <p className="text-[10px] text-neutral-400 uppercase tracking-[0.02em]">{tc('loggedInAs')}</p>
+          <p className="text-[12px] font-medium text-neutral-800 truncate">{nomeUtente}</p>
         </div>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-white/5 hover:text-gray-100"
+          className="flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-[13px] text-error-600 hover:bg-error-50 transition-colors"
         >
           <LogOut size={16} /> {t('logout')}
         </button>
