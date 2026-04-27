@@ -75,3 +75,73 @@ export function getClientIp(req: Request): string {
   if (forwarded) return forwarded.split(',')[0].trim()
   return 'unknown'
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Presets centralizzati + helper checkRateLimit
+// (P4 design: definizione una volta sola dei limiti per categoria di endpoint
+// invece di ripeterli inline in ogni route).
+// ───────────────────────────────────────────────────────────────────────────
+
+import { NextResponse } from 'next/server'
+
+export type RateLimitPreset =
+  | 'public:search'   // ricerca disponibilita` (alta freq.)
+  | 'public:booking'  // POST prenota — limite stretto
+  | 'public:checkin'  // submit check-in
+  | 'public:wifi'     // captive portal
+  | 'public:ical'     // feed iCal (booking.com fa polling)
+  | 'host:read'       // GET su /api/host/*
+  | 'host:write'      // POST/PATCH/DELETE su /api/host/*
+  | 'admin:all'       // /api/admin/*
+  | 'webhook:all'     // /api/webhooks/*
+  | 'auth:login'      // brute force protection
+  | 'auth:register'   // anti-abuse signup
+
+const PRESETS: Record<RateLimitPreset, RateLimitOptions> = {
+  'public:search':   { windowMs: 60_000,    max: 60  },
+  'public:booking':  { windowMs: 60_000,    max: 10  },
+  'public:checkin':  { windowMs: 60_000,    max: 20  },
+  'public:wifi':     { windowMs: 60_000,    max: 30  },
+  'public:ical':     { windowMs: 3_600_000, max: 60  },
+  'host:read':       { windowMs: 60_000,    max: 120 },
+  'host:write':      { windowMs: 60_000,    max: 30  },
+  'admin:all':       { windowMs: 60_000,    max: 200 },
+  'webhook:all':     { windowMs: 60_000,    max: 500 },
+  'auth:login':      { windowMs: 300_000,   max: 5   },
+  'auth:register':   { windowMs: 3_600_000, max: 3   },
+}
+
+/**
+ * Helper "drop-in" per le API routes: ritorna NextResponse 429 se l'IP ha
+ * superato il limite per il preset, altrimenti `null` (procedi con la logica).
+ *
+ * Uso:
+ *   export async function POST(req: NextRequest) {
+ *     const blocked = checkRateLimit(req, 'public:booking')
+ *     if (blocked) return blocked
+ *     // ... logica della route
+ *   }
+ */
+export function checkRateLimit(req: Request, preset: RateLimitPreset, customKey?: string): NextResponse | null {
+  const ip = getClientIp(req)
+  const key = `rl:${preset}:${customKey ?? ip}`
+  const result = rateLimit(key, PRESETS[preset])
+
+  if (!result.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Troppe richieste. Riprova tra qualche istante.',
+        code: 'RATE_LIMITED',
+        retryAfter: result.retryAfter,
+      },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(result.retryAfter),
+          'X-RateLimit-Remaining': '0',
+        },
+      },
+    )
+  }
+  return null
+}

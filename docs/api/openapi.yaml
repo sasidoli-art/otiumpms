@@ -1,0 +1,663 @@
+openapi: '3.0.3'
+info:
+  title: Otium PMS Public API
+  version: '1.0.0'
+  description: |
+    API pubbliche per integrazioni con la piattaforma Otium PMS.
+
+    Coperti gli endpoint di booking (camere/SPA/ristorante), check-in online,
+    feed iCal di disponibilità, e webhook outbound. Le API interne `/api/host/*`
+    e `/api/admin/*` (richiedono sessione NextAuth) non sono documentate qui —
+    vedi codice sorgente.
+
+    **Autenticazione**:
+    - Booking pubblico: nessuna (rate-limited per IP)
+    - Check-in: token URL-safe in path (UUID generato alla creazione prenotazione)
+    - iCal feed: token HMAC nel querystring `?token=...`
+    - Webhook outbound: firma HMAC-SHA256 in header `X-Otium-Signature`
+
+    **Rate limiting** (per IP, sliding window):
+    - Search/disponibilità: 60 req/min
+    - Prenotazione (POST): 10 req/min
+    - Check-in: 20 req/min
+    - iCal feed: 60 req/ora
+
+    Risposta 429 quando superato, con header `Retry-After`.
+
+  contact:
+    name: Otium Support
+    email: support@otiumweek.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://otium-pms.vercel.app/api
+    description: Produzione
+  - url: http://localhost:3000/api
+    description: Sviluppo locale
+
+tags:
+  - name: booking-camere
+    description: Ricerca e prenotazione camere
+  - name: booking-spa
+    description: Ricerca trattamenti e prenotazione SPA
+  - name: booking-ristorante
+    description: Prenotazione tavolo ristorante
+  - name: checkin
+    description: Check-in online ospite
+  - name: ical
+    description: Feed iCal per OTA (Booking, Airbnb, VRBO)
+  - name: webhook
+    description: Webhook outbound (eventi piattaforma → integratore)
+
+paths:
+
+  # ─── BOOKING CAMERE ──────────────────────────────────────────────────────
+
+  /book/{strutturaId}/camere/disponibilita:
+    get:
+      tags: [booking-camere]
+      summary: Cerca camere disponibili per un range di date
+      operationId: searchCamere
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+        - name: arrivo
+          in: query
+          required: true
+          schema: { type: string, format: date, example: '2026-06-15' }
+        - name: partenza
+          in: query
+          required: true
+          schema: { type: string, format: date, example: '2026-06-18' }
+        - name: adulti
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10, default: 2 }
+        - name: bambini
+          in: query
+          schema: { type: integer, minimum: 0, maximum: 8, default: 0 }
+      responses:
+        '200':
+          description: Lista camere disponibili con prezzo per ciascuna
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  arrivo: { type: string, format: date }
+                  partenza: { type: string, format: date }
+                  notti: { type: integer }
+                  adulti: { type: integer }
+                  bambini: { type: integer }
+                  unita:
+                    type: array
+                    items: { $ref: '#/components/schemas/CameraDisponibile' }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /book/{strutturaId}/camere/prenota:
+    post:
+      tags: [booking-camere]
+      summary: Crea una nuova prenotazione camera
+      operationId: createPrenotazioneCamera
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuovaPrenotazione' }
+      responses:
+        '201':
+          description: Prenotazione creata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PrenotazioneCreata' }
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Camera non più disponibile (race condition)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string, example: 'camera_non_disponibile' }
+                  giorniOccupati:
+                    type: array
+                    items: { type: string, format: date }
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  # ─── BOOKING SPA ─────────────────────────────────────────────────────────
+
+  /book/{strutturaId}/spa/trattamenti:
+    get:
+      tags: [booking-spa]
+      summary: Lista trattamenti SPA prenotabili online
+      operationId: listTrattamentiSpa
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+      responses:
+        '200':
+          description: Trattamenti raggruppati per categoria
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trattamenti:
+                    type: array
+                    items: { $ref: '#/components/schemas/TrattamentoSpa' }
+                  percorsi:
+                    type: array
+                    items: { $ref: '#/components/schemas/PercorsoSpa' }
+
+  /book/{strutturaId}/spa/disponibilita:
+    get:
+      tags: [booking-spa]
+      summary: Slot disponibili per data + trattamento
+      operationId: searchSpaSlot
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+        - name: data
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: trattamentoId
+          in: query
+          schema: { type: string }
+        - name: percorsoId
+          in: query
+          schema: { type: string }
+        - name: terapistaId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Slot orari con disponibilità
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: string, format: date }
+                  durata: { type: integer, description: 'Durata trattamento in minuti' }
+                  slots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ora: { type: string, example: '10:30' }
+                        disponibile: { type: boolean }
+                        terapisti: { type: integer, description: 'Numero terapisti liberi in questo slot' }
+
+  /book/{strutturaId}/spa/prenota:
+    post:
+      tags: [booking-spa]
+      summary: Crea appuntamento SPA con waiver
+      operationId: createAppuntamentoSpa
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NuovoAppuntamentoSpa' }
+      responses:
+        '201':
+          description: Appuntamento creato
+        '409':
+          description: Slot non più disponibile
+
+  # ─── BOOKING RISTORANTE ──────────────────────────────────────────────────
+
+  /book/{strutturaId}/ristorante/disponibilita:
+    get:
+      tags: [booking-ristorante]
+      summary: Slot orari disponibili per prenotazione tavolo
+      operationId: searchRistoranteSlot
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+        - name: data
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: persone
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 20 }
+      responses:
+        '200':
+          description: Slot disponibili
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: string, format: date }
+                  slots:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ora: { type: string, example: '20:30' }
+                        copertiDisponibili: { type: integer }
+
+  /book/{strutturaId}/ristorante/prenota:
+    post:
+      tags: [booking-ristorante]
+      summary: Prenota tavolo
+      operationId: createPrenotazioneRistorante
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataOra, numPersone, guestNome, guestCognome, guestEmail, guestTelefono]
+              properties:
+                dataOra: { type: string, format: date-time }
+                numPersone: { type: integer, minimum: 1 }
+                guestNome: { type: string }
+                guestCognome: { type: string }
+                guestEmail: { type: string, format: email }
+                guestTelefono: { type: string }
+                note: { type: string }
+      responses:
+        '201':
+          description: Prenotazione tavolo creata
+
+  # ─── CHECK-IN ────────────────────────────────────────────────────────────
+
+  /checkin/{token}/complete:
+    post:
+      tags: [checkin]
+      summary: Completa check-in online
+      operationId: completeCheckin
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+          description: 'Token UUID generato alla creazione prenotazione'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckinPayload' }
+      responses:
+        '200':
+          description: Check-in registrato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  pin: { type: string, description: 'PIN 4 cifre univoco per host' }
+        '400':
+          description: Token non valido o check-in già completato
+
+  # ─── ICAL ────────────────────────────────────────────────────────────────
+
+  /host/strutture/{strutturaId}/ical:
+    get:
+      tags: [ical]
+      summary: Feed iCal disponibilità intera struttura
+      operationId: getStrutturaIcal
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+          description: 'Token HMAC generato dalla dashboard host'
+      responses:
+        '200':
+          description: Feed iCal RFC 5545
+          content:
+            text/calendar:
+              schema: { type: string }
+        '401':
+          description: Token non valido
+        '429':
+          description: Rate limit (60 req/ora)
+
+  /host/strutture/{strutturaId}/unita/{unitaId}/ical:
+    get:
+      tags: [ical]
+      summary: Feed iCal singola unità (per OTA)
+      operationId: getUnitaIcal
+      parameters:
+        - $ref: '#/components/parameters/StrutturaId'
+        - name: unitaId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Feed iCal RFC 5545
+
+  # ─── WEBHOOK OUTBOUND ────────────────────────────────────────────────────
+
+  /webhook-receiver:
+    post:
+      tags: [webhook]
+      summary: '(Documentazione) Endpoint che il TUO server espone per ricevere eventi Otium'
+      description: |
+        Quando configuri una WebhookSubscription dalla dashboard host, Otium
+        invia POST al tuo URL ad ogni evento sottoscritto.
+
+        **Headers**:
+        - `Content-Type: application/json`
+        - `X-Otium-Event`: nome evento (es. `PRENOTAZIONE_CREATA`)
+        - `X-Otium-Delivery`: id univoco di consegna (per idempotency)
+        - `X-Otium-Signature`: HMAC-SHA256 del body con il tuo secret
+        - `User-Agent: OtiumWebhook/1.0`
+
+        **Verifica firma** (Node.js):
+        ```js
+        const expected = 'sha256=' + crypto
+          .createHmac('sha256', SECRET)
+          .update(rawBody)
+          .digest('hex')
+        if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+          return res.status(401).end()
+        }
+        ```
+
+        **Retry policy**: in caso di status >=400 o timeout (5s), Otium ripete
+        con backoff esponenziale fino a 5 tentativi.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                  enum:
+                    - PRENOTAZIONE_CREATA
+                    - PRENOTAZIONE_AGGIORNATA
+                    - PRENOTAZIONE_CANCELLATA
+                    - CHECKIN_COMPLETATO
+                    - CHECKOUT_COMPLETATO
+                    - PAGAMENTO_RICEVUTO
+                    - SPA_APPUNTAMENTO_CREATO
+                    - SPA_APPUNTAMENTO_AGGIORNATO
+                    - RECENSIONE_RICEVUTA
+                occurredAt: { type: string, format: date-time }
+                data:
+                  type: object
+                  description: 'Schema specifico per ogni event type'
+      responses:
+        '200':
+          description: 'Tuo endpoint deve rispondere 2xx per confermare ricezione'
+
+  # ─── HEALTH ──────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [webhook]
+      summary: Health check (DB + Sentry + encryption + env)
+      operationId: getHealth
+      responses:
+        '200':
+          description: 'Servizio operativo o degraded'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthReport' }
+        '503':
+          description: 'Servizio down (DB irraggiungibile)'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HealthReport' }
+
+# ───────────────────────────────────────────────────────────────────────────
+# COMPONENTS
+# ───────────────────────────────────────────────────────────────────────────
+
+components:
+
+  parameters:
+    StrutturaId:
+      name: strutturaId
+      in: path
+      required: true
+      schema: { type: string }
+      description: 'ID della struttura ricettiva'
+
+  responses:
+    ValidationError:
+      description: 'Validazione fallita (Zod schema)'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              details: { type: object }
+    NotFound:
+      description: 'Risorsa non trovata'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string, example: 'Struttura non trovata' }
+    RateLimited:
+      description: 'Rate limit superato'
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: 'Secondi prima di poter riprovare'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              code: { type: string, example: 'RATE_LIMITED' }
+              retryAfter: { type: integer }
+
+  schemas:
+
+    CameraDisponibile:
+      type: object
+      properties:
+        unitaId: { type: string }
+        nome: { type: string, example: 'Suite Vista Mare' }
+        descrizione: { type: string, nullable: true }
+        immagine: { type: string, nullable: true, format: uri }
+        capacita: { type: integer }
+        lettiExtra: { type: integer }
+        piano: { type: integer, nullable: true }
+        prezzoNotte: { type: number }
+        prezzoTotale: { type: number }
+        prezzoLettoExtra: { type: number, nullable: true }
+        tariffaNome: { type: string, nullable: true, example: 'Alta stagione' }
+        scontoApplicato:
+          type: object
+          nullable: true
+          properties:
+            regola: { type: string, example: 'Sconto 3+ notti' }
+            percentuale: { type: number, example: 10 }
+            nottiMinime: { type: integer }
+        prezzoTotaleScontato: { type: number, nullable: true }
+        tassaSoggiornoNotte: { type: number, nullable: true }
+
+    NuovaPrenotazione:
+      type: object
+      required: [unitaId, dataArrivo, dataPartenza, adulti, guestNome, guestCognome, guestEmail, consensi]
+      properties:
+        unitaId: { type: string }
+        dataArrivo: { type: string, format: date }
+        dataPartenza: { type: string, format: date }
+        adulti: { type: integer, minimum: 1, maximum: 10 }
+        bambini: { type: integer, minimum: 0, maximum: 8 }
+        lettoExtra: { type: boolean, default: false }
+        guestNome: { type: string, minLength: 2 }
+        guestCognome: { type: string, minLength: 2 }
+        guestEmail: { type: string, format: email }
+        guestTelefono: { type: string, nullable: true }
+        guestNote: { type: string, nullable: true }
+        guestLingua:
+          type: string
+          enum: [it, en, de, fr]
+          default: it
+        codicePromo: { type: string, nullable: true }
+        consensi:
+          type: object
+          required: [termini, privacy]
+          properties:
+            termini: { type: boolean, description: 'Obbligatorio true' }
+            privacy: { type: boolean, description: 'Obbligatorio true' }
+            marketing: { type: boolean, default: false }
+
+    PrenotazioneCreata:
+      type: object
+      properties:
+        prenotazione:
+          type: object
+          properties:
+            id: { type: string }
+            stato: { type: string, enum: [RICHIESTA, CONFERMATA] }
+            pin: { type: string, example: '4832' }
+            checkInToken: { type: string, format: uuid }
+            prezzoTotale: { type: number }
+        messaggio: { type: string }
+
+    TrattamentoSpa:
+      type: object
+      properties:
+        id: { type: string }
+        nome: { type: string }
+        descrizione: { type: string, nullable: true }
+        durata: { type: integer, description: 'Minuti' }
+        prezzo: { type: number }
+        immagine: { type: string, nullable: true, format: uri }
+        categoria: { type: string }
+
+    PercorsoSpa:
+      type: object
+      properties:
+        id: { type: string }
+        nome: { type: string }
+        durataMinuti: { type: integer }
+        prezzo: { type: number }
+        passaggi:
+          type: array
+          items:
+            type: object
+            properties:
+              ordine: { type: integer }
+              trattamentoNome: { type: string }
+              durata: { type: integer }
+
+    NuovoAppuntamentoSpa:
+      type: object
+      required: [dataOra, guest, waiver, pagamento]
+      properties:
+        trattamentoId: { type: string }
+        percorsoId: { type: string }
+        dataOra: { type: string, format: date-time }
+        terapistaId: { type: string, nullable: true }
+        prenotazioneId: { type: string, nullable: true, description: 'Se ospite in-house' }
+        guest:
+          type: object
+          properties:
+            nome: { type: string }
+            cognome: { type: string }
+            email: { type: string, format: email }
+            telefono: { type: string, nullable: true }
+        waiver:
+          type: object
+          properties:
+            dichiarazioneNessuna: { type: boolean }
+            condizioni: { type: array, items: { type: string } }
+            allergie: { type: array, items: { type: string } }
+            zoneEvitare: { type: array, items: { type: string } }
+            firmaBase64: { type: string, description: 'PNG base64 della firma' }
+            accettazioneTermini: { type: boolean }
+            accettazionePrivacy: { type: boolean }
+            consensoArt9At: { type: string, format: date-time, description: 'Consenso GDPR Art. 9 dati sanitari' }
+        pagamento:
+          type: object
+          properties:
+            metodo:
+              type: string
+              enum: [CAMERA_CREDIT, CONTANTI, CARTA, TRANSFERWISE]
+            unitaId: { type: string, nullable: true, description: 'Per CAMERA_CREDIT' }
+
+    CheckinPayload:
+      type: object
+      required: [datiPersonali, documento, firma]
+      properties:
+        datiPersonali:
+          type: object
+          properties:
+            sesso: { type: string, enum: [M, F] }
+            dataNascita: { type: string, format: date }
+            comuneNascitaIstat: { type: string }
+            cittadinanza: { type: string, example: 'Italia' }
+            codiceFiscale: { type: string, nullable: true }
+        documento:
+          type: object
+          properties:
+            tipo: { type: string, enum: [IDENTE, PPORT, PATEN] }
+            numero: { type: string }
+            comuneRilascioIstat: { type: string }
+            fotoFronte: { type: string, description: 'base64 JPEG' }
+            fotoRetro: { type: string, nullable: true }
+        accompagnatori:
+          type: array
+          items:
+            type: object
+            properties:
+              nome: { type: string }
+              cognome: { type: string }
+              sesso: { type: string }
+              dataNascita: { type: string, format: date }
+              isMinore: { type: boolean }
+        firma:
+          type: object
+          properties:
+            firmaBase64: { type: string }
+            accTermini: { type: boolean }
+            accPrivacy: { type: boolean }
+            accMarketing: { type: boolean }
+
+    HealthReport:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        timestamp: { type: string, format: date-time }
+        uptimeMs: { type: integer }
+        services:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status: { type: string, enum: [ok, warn, error, skipped] }
+              latencyMs: { type: integer }
+              error: { type: string }
+              detail: { type: string }
+        version:
+          type: object
+          properties:
+            commit: { type: string, nullable: true }
+            env: { type: string }
