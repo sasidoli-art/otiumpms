@@ -85,22 +85,27 @@ export default async function PrenotazioniPage({
         }
       />
 
-      {/* ── Filtri stato ── */}
+      {/* ── Filtri stato (P5.1: pill morbide bg-primary-50/text-primary-700) ── */}
       <div className="flex gap-2 flex-wrap">
         {FILTRI_STATO.map(s => {
           const isActive = stato === s.value
+          const count = s.value ? mapCount[s.value] : null
           return (
             <Link
               key={s.value}
               href={`/host/prenotazioni?stato=${s.value}${q ? `&q=${q}` : ''}`}
-              className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-medium border transition-colors ${
                 isActive
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--border-default)]'
+                  ? 'bg-primary-50 text-primary-700 border-primary-200'
+                  : 'bg-white text-neutral-500 border-neutral-200 hover:bg-neutral-50'
               }`}
             >
               {s.label}
-              {s.value && mapCount[s.value] ? ` (${mapCount[s.value]})` : ''}
+              {count ? (
+                <span className={`inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold tabular-nums ${
+                  isActive ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-600'
+                }`}>{count}</span>
+              ) : null}
             </Link>
           )
         })}
@@ -147,8 +152,13 @@ export default async function PrenotazioniPage({
                   return (
                     <tr key={p.id} className="border-b border-[var(--border-default)] last:border-0 hover:bg-[var(--bg-secondary)] transition-colors">
                       <td className="table-td">
-                        <div className="font-medium text-[var(--text-primary)]">{p.guestNome} {p.guestCognome}</div>
-                        <div className="text-xs text-[var(--text-tertiary)]">{p.guestEmail}</div>
+                        <div className="flex items-center gap-2.5">
+                          <GuestAvatar nome={p.guestNome} cognome={p.guestCognome} />
+                          <div className="min-w-0">
+                            <div className="font-medium text-[var(--text-primary)] truncate">{p.guestNome} {p.guestCognome}</div>
+                            <div className="text-xs text-[var(--text-tertiary)] truncate">{p.guestEmail}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="table-td text-sm hidden md:table-cell">
                         {p.struttura?.nome ?? '—'}
@@ -189,6 +199,28 @@ export default async function PrenotazioniPage({
           </div>
         </Card>
       )}
+    </div>
+  )
+}
+
+// ─── Avatar squadrato 28px con iniziali su gradient pastello deterministico ──
+// Il colore deriva dall'hash del cognome (sempre lo stesso ospite = stesso color).
+const AVATAR_COLORS: Array<{ bg: string; text: string }> = [
+  { bg: 'bg-primary-100', text: 'text-primary-700' },
+  { bg: 'bg-violet-100',  text: 'text-violet-700'  },
+  { bg: 'bg-pink-100',    text: 'text-pink-700'    },
+  { bg: 'bg-teal-100',    text: 'text-teal-700'    },
+  { bg: 'bg-amber-100',   text: 'text-amber-700'   },
+  { bg: 'bg-info-100',    text: 'text-info-700'    },
+]
+
+function GuestAvatar({ nome, cognome }: { nome: string; cognome: string }) {
+  const initials = `${nome[0] ?? ''}${cognome[0] ?? ''}`.toUpperCase()
+  const seed = (cognome || nome || '?').charCodeAt(0)
+  const c = AVATAR_COLORS[seed % AVATAR_COLORS.length]
+  return (
+    <div className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-bold ${c.bg} ${c.text}`}>
+      {initials || '?'}
     </div>
   )
 }
