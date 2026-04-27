@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { isHostAuthorized } from '@/lib/permissions'
 import { getStrutturaAttivaId } from '@/lib/struttura-attiva'
 import { VerificaCheckinButton } from './verifica-checkin-button'
-// Badge imported if needed for future use
+import { formatValutaCompatta } from '@/lib/formatters'
 
 function notti(arrivo: Date, partenza: Date | null) {
   if (!partenza) return '—'
@@ -212,7 +212,7 @@ export default async function OggiPage() {
 
                       {/* Totale */}
                       <td className="px-3 py-3 text-right text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        {p.prezzoTotale != null ? `€${p.prezzoTotale.toFixed(0)}` : '—'}
+                        {formatValutaCompatta(p.prezzoTotale)}
                       </td>
 
                       {/* Note */}
@@ -309,7 +309,7 @@ export default async function OggiPage() {
                       <td className="px-3 py-3 text-center text-xs">{p.numOspiti}</td>
                       <td className="px-3 py-3 text-center text-xs">{n}</td>
                       <td className="px-3 py-3 text-right text-xs">€{(p.prezzoTotale ?? 0).toFixed(0)}</td>
-                      <td className="px-3 py-3 text-right text-xs">{extraTotale > 0 ? `€${extraTotale.toFixed(0)}` : '—'}</td>
+                      <td className="px-3 py-3 text-right text-xs tabular-nums">{extraTotale > 0 ? formatValutaCompatta(extraTotale) : '—'}</td>
                       <td className="px-3 py-3 text-right text-xs font-bold text-slate-900 dark:text-white">€{totaleFinale.toFixed(0)}</td>
                       <td className="px-4 py-3 text-right">
                         <Link

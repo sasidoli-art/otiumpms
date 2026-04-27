@@ -7,10 +7,12 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { MessageSquare, Plus } from 'lucide-react'
-import { Badge, STATO_PRENOTAZIONE } from '@/components/ui/badge'
+import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/ui/page-header'
 import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
+import { PRENOTAZIONE_BADGES, type BadgeConfig } from '@/lib/status-badges'
+import { formatValuta, formatData } from '@/lib/formatters'
 import { isStatoPrenotazione } from '@/lib/validations'
 import { ExportButton, ImportButton } from './import-export'
 import { isHostAuthorized } from '@/lib/permissions'
@@ -115,10 +117,9 @@ export default async function PrenotazioniPage({
       {prenotazioni.length === 0 ? (
         <Card>
           <EmptyState
-            icon="BookOpen"
-            titolo="Nessuna prenotazione trovata"
-            descrizione="Modifica i filtri oppure crea una nuova prenotazione."
-            azione={{ label: 'Nuova prenotazione', href: '/host/prenotazioni/nuova' }}
+            kind="prenotazioni"
+            titolo={stato || q ? 'Nessuna prenotazione trovata' : undefined}
+            descrizione={stato || q ? 'Modifica i filtri oppure crea una nuova prenotazione.' : undefined}
           />
         </Card>
       ) : (
@@ -140,7 +141,9 @@ export default async function PrenotazioniPage({
               </thead>
               <tbody>
                 {prenotazioni.map(p => {
-                  const cfg = STATO_PRENOTAZIONE[p.stato] || { color: 'gray' as const, label: p.stato }
+                  const cfg: BadgeConfig =
+                    PRENOTAZIONE_BADGES[p.stato as keyof typeof PRENOTAZIONE_BADGES]
+                    ?? { color: 'neutral', label: p.stato }
                   return (
                     <tr key={p.id} className="border-b border-[var(--border-default)] last:border-0 hover:bg-[var(--bg-secondary)] transition-colors">
                       <td className="table-td">
@@ -151,18 +154,18 @@ export default async function PrenotazioniPage({
                         {p.struttura?.nome ?? '—'}
                         {p.unita && <div className="text-xs text-[var(--text-tertiary)]">{p.unita.nome}</div>}
                       </td>
-                      <td className="table-td text-sm">
-                        {format(new Date(p.dataArrivo), 'd MMM yyyy', { locale: it })}
+                      <td className="table-td text-sm tabular-nums">
+                        {formatData(p.dataArrivo)}
                       </td>
-                      <td className="table-td text-sm text-[var(--text-secondary)] hidden md:table-cell">
-                        {p.dataPartenza ? format(new Date(p.dataPartenza), 'd MMM yyyy', { locale: it }) : '—'}
+                      <td className="table-td text-sm text-[var(--text-secondary)] hidden md:table-cell tabular-nums">
+                        {p.dataPartenza ? formatData(p.dataPartenza) : '—'}
                       </td>
-                      <td className="table-td text-center text-sm hidden lg:table-cell">{p.numOspiti}</td>
+                      <td className="table-td text-center text-sm hidden lg:table-cell tabular-nums">{p.numOspiti}</td>
                       <td className="table-td text-sm hidden md:table-cell">
-                        <span className="font-medium">€{p.prezzoTotale?.toFixed(2) ?? '—'}</span>
+                        <span className="font-medium tabular-nums">{formatValuta(p.prezzoTotale)}</span>
                       </td>
                       <td className="table-td">
-                        <Badge variant="status" color={cfg.color}>{cfg.label}</Badge>
+                        <Badge color={cfg.color} icon={cfg.icon} pulse={cfg.pulse}>{cfg.label}</Badge>
                       </td>
                       <td className="table-td text-center hidden lg:table-cell">
                         {p.chat ? (

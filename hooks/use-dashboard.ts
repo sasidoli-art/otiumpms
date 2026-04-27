@@ -83,6 +83,17 @@ export interface DashboardData {
     prossimo: SpaProssimo | null
   } | null
   attivitaRecente: AttivitaItem[]
+  kpi: {
+    ricaviMese: number
+    ricaviMeseScorso: number
+    deltaRicaviPercent: number | null
+    prenotazioniMese: number
+    prenotazioniMeseScorso: number
+    deltaPrenotazioniPercent: number | null
+    adrMese: number
+    adrMeseScorso: number
+    deltaAdrPercent: number | null
+  }
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────

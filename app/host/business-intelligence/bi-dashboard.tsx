@@ -9,8 +9,7 @@ import {
   TrendingUp, Loader2, Calendar, DollarSign, BarChart3, PieChart as PieIcon,
   ArrowUpRight, ArrowDownRight,
 } from 'lucide-react'
-
-
+import { CHART_PALETTE, CHART_COLORS, CHART_STYLE } from '@/lib/chart-tokens'
 
 type BIData = {
   forecast: { forecast30: number; forecast60: number; forecast90: number }
@@ -24,7 +23,7 @@ type BIData = {
   yoyComparison: { mese: string; annoCorrente: number; annoPrecedente: number }[]
 }
 
-const COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4']
+const COLORS = CHART_PALETTE
 
 const fmt = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
 const fmtFull = (n: number) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n)
@@ -116,16 +115,16 @@ export default function BIDashboard() {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">RevPAR &amp; ADR (ultimi 12 mesi)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={data.revparTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridStroke} />
               <XAxis dataKey="mese" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number, name: string) => [fmtFull(value), name === 'revpar' ? 'RevPAR' : 'ADR']}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ borderRadius: CHART_STYLE.tooltipRadius, border: `1px solid ${CHART_STYLE.tooltipBorder}` }}
               />
               <Legend />
-              <Line type="monotone" dataKey="revpar" name="RevPAR" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="adr" name="ADR" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="revpar" name="RevPAR" stroke={CHART_COLORS.primary} strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="adr" name="ADR" stroke={CHART_COLORS.accent} strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -135,7 +134,7 @@ export default function BIDashboard() {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Previsione occupazione (prossimi 30gg)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={data.occupancyForecast}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridStroke} />
               <XAxis
                 dataKey="data"
                 tick={{ fontSize: 10 }}
@@ -145,9 +144,9 @@ export default function BIDashboard() {
               <Tooltip
                 formatter={(value: number) => [`${value}%`, 'Occupazione']}
                 labelFormatter={(label: string) => new Date(label).toLocaleDateString('it-IT', { day: '2-digit', month: 'long' })}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ borderRadius: CHART_STYLE.tooltipRadius, border: `1px solid ${CHART_STYLE.tooltipBorder}` }}
               />
-              <Area type="monotone" dataKey="occupancy" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={2} />
+              <Area type="monotone" dataKey="occupancy" stroke={CHART_COLORS.success} fill={CHART_COLORS.success} fillOpacity={0.15} strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -188,16 +187,16 @@ export default function BIDashboard() {
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">Confronto anno su anno</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={data.yoyComparison}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_STYLE.gridStroke} />
               <XAxis dataKey="mese" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number, name: string) => [fmt(value), name === 'annoCorrente' ? 'Anno corrente' : 'Anno precedente']}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                contentStyle={{ borderRadius: CHART_STYLE.tooltipRadius, border: `1px solid ${CHART_STYLE.tooltipBorder}` }}
               />
               <Legend formatter={(v: string) => v === 'annoCorrente' ? 'Anno corrente' : 'Anno precedente'} />
-              <Bar dataKey="annoPrecedente" fill="#d1d5db" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="annoCorrente" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="annoPrecedente" fill={CHART_COLORS.previous} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="annoCorrente" fill={CHART_COLORS.primary} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

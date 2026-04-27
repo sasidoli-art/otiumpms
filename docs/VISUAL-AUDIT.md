@@ -1,6 +1,6 @@
 # Visual Audit — Otium PMS
 
-> Generato: 2026-04-25 15:12:19 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
+> Generato: 2026-04-27 10:10:23 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
 
 ## Cosa è questo report
 
@@ -24,9 +24,9 @@ Marker:
 ## Sintesi
 
 **148 pagine** auditate · **1184 check** totali
-- ✅ Pass: **719** (61%)
+- ✅ Pass: **720** (61%)
 - ⚠️ Warning: **403** (34%)
-- ❌ Fail: **8** (1%)
+- ❌ Fail: **7** (1%)
 - — Not applicable: **54** (5%)
 
 ## Tabella
@@ -58,7 +58,7 @@ Marker:
 | `/host/analytics` | ✅ | ✅ | ✅ | ✅ | ⚠️ | — | ✅ | ✅ |
 | `/host/audit` | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ |
 | `/host/booking-engine` | ✅ | ✅ | ✅ | ✅ | — | — | ✅ | ✅ |
-| `/host/business-intelligence` | ✅ | ⚠️ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `/host/business-intelligence` | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `/host/calendario` | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ✅ | — | ✅ | ✅ |
 | `/host/canali` | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ |
 | `/host/cassa` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ⚠️ |
@@ -486,8 +486,6 @@ File: [`app/host/audit/page.tsx`](../app/host/audit/page.tsx)
 File: [`app/host/business-intelligence/page.tsx`](../app/host/business-intelligence/page.tsx)
 - **Spacing** ⚠️
   - Nessun spacing responsive (md:/lg:) trovato
-- **Colori** ❌
-  - 7 hex distinti hardcoded (es. #6366f1, #f59e0b, #10b981…)
 
 ### `/host/calendario`
 File: [`app/host/calendario/page.tsx`](../app/host/calendario/page.tsx)

@@ -8,6 +8,7 @@ import { useStruttura } from '@/components/layout/host-layout'
 import { cn } from '@/lib/utils'
 import { SezioneQuickActions } from './sezione-quick-actions'
 import { SezioneAzioni } from './sezione-azioni'
+import { SezioneKpi } from './sezione-kpi'
 import { SezioneOggi } from './sezione-oggi'
 import { SezioneSpaOggi } from './sezione-spa-oggi'
 import { SezioneAttivita } from './sezione-attivita'
@@ -140,7 +141,14 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
         <SezioneAzioni azioni={data.azioni} />
       </section>
 
-      {/* 4. Oggi */}
+      {/* 4. KPI mensili (ricavi + delta vs mese scorso) */}
+      {data.kpi && (
+        <section aria-label="KPI mensili">
+          <SezioneKpi kpi={data.kpi} />
+        </section>
+      )}
+
+      {/* 5. Oggi */}
       <section aria-label="Situazione odierna">
         <SezioneOggi oggi={data.oggi} occupazione={data.occupazione} />
       </section>

@@ -41,6 +41,16 @@ export async function GET(req: NextRequest) {
   const dayName = format(inizioGiornata, 'EEEE', { locale: itLocale })
   const dayNameCap = dayName.charAt(0).toUpperCase() + dayName.slice(1)
 
+  // ── KPI window: mese corrente (1° → oggi) vs mese scorso (1° → giorno equiv) ──
+  const oggi = new Date(inizioGiornata)
+  const inizioMeseCorrente = new Date(Date.UTC(oggi.getUTCFullYear(), oggi.getUTCMonth(), 1))
+  const inizioMeseScorso = new Date(Date.UTC(oggi.getUTCFullYear(), oggi.getUTCMonth() - 1, 1))
+  // Stesso giorno-of-month del mese scorso (per confronto fair se siamo a metà mese)
+  const oggiMeseScorso = new Date(Date.UTC(
+    oggi.getUTCFullYear(), oggi.getUTCMonth() - 1, oggi.getUTCDate(),
+    23, 59, 59, 999,
+  ))
+
   // ── All queries in parallel ───────────────────────────────────────────
 
   const [
@@ -67,6 +77,9 @@ export async function GET(req: NextRequest) {
     spaProssimo,
     // Attività recente
     auditRecente,
+    // KPI mensili
+    kpiMeseCorrente,
+    kpiMeseScorso,
   ] = await Promise.all([
 
     // ── ARRIVI ──
@@ -245,6 +258,26 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
       take: 10,
     }),
+
+    // ── KPI MENSILI: ricavi + count, mese corrente vs scorso ──────────────
+    prisma.prenotazione.aggregate({
+      where: {
+        ...scope,
+        stato: { in: ['CONFERMATA', 'COMPLETATA'] },
+        dataArrivo: { gte: inizioMeseCorrente, lte: fineGiornata },
+      },
+      _sum: { prezzoTotale: true },
+      _count: { _all: true },
+    }),
+    prisma.prenotazione.aggregate({
+      where: {
+        ...scope,
+        stato: { in: ['CONFERMATA', 'COMPLETATA'] },
+        dataArrivo: { gte: inizioMeseScorso, lte: oggiMeseScorso },
+      },
+      _sum: { prezzoTotale: true },
+      _count: { _all: true },
+    }),
   ])
 
   // ── Post-processing ───────────────────────────────────────────────────
@@ -368,11 +401,49 @@ export async function GET(req: NextRequest) {
     },
     spaOggi,
     attivitaRecente,
+    kpi: buildKpi(kpiMeseCorrente, kpiMeseScorso),
   }
 
   return NextResponse.json(body, {
     headers: { 'Cache-Control': 'private, max-age=15' },
   })
+}
+
+// ─── KPI helper ─────────────────────────────────────────────────────────────
+
+type AggResult = { _sum: { prezzoTotale: number | null }; _count: { _all: number } }
+
+/**
+ * Calcola i 4 KPI mensili con delta % vs mese scorso (stessa finestra temporale).
+ * Soglie semantiche: positivo se ↑, negativo se ↓, neutro se 0% o se mese scorso=0.
+ */
+function buildKpi(corrente: AggResult, scorso: AggResult) {
+  const ricaviCorrente   = corrente._sum.prezzoTotale ?? 0
+  const ricaviScorso     = scorso._sum.prezzoTotale ?? 0
+  const prenotCorrente   = corrente._count._all
+  const prenotScorso     = scorso._count._all
+
+  const adrCorrente = prenotCorrente > 0 ? ricaviCorrente / prenotCorrente : 0
+  const adrScorso   = prenotScorso > 0 ? ricaviScorso / prenotScorso : 0
+
+  return {
+    ricaviMese: ricaviCorrente,
+    ricaviMeseScorso: ricaviScorso,
+    deltaRicaviPercent: deltaPercent(ricaviCorrente, ricaviScorso),
+
+    prenotazioniMese: prenotCorrente,
+    prenotazioniMeseScorso: prenotScorso,
+    deltaPrenotazioniPercent: deltaPercent(prenotCorrente, prenotScorso),
+
+    adrMese: adrCorrente,
+    adrMeseScorso: adrScorso,
+    deltaAdrPercent: deltaPercent(adrCorrente, adrScorso),
+  }
+}
+
+function deltaPercent(corrente: number, scorso: number): number | null {
+  if (scorso === 0) return null  // delta non calcolabile se baseline zero
+  return Math.round(((corrente - scorso) / scorso) * 100)
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

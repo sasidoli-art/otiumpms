@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { CreditCard, Loader2, CheckCircle2, Banknote, Building, Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { formatValuta } from '@/lib/formatters'
 
 type Pagamento = { id: string; importo: number; metodo: string; provider: string; ultime4Cifre: string | null; circuito: string | null; stato: string; createdAt: string }
 
@@ -79,7 +80,7 @@ export default function PagamentoCheckoutSection({ prenotazioneId, saldoDovuto }
         <div className="text-right">
           <p className="text-xs text-gray-500">Saldo</p>
           <p className={`text-lg font-extrabold ${saldo > 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {saldo > 0 ? `€${saldo.toFixed(2)}` : 'SALDATO'}
+            {saldo > 0 ? formatValuta(saldo) : 'SALDATO'}
           </p>
         </div>
       </div>
