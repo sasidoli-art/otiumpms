@@ -122,7 +122,24 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
   if (!data) return null
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Ambient gradient sottilissimi sullo sfondo (P4.2 design system).
+          Posizione: indigo top-right + viola bottom-left. Pointer-events:none
+          per non interferire con i click. z-0 sotto i contenuti, contenuto a z-1. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div
+          className="absolute -top-32 -right-40 w-[480px] h-[480px] rounded-full opacity-60 blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,0.06), transparent)' }}
+        />
+        <div
+          className="absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full opacity-60 blur-3xl"
+          style={{ background: 'radial-gradient(closest-side, rgba(139,92,246,0.04), transparent)' }}
+        />
+      </div>
+
       {/* 1. Header */}
       <DashboardHeader greeting={greeting} firstName={firstName} />
 
