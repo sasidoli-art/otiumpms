@@ -10,6 +10,7 @@ import { getTranslations } from 'next-intl/server'
 import { PLAN_DEFINITIONS, getPlanDefinition, daysRemaining } from '@/lib/billing'
 import { PianoTipo } from '@prisma/client'
 import PlanUpgradeButton from './plan-upgrade-button'
+import CustomerPortalButton from './customer-portal-button'
 
 export default async function HostAbbonamentoPage() {
   const session = await getServerSession(authOptions)
@@ -132,6 +133,10 @@ export default async function HostAbbonamentoPage() {
               </li>
             ))}
           </ul>
+        </div>
+
+        <div className="pt-4 border-t border-gray-100">
+          <CustomerPortalButton stripeCustomerId={host.stripeCustomerId} />
         </div>
       </div>
 

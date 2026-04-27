@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-
-// ─── Types ──────────────────────────────────────────────────────────────────
+import useSWR from 'swr'
+import { fetcher } from '@/lib/swr-fetcher'
 
 interface ArrivoCard {
   id: string
@@ -96,16 +95,12 @@ export interface DashboardData {
   }
 }
 
-// ─── Hook ───────────────────────────────────────────────────────────────────
-
-const POLL_INTERVAL = 30_000 // 30 seconds
+const POLL_INTERVAL = 30_000
 
 /**
- * Fetches GET /api/host/dashboard?strutturaId=xxx every 30 seconds.
- *
- * - Immediate fetch on mount and when strutturaId changes
- * - Pauses when tab is hidden, resumes + immediate fetch when visible
- * - refresh() forces an immediate re-fetch (e.g. after confirming a booking)
+ * Dashboard host: SWR-based con polling 30s, revalidazione su focus, retry
+ * automatico, cache condivisa (più componenti che leggono lo stesso URL si
+ * aggiornano insieme).
  */
 export function useDashboard(strutturaId?: string | null): {
   data: DashboardData | null
@@ -113,71 +108,20 @@ export function useDashboard(strutturaId?: string | null): {
   error: string | null
   refresh: () => void
 } {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
-  const mountedRef = useRef(true)
+  const params = strutturaId ? `?strutturaId=${strutturaId}` : ''
+  const url = `/api/host/dashboard${params}`
 
-  const fetchDashboard = useCallback(async () => {
-    try {
-      const params = strutturaId ? `?strutturaId=${strutturaId}` : ''
-      const res = await fetch(`/api/host/dashboard${params}`)
-      if (!res.ok) {
-        if (mountedRef.current) setError(`Errore ${res.status}`)
-        return
-      }
-      const json = await res.json()
-      if (mountedRef.current) {
-        setData(json)
-        setError(null)
-        setIsLoading(false)
-      }
-    } catch {
-      if (mountedRef.current) setError('Errore di connessione')
-    }
-  }, [strutturaId])
+  const { data, error, isLoading, mutate } = useSWR<DashboardData>(url, fetcher, {
+    refreshInterval: POLL_INTERVAL,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    keepPreviousData: true, // evita flash di empty state quando cambia strutturaId
+  })
 
-  const startPolling = useCallback(() => {
-    clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(fetchDashboard, POLL_INTERVAL)
-  }, [fetchDashboard])
-
-  const stopPolling = useCallback(() => {
-    clearInterval(intervalRef.current)
-  }, [])
-
-  // Fetch on mount + when strutturaId changes
-  useEffect(() => {
-    mountedRef.current = true
-    setIsLoading(true)
-    fetchDashboard()
-    startPolling()
-
-    return () => {
-      mountedRef.current = false
-      stopPolling()
-    }
-  }, [fetchDashboard, startPolling, stopPolling])
-
-  // Pause/resume on visibility change
-  useEffect(() => {
-    function onVisibility() {
-      if (document.hidden) {
-        stopPolling()
-      } else {
-        fetchDashboard()
-        startPolling()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [fetchDashboard, startPolling, stopPolling])
-
-  // Manual refresh
-  const refresh = useCallback(() => {
-    fetchDashboard()
-  }, [fetchDashboard])
-
-  return { data, isLoading, error, refresh }
+  return {
+    data: data ?? null,
+    isLoading,
+    error: error ? (error as Error).message ?? 'Errore di connessione' : null,
+    refresh: () => { mutate() },
+  }
 }

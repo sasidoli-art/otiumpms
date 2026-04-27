@@ -10,6 +10,7 @@ import {
 import { calcolaTassaSuggerita, calcolaTassaTotale, ESENZIONI_TASSA, type EsenzioneId } from '@/lib/comuni-tassa-soggiorno'
 import { format } from 'date-fns'
 import { it as itLocale } from 'date-fns/locale'
+import { toast } from '@/lib/toast'
 
 type Prenotazione = {
   id: string
@@ -308,11 +309,11 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                 const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}/send-checkin`, { method: 'POST' })
                 const data = await res.json()
                 if (res.ok) {
-                  alert(`Email inviata a ${data.email}`)
+                  toast.success(`Email inviata a ${data.email}`)
                 } else {
-                  alert(data.error || 'Errore invio')
+                  toast.error(data.error || 'Errore invio')
                 }
-              } catch { alert('Errore di rete') }
+              } catch { toast.error('Errore di rete') }
               setLoading(null)
             }}
             disabled={loading === 'send-checkin'}
@@ -370,14 +371,14 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                   const res = await fetch(`/api/host/prenotazioni/${prenotazione.id}/conto-email`, { method: 'POST' })
                   if (res.ok) {
                     setLoading(null)
-                    alert('Conto inviato via email a ' + prenotazione.guestEmail)
+                    toast.success('Conto inviato via email a ' + prenotazione.guestEmail)
                   } else {
                     setLoading(null)
-                    alert('Errore nell\'invio')
+                    toast.error('Errore nell\'invio del conto')
                   }
                 } catch {
                   setLoading(null)
-                  alert('Errore di connessione')
+                  toast.error('Errore di connessione')
                 }
               }}
               disabled={loading === 'conto-email'}
@@ -669,13 +670,13 @@ export default function PrenotazioneActions({ prenotazione }: { prenotazione: Pr
                       })
                       if (res.ok) {
                         setEmailModal(false)
-                        alert('Email inviata e registrata nella chat!')
+                        toast.success('Email inviata e registrata nella chat')
                       } else {
                         const data = await res.json().catch(() => ({}))
-                        alert(data.error || 'Errore nell\'invio')
+                        toast.error(data.error || 'Errore nell\'invio')
                       }
                     } catch {
-                      alert('Errore di connessione')
+                      toast.error('Errore di connessione')
                     }
                     setLoading(null)
                   }}

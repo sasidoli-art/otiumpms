@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Image as ImageIcon, Loader2, Plus } from 'lucide-react'
 import ImageUpload from '@/components/ui/image-upload'
+import { toast } from '@/lib/toast'
 
 interface StrutturaImagesProps {
   strutturaId: string
@@ -27,12 +28,16 @@ export default function StrutturaImages({ strutturaId, immagini }: StrutturaImag
       })
       if (!res.ok) {
         const j = await res.json()
-        setError(j.error || 'Errore nel salvataggio')
+        const msg = j.error || 'Errore nel salvataggio'
+        setError(msg)
+        toast.error(msg)
       } else {
+        toast.success('Immagini aggiornate')
         router.refresh()
       }
     } catch {
       setError('Errore di connessione')
+      toast.error('Errore di connessione')
     } finally {
       setSaving(false)
       setShowUpload(false)

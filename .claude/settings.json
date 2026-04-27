@@ -248,6 +248,9 @@
       "Bash(xargs echo *)",
       "Bash(curl -s https://otium-pms.vercel.app/api/health)",
       "Bash(npx vitest *)"
+    ],
+    "additionalDirectories": [
+      "c:\\PROGETTI\\Gestionale_otium"
     ]
   }
 }

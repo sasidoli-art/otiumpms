@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import useSWR from 'swr'
+import { fetcher } from '@/lib/swr-fetcher'
 
 /**
  * Badge counts returned by GET /api/host/sidebar-badges.
- * Keys match the API response shape.
  */
 export interface BadgeCounts {
   prenotazioniNuove: number
@@ -30,72 +30,26 @@ const EMPTY: BadgeCounts = {
   ticketAperti: 0,
 }
 
-const POLL_INTERVAL = 60_000 // 60 seconds
+const POLL_INTERVAL = 60_000
 
 /**
- * Polls GET /api/host/sidebar-badges every 60 seconds.
- *
- * - Immediate fetch on mount
- * - Pauses polling when the browser tab is hidden (Page Visibility API)
- * - Resumes + immediate fetch when the tab becomes visible again
- * - Returns { data, isLoading }
+ * SWR-based: polling 60s, revalida su focus, dedup tra componenti che usano
+ * questo hook (la sidebar viene montata una sola volta, ma se badge servisse
+ * altrove la cache viene condivisa).
  */
 export function useSidebarBadges(): { data: BadgeCounts; isLoading: boolean } {
-  const [data, setData] = useState<BadgeCounts>(EMPTY)
-  const [isLoading, setIsLoading] = useState(true)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
-  const mountedRef = useRef(true)
-
-  const fetchBadges = useCallback(async () => {
-    try {
-      const res = await fetch('/api/host/sidebar-badges')
-      if (!res.ok) return
-      const json = await res.json()
-      if (mountedRef.current) {
-        setData(json)
-        setIsLoading(false)
-      }
-    } catch {
+  const { data, isLoading } = useSWR<BadgeCounts>('/api/host/sidebar-badges', fetcher, {
+    refreshInterval: POLL_INTERVAL,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    keepPreviousData: true,
+    onError: () => {
       // Silently ignore — badges are informational, not critical
-    }
-  }, [])
+    },
+  })
 
-  const startPolling = useCallback(() => {
-    clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(fetchBadges, POLL_INTERVAL)
-  }, [fetchBadges])
-
-  const stopPolling = useCallback(() => {
-    clearInterval(intervalRef.current)
-  }, [])
-
-  // Initial fetch + start polling
-  useEffect(() => {
-    mountedRef.current = true
-    fetchBadges()
-    startPolling()
-
-    return () => {
-      mountedRef.current = false
-      stopPolling()
-    }
-  }, [fetchBadges, startPolling, stopPolling])
-
-  // Pause/resume on tab visibility change
-  useEffect(() => {
-    function onVisibilityChange() {
-      if (document.hidden) {
-        stopPolling()
-      } else {
-        // Tab became visible — fetch immediately and restart polling
-        fetchBadges()
-        startPolling()
-      }
-    }
-
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
-  }, [fetchBadges, startPolling, stopPolling])
-
-  return { data, isLoading }
+  return {
+    data: data ?? EMPTY,
+    isLoading,
+  }
 }

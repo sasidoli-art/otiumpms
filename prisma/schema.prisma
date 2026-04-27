@@ -13,11 +13,11 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum Role {
-  SUPERADMIN  // piattaforma — tu e Matteo, gestisce tutto
-  ADMIN       // admin piattaforma — gestisce clienti, fatture, pagamenti
-  DIREZIONE   // managing director hotel — vede tutto dell'host, report, BI, impostazioni
-  HOST        // manager operativo — operatività quotidiana (prenotazioni, check-in, HK, SPA, CRM)
-  STAFF       // membro staff con permessi granulari da RuoloStaff
+  SUPERADMIN // piattaforma — tu e Matteo, gestisce tutto
+  ADMIN // admin piattaforma — gestisce clienti, fatture, pagamenti
+  DIREZIONE // managing director hotel — vede tutto dell'host, report, BI, impostazioni
+  HOST // manager operativo — operatività quotidiana (prenotazioni, check-in, HK, SPA, CRM)
+  STAFF // membro staff con permessi granulari da RuoloStaff
 }
 
 enum RuoloStaff {
@@ -206,9 +206,9 @@ model PlatformSettings {
   // Tracking del cron notturno di retention. Se ultimaEsecuzioneCompletata=false
   // significa che il job precedente è stato interrotto per timeout Vercel (60s);
   // l'esecuzione successiva riprende dalle policy rimaste.
-  ultimaEsecuzioneRetentionAt          DateTime?
-  ultimaEsecuzioneRetentionCompletata  Boolean   @default(true)
-  ultimaEsecuzioneRetentionReport      Json?
+  ultimaEsecuzioneRetentionAt         DateTime?
+  ultimaEsecuzioneRetentionCompletata Boolean   @default(true)
+  ultimaEsecuzioneRetentionReport     Json?
 
   // ─── Metadata ──────────────────────────────────────────────────────────────
   updatedAt DateTime @updatedAt
@@ -244,54 +244,54 @@ model Host {
   emailMittente String? // es. "Villa Otium <info@villa.it>"
 
   // AI Concierge WhatsApp
-  conciergeAttivo       Boolean @default(false)
-  conciergeProvider     String? @default("ollama") // "ollama" | "claude" | "openai"
-  conciergeApiKey       String? // API key AI dell'host (non della piattaforma)
-  conciergeModel        String? @default("llama3.1") // modello AI da usare
-  conciergeBaseUrl      String? // URL gateway custom (es. https://openrouter.ai/api/v1 per OpenRouter)
-  conciergeSystemPrompt String? // info hotel: orari colazione, checkout, Wi-Fi, ecc.
+  conciergeAttivo         Boolean   @default(false)
+  conciergeProvider       String?   @default("ollama") // "ollama" | "claude" | "openai"
+  conciergeApiKey         String? // API key AI dell'host (non della piattaforma)
+  conciergeModel          String?   @default("llama3.1") // modello AI da usare
+  conciergeBaseUrl        String? // URL gateway custom (es. https://openrouter.ai/api/v1 per OpenRouter)
+  conciergeSystemPrompt   String? // info hotel: orari colazione, checkout, Wi-Fi, ecc.
   conciergeGdprAcceptedAt DateTime? // timestamp accettazione DPA AI da parte dell'host. NULL = non accettato (toggle ON bloccato)
-  whatsappNumeroId      String? // Phone Number ID da Meta Cloud API
-  whatsappAccessToken   String? // token API WhatsApp Business dell'host
-  whatsappVerifyToken   String? // token verifica webhook Meta
+  whatsappNumeroId        String? // Phone Number ID da Meta Cloud API
+  whatsappAccessToken     String? // token API WhatsApp Business dell'host
+  whatsappVerifyToken     String? // token verifica webhook Meta
 
   // Wi-Fi Captive Portal — configurazione metodi autenticazione
-  wifiAuthPms           Boolean @default(true)   // Login Room + Cognome (da prenotazione)
-  wifiAuthCode          Boolean @default(true)   // Login con codice accesso
-  wifiAuthComplimentary Boolean @default(false)  // Accesso gratuito a tempo
-  wifiComplimentaryMins Int     @default(120)    // Durata accesso gratuito in minuti (default 2h)
-  wifiAuthUserForm      Boolean @default(false)  // Registrazione con nome+email
-  wifiAuthEmailOnly     Boolean @default(false)  // Login solo con email (match prenotazione per email)
-  wifiAuthSocial        Boolean @default(false)  // Social login (Google/Facebook)
-  wifiRedirectUrl       String?                  // URL redirect post-login (sito hotel/attività)
-  wifiWelcomeMessage    String?                  // Messaggio personalizzato welcome page
+  wifiAuthPms           Boolean @default(true) // Login Room + Cognome (da prenotazione)
+  wifiAuthCode          Boolean @default(true) // Login con codice accesso
+  wifiAuthComplimentary Boolean @default(false) // Accesso gratuito a tempo
+  wifiComplimentaryMins Int     @default(120) // Durata accesso gratuito in minuti (default 2h)
+  wifiAuthUserForm      Boolean @default(false) // Registrazione con nome+email
+  wifiAuthEmailOnly     Boolean @default(false) // Login solo con email (match prenotazione per email)
+  wifiAuthSocial        Boolean @default(false) // Social login (Google/Facebook)
+  wifiRedirectUrl       String? // URL redirect post-login (sito hotel/attività)
+  wifiWelcomeMessage    String? // Messaggio personalizzato welcome page
 
   // Email routing — inoltro richieste ospiti a reparti specifici
-  emailHousekeeping  String?  // richieste pulizie/biancheria/asciugamani
-  emailManutenzione  String?  // segnalazioni guasti/problemi tecnici
-  emailRistorazione  String?  // room service/ristorante/colazione
-  emailReception     String?  // fallback: tutto quello che non ha categoria specifica
+  emailHousekeeping String? // richieste pulizie/biancheria/asciugamani
+  emailManutenzione String? // segnalazioni guasti/problemi tecnici
+  emailRistorazione String? // room service/ristorante/colazione
+  emailReception    String? // fallback: tutto quello che non ha categoria specifica
 
   // Check-in online — timing invio email pre-arrivo
   orePreCheckin Int @default(72) // ore prima dell'arrivo per inviare email check-in online
 
   // Onboarding
-  onboardingCompletato Boolean  @default(false) // legacy — true = fase 1 completata
-  onboardingStep       Int      @default(0)     // 0=non iniziato, 1-4=step in corso, 5=completato
-  onboardingData       Json?    @default("{}")  // dati parziali salvati tra step
+  onboardingCompletato Boolean @default(false) // legacy — true = fase 1 completata
+  onboardingStep       Int     @default(0) // 0=non iniziato, 1-4=step in corso, 5=completato
+  onboardingData       Json?   @default("{}") // dati parziali salvati tra step
 
   // DPA (Art. 28 GDPR) — contratto trattamento dati tra host (Titolare) e Otium (Responsabile)
   // Se false, l'host non può accedere a /host/* (redirect a /host/dpa)
   // La storia delle accettazioni è in DPAAccettazione[] (cambio versione → ri-accettazione)
-  dpaAccettato    Boolean           @default(false)
+  dpaAccettato Boolean @default(false)
 
   // Checklist post-onboarding (fase 2)
-  configSmtp           Boolean  @default(false)
-  configBranding       Boolean  @default(false)
-  configTariffe        Boolean  @default(false)
-  configPasti          Boolean  @default(false)
-  configCheckin        Boolean  @default(false)
-  primaPrenotazione    Boolean  @default(false)
+  configSmtp        Boolean @default(false)
+  configBranding    Boolean @default(false)
+  configTariffe     Boolean @default(false)
+  configPasti       Boolean @default(false)
+  configCheckin     Boolean @default(false)
+  primaPrenotazione Boolean @default(false)
 
   // Registration Card HTML (personalizzabile dall'host)
   regCardTerminiHtml    String?
@@ -300,7 +300,7 @@ model Host {
   regCardCampiExtra     Json?
 
   // Modalità check-in: 'completo' (ospite fa tutto online) | 'leggero' (documenti in reception)
-  modalitaCheckin       String?   @default("completo")
+  modalitaCheckin String? @default("completo")
 
   // Moduli attivabili per struttura
   // JSON: { "spa": true, "concierge": false, "lostFound": true, ... }
@@ -311,6 +311,10 @@ model Host {
   statoAbbonamento StatoAbbonamento @default(IN_PROVA)
   dataInizioAbb    DateTime?
   dataFineAbb      DateTime?
+
+  // Stripe billing (popolato al primo Customer Portal o Checkout)
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
 
   // Dati fatturazione (possono differire dai dati azienda)
   fattNomeAzienda String?
@@ -410,15 +414,15 @@ model Host {
   contratti ContrattoAllotment[]
 
   // Multi-valuta
-  valutaBase       String?  @default("EUR")
-  valuteAccettate  String[] @default(["EUR"])
+  valutaBase      String?  @default("EUR")
+  valuteAccettate String[] @default(["EUR"])
 
   // Wi-Fi module
-  wifiDevices      WifiDevice[]
-  wifiGuestUsers   WifiGuestUser[]
-  wifiAccessLogs   WifiAccessLog[]
-  wifiAccessCodes  WifiAccessCode[]
-  wifiSessions     WifiSession[]
+  wifiDevices     WifiDevice[]
+  wifiGuestUsers  WifiGuestUser[]
+  wifiAccessLogs  WifiAccessLog[]
+  wifiAccessCodes WifiAccessCode[]
+  wifiSessions    WifiSession[]
 
   // ─── Config estratte (Fase 1 God Object split) ──────────────────────────
   // Durante la migrazione i campi SMTP/Concierge/Wifi/Billing esistono sia su
@@ -452,11 +456,12 @@ model Host {
   pagamentiPiattaforma PagamentoPiattaforma[]
 
   // Registratore Telematico (scontrino fiscale)
-  registratoreRt    RegistratoreRtConfig?
-  scontriniRt       ScontrinoRT[]
+  registratoreRt RegistratoreRtConfig?
+  scontriniRt    ScontrinoRT[]
 
   // Prenotazioni ristorante (tavoli)
   prenotazioniRistorante PrenotazioneRistorante[]
+  WebhookSubscription    WebhookSubscription[]
 
   @@map("hosts")
 }
@@ -499,16 +504,16 @@ model HostConciergeConfig {
   conciergeGdprAcceptedAt DateTime?
 
   // Tuning AI
-  conciergeTemperatura   Float? @default(0.7)
-  conciergeMaxToken      Int?   @default(500)
+  conciergeTemperatura   Float?  @default(0.7)
+  conciergeMaxToken      Int?    @default(500)
   conciergeKnowledgeBase String? // FAQ/info estese sulla struttura (separate dal system prompt)
 
   // Comportamento
-  conciergeLinguaDefault          String? @default("it") // fallback lingua risposta
-  conciergeAutoEscalation         Int?    @default(10)   // escalate dopo N msg AI senza risoluzione
-  conciergeOrariAttiviDa          String? // "HH:MM" — se null: sempre attivo
-  conciergeOrariAttiviA           String? // "HH:MM"
-  conciergeMessaggioFuoriOrario   String? // risposta quando il bot è offline
+  conciergeLinguaDefault        String? @default("it") // fallback lingua risposta
+  conciergeAutoEscalation       Int?    @default(10) // escalate dopo N msg AI senza risoluzione
+  conciergeOrariAttiviDa        String? // "HH:MM" — se null: sempre attivo
+  conciergeOrariAttiviA         String? // "HH:MM"
+  conciergeMessaggioFuoriOrario String? // risposta quando il bot è offline
 
   // WhatsApp Business
   whatsappNumeroId    String?
@@ -705,7 +710,7 @@ model Fattura {
   clienteSDI       String?
 
   // Righe fattura (JSON array) — LEGACY, sostituito da rigeRel. Da rimuovere dopo migrazione.
-  righe Json // [{descrizione, quantita, prezzoUnitario, iva, totale}]
+  righe   Json // [{descrizione, quantita, prezzoUnitario, iva, totale}]
   // Righe fattura (relazione 1:N) — canonica per analytics e report
   rigeRel RigaFattura[]
 
@@ -751,12 +756,12 @@ model RigaFattura {
   fatturaId String
   fattura   Fattura @relation(fields: [fatturaId], references: [id], onDelete: Cascade)
 
-  ordine          Int    @default(0) // ordinamento nella fattura
+  ordine          Int     @default(0) // ordinamento nella fattura
   descrizione     String
   quantita        Float
   prezzoUnitario  Float
-  aliquotaIva     Float  @default(22) // percentuale (0 = esente)
-  totale          Float  // quantita * prezzoUnitario (imponibile)
+  aliquotaIva     Float   @default(22) // percentuale (0 = esente)
+  totale          Float // quantita * prezzoUnitario (imponibile)
   naturaEsenzione String? // codice SDI es. N1 (tassa soggiorno), N4, N6, ecc.
   categoria       String? // tassonomia libera: "soggiorno", "spa", "food", "tassa-soggiorno", "extra"
 
@@ -793,20 +798,20 @@ model Struttura {
   alloggiatiComuneIstat         String? // codice ISTAT comune struttura (es. "H501")
   alloggiatiDenominazioneComune String? // nome comune per leggibilità
 
-  unita             UnitaPrenotabile[]
-  prenotazioni      Prenotazione[]
-  segnalazioni      SegnalazioneManutenzione[]
-  pacchetti         Pacchetto[]
-  regoleTariffa     RegolaTariffa[]
-  configPasti       ConfigPastoStruttura[]
-  canaliEsterni     CanaleEsterno[]
-  serviziStruttura  ServizioStruttura[]
-  pacchettiServizio PacchettoServizio[]
-  regoleUpsell      RegolaUpsell[]
-  menuGiornalieri   MenuGiornaliero[]
-  contrattiAllotment ContrattoAllotment[]
-  wifiDevices       WifiDevice[]
-  exportAlloggiati  ExportAlloggiati[]
+  unita                  UnitaPrenotabile[]
+  prenotazioni           Prenotazione[]
+  segnalazioni           SegnalazioneManutenzione[]
+  pacchetti              Pacchetto[]
+  regoleTariffa          RegolaTariffa[]
+  configPasti            ConfigPastoStruttura[]
+  canaliEsterni          CanaleEsterno[]
+  serviziStruttura       ServizioStruttura[]
+  pacchettiServizio      PacchettoServizio[]
+  regoleUpsell           RegolaUpsell[]
+  menuGiornalieri        MenuGiornaliero[]
+  contrattiAllotment     ContrattoAllotment[]
+  wifiDevices            WifiDevice[]
+  exportAlloggiati       ExportAlloggiati[]
   prenotazioniRistorante PrenotazioneRistorante[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
@@ -817,19 +822,19 @@ model Struttura {
   cancellazionePolicy String? // testo libero visibile in fase di conferma. Se null: default standard
 
   // ─── Display firma reception ────────────────────────────────────────────
-  firmaDisplayPrenotazioneId String?  // ID prenotazione attualmente in firma sul display
+  firmaDisplayPrenotazioneId String? // ID prenotazione attualmente in firma sul display
   firmaDisplayAttivaAt       DateTime? // quando è stata attivata
 
   // ─── Branding (white-label per comunicazioni ospite) ──────────────────────
-  logo              String?  // URL logo struttura
-  colorePrimario    String?  @default("#4f46e5") // hex
-  coloreSecondario  String?  @default("#6366f1") // hex
+  logo              String? // URL logo struttura
+  colorePrimario    String? @default("#4f46e5") // hex
+  coloreSecondario  String? @default("#6366f1") // hex
   coloreSfondo      String? // hex (default applicato runtime: #ffffff)
   coloreTesto       String? // hex (default applicato runtime: #18181b)
   fontFamily        String? // es. "Inter", "Montserrat", "Playfair Display"
   borderRadius      String? // es. "4px", "8px", "16px"
-  fotoHero          String?  // URL foto principale (per email + landing)
-  messaggioChiusura String?  // es. "Un caro saluto dalla Romagna"
+  fotoHero          String? // URL foto principale (per email + landing)
+  messaggioChiusura String? // es. "Un caro saluto dalla Romagna"
   linkFacebook      String?
   linkInstagram     String?
   linkSitoWeb       String?
@@ -837,7 +842,7 @@ model Struttura {
   // ─── Custom domain per booking engine (white-label URL) ───────────────────
   // Es. "prenota.villamargherita.it" — richiede CNAME verso cname.otiumweek.com
   // + configurazione domain su Vercel (manuale o via API).
-  customDomain       String?  @unique
+  customDomain             String?   @unique
   customDomainVerificatoAt DateTime?
 
   createdAt DateTime @default(now())
@@ -908,6 +913,7 @@ model TariffaPeriodo {
   prezzo     Float
   colore     String?  @default("#6366f1") // per il calendario
 
+  @@index([unitaId, dataInizio, dataFine]) // pricing engine: range query per data
   @@map("tariffe_periodo")
 }
 
@@ -942,6 +948,8 @@ model RegolaTariffa {
 
   createdAt DateTime @default(now())
 
+  @@index([strutturaId, attiva]) // pricing engine: regole attive per struttura
+  @@index([unitaId, attiva]) // regole specifiche unità
   @@map("regole_tariffa")
 }
 
@@ -970,7 +978,7 @@ model Prenotazione {
   // PIN ospite — chiave universale del soggiorno (4 cifre, unique per host)
   // Auto-generato alla conferma, valido check-in → check-out.
   // Usato per: WiFi login, directory camera, concierge WhatsApp, richieste, SPA, checkout.
-  pin           String?
+  pin String?
 
   // Dati ospite
   guestNome     String
@@ -1036,31 +1044,31 @@ model Prenotazione {
   regCardDataFirma    DateTime?
 
   // Self check-in ospite
-  checkInToken      String? @unique
-  checkInCompletato Boolean @default(false) // legacy: true se ONLINE_COMPLETATO o VERIFICATO
+  checkInToken      String?      @unique
+  checkInCompletato Boolean      @default(false) // legacy: true se ONLINE_COMPLETATO o VERIFICATO
   statoCheckIn      StatoCheckIn @default(NON_INIZIATO)
   verificatoAt      DateTime?
   verificatoDa      String? // userId operatore reception
 
-  chat              Chat?
-  fattura           Fattura?                @relation(fields: [fatturaId], references: [id])
-  fatturaId         String?
-  appuntamentiSpa   AppuntamentoSpa[]
-  conversazioniWA   ConversazioneWhatsApp[]
-  accompagnatori    Accompagnatore[]
-  traces            Trace[]
-  oggettiSmarriti   OggettoSmarrito[]
-  alertOspite       AlertOspite[]
-  pianoPasto        PastoPrenotazione?
-  addebiti          AddebitoPrenotazione[]
-  pagamentiCheckout PagamentoCheckout[]
-  proposteUpsell    PropostaUpsell[]
-  upsellingConversioni UpsellingConversione[]
-  movimentiFedelta  MovimentoPunti[]
-  sceltePasto       SceltaPastoOspite[]
-  transazioniPOS    TransazionePOS[]
-  waitingListSpa    WaitingListSpa[]
-  incassi           Incasso[]
+  chat                   Chat?
+  fattura                Fattura?                 @relation(fields: [fatturaId], references: [id])
+  fatturaId              String?
+  appuntamentiSpa        AppuntamentoSpa[]
+  conversazioniWA        ConversazioneWhatsApp[]
+  accompagnatori         Accompagnatore[]
+  traces                 Trace[]
+  oggettiSmarriti        OggettoSmarrito[]
+  alertOspite            AlertOspite[]
+  pianoPasto             PastoPrenotazione?
+  addebiti               AddebitoPrenotazione[]
+  pagamentiCheckout      PagamentoCheckout[]
+  proposteUpsell         PropostaUpsell[]
+  upsellingConversioni   UpsellingConversione[]
+  movimentiFedelta       MovimentoPunti[]
+  sceltePasto            SceltaPastoOspite[]
+  transazioniPOS         TransazionePOS[]
+  waitingListSpa         WaitingListSpa[]
+  incassi                Incasso[]
   prenotazioniRistorante PrenotazioneRistorante[] @relation("PrenotazioneRistoranteSoggiorno")
 
   createdAt DateTime  @default(now())
@@ -1100,15 +1108,15 @@ model GruppoPrenotazione {
   referenteEmail    String
   referenteTelefono String?
 
-  dataArrivo   DateTime  @db.Date
-  dataPartenza DateTime? @db.Date
-  numOspitiTotali Int @default(0)
+  dataArrivo      DateTime  @db.Date
+  dataPartenza    DateTime? @db.Date
+  numOspitiTotali Int       @default(0)
 
   // Prezzo complessivo + eventuale sconto gruppo
   prezzoTotale  Float?
   scontoPercent Float?
 
-  note     String?
+  note          String?
   eventoEsterno String? // link stringa libera a evento esterno (es. sito matrimonio)
 
   prenotazioni Prenotazione[]
@@ -1124,9 +1132,9 @@ model GruppoPrenotazione {
 }
 
 enum StatoCheckIn {
-  NON_INIZIATO       // ospite non ha fatto nulla
-  ONLINE_COMPLETATO  // ospite ha firmato online, serve verifica reception (controllo documento)
-  VERIFICATO         // operatore in reception ha verificato il documento fisicamente
+  NON_INIZIATO // ospite non ha fatto nulla
+  ONLINE_COMPLETATO // ospite ha firmato online, serve verifica reception (controllo documento)
+  VERIFICATO // operatore in reception ha verificato il documento fisicamente
 }
 
 // ─── Piani Pasto & Ristorazione ───────────────────────────────────────────────
@@ -1163,7 +1171,7 @@ model ConfigPastoStruttura {
   // Capacita ristorante: numero massimo coperti contemporanei per questa fascia
   // (usato dal booking ristorante pubblico per calcolare slot disponibili).
   // null = illimitato / non gestito (es. colazione B&B)
-  maxCoperti    Int?
+  maxCoperti Int?
 
   createdAt DateTime @default(now())
 
@@ -1690,7 +1698,7 @@ model UpsellingSuggerimento {
 
   // Targeting
   posizione  UpsellingTouchpoint[] @default([])
-  condizioni Json?                 // { minNotti, maxNotti, cameraTipo[], pianoPasto[], giorniPrimaArrivo{min,max}, ospiteRicorrente }
+  condizioni Json? // { minNotti, maxNotti, cameraTipo[], pianoPasto[], giorniPrimaArrivo{min,max}, ospiteRicorrente }
   priorita   Int                   @default(0)
 
   attivo Boolean @default(true)
@@ -1890,12 +1898,12 @@ model RegistratoreRtConfig {
   hostId String @id
   host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  provider         String  @default("NESSUNO") // NESSUNO | MANUALE | EPSON_EPOS | CUSTOM_KUBE | OLIVETTI | RCH
-  matricola        String? // matricola RT (8-10 cifre, visibile sullo scontrino)
-  endpointUrl      String? // IP locale o URL (es. http://192.168.1.50/cgi-bin/fpmate.cgi)
-  timeout          Int     @default(10000) // ms
-  aliquotaDefault  Float   @default(22) // IVA default per voci senza aliquota esplicita
-  esercizioNumero  Int?    // numero esercizio (per sede con più punti vendita)
+  provider        String  @default("NESSUNO") // NESSUNO | MANUALE | EPSON_EPOS | CUSTOM_KUBE | OLIVETTI | RCH
+  matricola       String? // matricola RT (8-10 cifre, visibile sullo scontrino)
+  endpointUrl     String? // IP locale o URL (es. http://192.168.1.50/cgi-bin/fpmate.cgi)
+  timeout         Int     @default(10000) // ms
+  aliquotaDefault Float   @default(22) // IVA default per voci senza aliquota esplicita
+  esercizioNumero Int? // numero esercizio (per sede con più punti vendita)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1919,9 +1927,9 @@ model ScontrinoRT {
   dataOra         DateTime @default(now())
 
   // Totali
-  imponibile Float
-  imposta    Float
-  totale     Float
+  imponibile      Float
+  imposta         Float
+  totale          Float
   metodoPagamento String @default("CARTA") // CARTA | CONTANTI | ELETTRONICO | MISTO
 
   // Righe (JSON per snapshot; breakdown per analytics separato in TransazionePOS.voci)
@@ -1993,13 +2001,13 @@ model ApiKey {
   hostId String
   host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  nome       String // label descrittiva ("Zapier integration", "App gestione contabile")
-  token      String @unique // SHA-256 hex (64 char)
-  prefix     String // primi 8 char della chiave (display-friendly per UI)
-  scopes     String[] @default([]) // "prenotazioni:read", "prenotazioni:write", "ospiti:read", ecc.
+  nome        String // label descrittiva ("Zapier integration", "App gestione contabile")
+  token       String    @unique // SHA-256 hex (64 char)
+  prefix      String // primi 8 char della chiave (display-friendly per UI)
+  scopes      String[]  @default([]) // "prenotazioni:read", "prenotazioni:write", "ospiti:read", ecc.
   ultimaUsata DateTime?
   scadenza    DateTime?
-  revocata    Boolean @default(false)
+  revocata    Boolean   @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2014,12 +2022,12 @@ model ApiKey {
 // Log degli export eseguiti + file generato, per re-download e audit legale.
 
 model ExportAlloggiati {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   hostId      String
-  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host        Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
   strutturaId String
   struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
-  dataExport  DateTime @db.Date // giorno degli arrivi esportati
+  dataExport  DateTime  @db.Date // giorno degli arrivi esportati
 
   numOspiti         Int
   numAccompagnatori Int
@@ -2200,6 +2208,9 @@ model SegnalazioneManutenzione {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, stato]) // dashboard manutenzione + count aperte
+  @@index([hostId, createdAt]) // lista cronologica
+  @@index([unitaId]) // detail unità
   @@map("segnalazioni_manutenzione")
 }
 
@@ -2224,6 +2235,9 @@ model TaskHK {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, completato]) // dashboard HK + count task aperti
+  @@index([hostId, dataScadenza]) // task in scadenza
+  @@index([unitaId, completato]) // detail unità: task pendenti
   @@map("task_hk")
 }
 
@@ -2260,6 +2274,8 @@ model Pacchetto {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, attivo]) // listing pubblico + dashboard host
+  @@index([strutturaId, attivo]) // pacchetti per struttura
   @@map("pacchetti")
 }
 
@@ -2278,6 +2294,8 @@ model Notifica {
 
   createdAt DateTime @default(now())
 
+  @@index([hostId, letta]) // sidebar badge: WHERE hostId=X AND letta=false
+  @@index([hostId, createdAt]) // lista notifiche: ORDER BY createdAt DESC
   @@map("notifiche")
 }
 
@@ -2295,7 +2313,7 @@ model NotificaSuperadmin {
   titolo    String
   messaggio String?
   linkUrl   String?
-  priorita  String @default("NORMALE") // BASSA | NORMALE | ALTA | URGENTE
+  priorita  String  @default("NORMALE") // BASSA | NORMALE | ALTA | URGENTE
 
   entitaTipo String?
   entitaId   String?
@@ -2392,7 +2410,7 @@ model AuditLog {
 /// Ogni cambio di stato (accetta → revoca) è un NUOVO record, non un UPDATE.
 /// Il consenso "attivo" è l'ultimo record per (subject, hostId, tipo) con revocatoAt=null.
 model UserConsent {
-  id         String @id @default(cuid())
+  id String @id @default(cuid())
 
   // ─── Chi ──────────────────────────────────────────────────────────────────
   hostId     String? // host di riferimento (multi-tenant)
@@ -2403,22 +2421,22 @@ model UserConsent {
   // ─── Cosa ─────────────────────────────────────────────────────────────────
   // tipo: "termini_servizio" | "privacy_ospite" | "marketing_email" | "marketing_sms"
   //       | "spa_art9" | "cookie_analytics" | "cookie_marketing" | "profilazione_crm"
-  tipo       String
-  versione   String // es. "2026-04-01". Se il testo del documento cambia, serve nuovo consenso.
+  tipo     String
+  versione String // es. "2026-04-01". Se il testo del documento cambia, serve nuovo consenso.
 
   // ─── Stato ────────────────────────────────────────────────────────────────
-  accettato  Boolean @default(true) // true = dato, false = revocato
+  accettato Boolean @default(true) // true = dato, false = revocato
 
   // ─── Prova del consenso (Art. 7.1 GDPR: onere della prova) ───────────────
-  ip         String?
-  userAgent  String?
-  metodo     String? @default("checkbox") // "checkbox" | "firma_digitale" | "double_opt_in" | "api"
+  ip        String?
+  userAgent String?
+  metodo    String? @default("checkbox") // "checkbox" | "firma_digitale" | "double_opt_in" | "api"
 
   // ─── Revoca ───────────────────────────────────────────────────────────────
-  revocatoAt    DateTime?
-  revocaMotivo  String? // "richiesta_ospite" | "scadenza" | "cambio_versione"
+  revocatoAt   DateTime?
+  revocaMotivo String? // "richiesta_ospite" | "scadenza" | "cambio_versione"
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([guestEmail, tipo])
   @@index([hostId, tipo])
@@ -2567,8 +2585,8 @@ model CabinaSpa {
   attiva      Boolean @default(true)
 
   // Display tablet
-  fotoSfondo          String?   // URL immagine sfondo per tablet cabina
-  minutiPreAttivazione Int      @default(10) // minuti prima dell'appuntamento per attivare il display
+  fotoSfondo           String? // URL immagine sfondo per tablet cabina
+  minutiPreAttivazione Int     @default(10) // minuti prima dell'appuntamento per attivare il display
 
   // Housekeeping cabina SPA
   statoHK             String    @default("PULITA") // PULITA, OCCUPATA, IN_PULIZIA, NON_DISPONIBILE
@@ -2773,10 +2791,10 @@ model WaiverSpa {
   notePreferenze       String? // note libere preferenze
 
   // Accettazione T&C
-  accettazioneTermini  Boolean @default(false)
-  accettazionePrivacy  Boolean @default(false)
-  consensoFoto         Boolean @default(false)
-  dichiarazioneNessuna Boolean @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
+  accettazioneTermini  Boolean   @default(false)
+  accettazionePrivacy  Boolean   @default(false)
+  consensoFoto         Boolean   @default(false)
+  dichiarazioneNessuna Boolean   @default(false) // "Dichiaro di non avere condizioni mediche rilevanti"
   consensoArt9At       DateTime? // timestamp esplicito consenso trattamento dati sanitari Art. 9 GDPR
 
   // Status firma
@@ -2957,7 +2975,7 @@ model Ticket {
   updatedAt     DateTime        @updatedAt
 
   /// Thread risposte conversazione (host ↔ admin)
-  risposte      TicketRisposta[]
+  risposte TicketRisposta[]
 
   @@index([userId])
   @@index([hostId])
@@ -3430,7 +3448,7 @@ model MovimentoPunti {
 
   // Collegamento opzionale a prenotazione alloggio (per accumulo da checkout)
   prenotazioneId String?
-  prenotazione   Prenotazione?    @relation(fields: [prenotazioneId], references: [id])
+  prenotazione   Prenotazione? @relation(fields: [prenotazioneId], references: [id])
 
   // Collegamento opzionale a premio riscattato (tipo UTILIZZO)
   premioId String?
@@ -3469,20 +3487,20 @@ enum TipoPremioFedelta {
 }
 
 model PremioFedelta {
-  id          String            @id @default(cuid())
+  id          String           @id @default(cuid())
   programmaId String
-  programma   ProgrammaFedelta  @relation(fields: [programmaId], references: [id], onDelete: Cascade)
+  programma   ProgrammaFedelta @relation(fields: [programmaId], references: [id], onDelete: Cascade)
 
-  tipo            TipoPremioFedelta
-  nome            String
-  descrizione     String?
-  immagine        String?
-  costoInPunti    Int
-  attivo          Boolean           @default(true)
+  tipo         TipoPremioFedelta
+  nome         String
+  descrizione  String?
+  immagine     String?
+  costoInPunti Int
+  attivo       Boolean           @default(true)
 
   // Disponibilità
   disponibilitaMax    Int? // quanti riscatti totali disponibili (null = illimitato)
-  riscattiContatore   Int               @default(0) // quanti già riscattati
+  riscattiContatore   Int  @default(0) // quanti già riscattati
   disponibilitaMembro Int? // quanti riscatti max per singolo membro (null = illimitato)
 
   // Link opzionali per side-effect automatico
@@ -3678,22 +3696,22 @@ model ContrattoAllotment {
   hostId String
   host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  tipo          TipoContratto
-  nomePartner   String
-  contatto      String?
-  email         String?
-  telefono      String?
-  dataInizio    DateTime @db.Date
-  dataFine      DateTime @db.Date
-  stato         StatoContratto @default(ATTIVO)
+  tipo        TipoContratto
+  nomePartner String
+  contatto    String?
+  email       String?
+  telefono    String?
+  dataInizio  DateTime       @db.Date
+  dataFine    DateTime       @db.Date
+  stato       StatoContratto @default(ATTIVO)
 
   // Allotment
-  strutturaId          String
-  struttura            Struttura @relation(fields: [strutturaId], references: [id])
-  unitaRiservate       Int
-  unitaVendute         Int       @default(0)
-  tariffaNegoziata     Float?
-  scontoPercentuale    Float?
+  strutturaId            String
+  struttura              Struttura @relation(fields: [strutturaId], references: [id])
+  unitaRiservate         Int
+  unitaVendute           Int       @default(0)
+  tariffaNegoziata       Float?
+  scontoPercentuale      Float?
   commissionePercentuale Float?
 
   // Policy
@@ -3711,10 +3729,10 @@ model ContrattoAllotment {
 // ─── Modulo Wi-Fi ─────────────────────────────────────────────────────────────
 
 enum WifiDeviceStato {
-  PENDING      // registrato ma mai visto online
-  ONLINE       // heartbeat recente
-  OFFLINE      // nessun heartbeat > soglia
-  DISABLED     // disattivato manualmente
+  PENDING // registrato ma mai visto online
+  ONLINE // heartbeat recente
+  OFFLINE // nessun heartbeat > soglia
+  DISABLED // disattivato manualmente
 }
 
 enum WifiCommandStato {
@@ -3732,38 +3750,38 @@ enum WifiGuestStato {
 }
 
 model WifiDevice {
-  id          String @id @default(cuid())
+  id          String     @id @default(cuid())
   hostId      String
-  host        Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  host        Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
   strutturaId String?
   struttura   Struttura? @relation(fields: [strutturaId], references: [id], onDelete: SetNull)
 
-  alias       String              // nome leggibile (es. "Reception ground floor")
-  mac         String  @unique     // MAC controller Comfast (identificativo univoco)
-  modello     String?             // es. "CF-AC300", "CF-AC100"
-  firmware    String?             // versione OrangeOS rilevata
-  apiTokenHash String             // hash del bearer token dell'agent (mai plaintext)
-  stato       WifiDeviceStato @default(PENDING)
+  alias        String // nome leggibile (es. "Reception ground floor")
+  mac          String          @unique // MAC controller Comfast (identificativo univoco)
+  modello      String? // es. "CF-AC300", "CF-AC100"
+  firmware     String? // versione OrangeOS rilevata
+  apiTokenHash String // hash del bearer token dell'agent (mai plaintext)
+  stato        WifiDeviceStato @default(PENDING)
 
   // Ultimo heartbeat
-  ultimoHeartbeatAt DateTime?
-  ultimoIpPubblico  String?
+  ultimoHeartbeatAt  DateTime?
+  ultimoIpPubblico   String?
   ultimoAgentVersion String?
 
   // Config splash (fonte di verità dal PMS, propagata al device)
-  splashConfig Json?  // { titolo, messaggio, testoBottone, linkRedirect, slideshowUrls[], logoUrl }
+  splashConfig Json? // { titolo, messaggio, testoBottone, linkRedirect, slideshowUrls[], logoUrl }
 
   // Policy utenti guest di default
-  defaultUserDurationMin Int @default(1440) // 24h
+  defaultUserDurationMin   Int  @default(1440) // 24h
   defaultUserBandwidthKbps Int? // null = illimitato
 
-  note        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  commands    WifiDeviceCommand[]
-  guestUsers  WifiGuestUser[]
-  accessLogs  WifiAccessLog[]
+  commands   WifiDeviceCommand[]
+  guestUsers WifiGuestUser[]
+  accessLogs WifiAccessLog[]
 
   @@index([hostId, stato])
   @@index([strutturaId])
@@ -3771,28 +3789,28 @@ model WifiDevice {
 }
 
 model WifiDeviceCommand {
-  id         String @id @default(cuid())
-  deviceId   String
-  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  id       String     @id @default(cuid())
+  deviceId String
+  device   WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
-  action     String            // es. "set_splash_branding", "add_guest_user", "upload_splash_image"
-  payload    Json              // parametri azione
-  stato      WifiCommandStato @default(PENDING)
+  action  String // es. "set_splash_branding", "add_guest_user", "upload_splash_image"
+  payload Json // parametri azione
+  stato   WifiCommandStato @default(PENDING)
 
   // Lifecycle
-  sentAt     DateTime?         // quando l'agent l'ha ritirato
-  doneAt     DateTime?         // quando l'agent ha riportato esito
-  result     Json?             // output restituito dall'agent
-  errorMsg   String?
+  sentAt   DateTime? // quando l'agent l'ha ritirato
+  doneAt   DateTime? // quando l'agent ha riportato esito
+  result   Json? // output restituito dall'agent
+  errorMsg String?
 
   // Auto-scadenza: comandi non ritirati entro X ore diventano EXPIRED
-  expiresAt  DateTime?
+  expiresAt DateTime?
 
   // Chi l'ha creato (operatore host)
   createdByUserId String?
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([deviceId, stato])
   @@index([stato, expiresAt])
@@ -3800,34 +3818,34 @@ model WifiDeviceCommand {
 }
 
 model WifiGuestUser {
-  id         String @id @default(cuid())
-  hostId     String
-  host       Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  deviceId   String
-  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  id       String     @id @default(cuid())
+  hostId   String
+  host     Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  deviceId String
+  device   WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   // Dati account portale
-  username   String
-  passwordHash String            // hash, mai plaintext
-  displayName String?            // nome mostrato all'ospite
-  note       String?
+  username     String
+  passwordHash String // hash, mai plaintext
+  displayName  String? // nome mostrato all'ospite
+  note         String?
 
   // Collegamento opzionale a prenotazione / ospite del PMS
   prenotazioneId String?
   ospiteCrmId    String?
 
   stato      WifiGuestStato @default(ATTIVO)
-  validFrom  DateTime @default(now())
+  validFrom  DateTime       @default(now())
   validUntil DateTime?
 
   // Telemetria dall'agent
   ultimoLoginAt DateTime?
   ultimoMac     String?
-  byteScaricati BigInt @default(0)
-  byteCaricati  BigInt @default(0)
+  byteScaricati BigInt    @default(0)
+  byteCaricati  BigInt    @default(0)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([deviceId, username])
   @@index([hostId, stato])
@@ -3836,14 +3854,14 @@ model WifiGuestUser {
 }
 
 model WifiAccessLog {
-  id         String @id @default(cuid())
-  hostId     String
-  host       Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  deviceId   String
-  device     WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  id       String     @id @default(cuid())
+  hostId   String
+  host     Host       @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  deviceId String
+  device   WifiDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   timestamp  DateTime
-  eventType  String    // "login", "logout", "timeout", "revoke"
+  eventType  String // "login", "logout", "timeout", "revoke"
   username   String?
   macClient  String?
   ipClient   String?
@@ -3851,7 +3869,7 @@ model WifiAccessLog {
   bytesOut   BigInt?
   sessionSec Int?
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([deviceId, timestamp])
   @@index([hostId, timestamp])
@@ -3864,24 +3882,24 @@ model WifiAccessLog {
 // il sistema crea automaticamente lo user corrispondente al primo login.
 
 model WifiAccessCode {
-  id          String   @id @default(cuid())
-  hostId      String
-  host        Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  codice         String   @unique  // 8 char alphanum, case-insensitive in check
-  durataMinuti   Int               // validita' sessione dopo il login (es. 1440 = 24h)
-  usiMax         Int               // max login totali (-1 = illimitato)
-  usiEffettuati  Int      @default(0)
-  validoFino     DateTime          // dopo questa data il codice e' spento
+  codice        String   @unique // 8 char alphanum, case-insensitive in check
+  durataMinuti  Int // validita' sessione dopo il login (es. 1440 = 24h)
+  usiMax        Int // max login totali (-1 = illimitato)
+  usiEffettuati Int      @default(0)
+  validoFino    DateTime // dopo questa data il codice e' spento
 
-  note           String?
+  note            String?
   createdByUserId String?
-  revocatoAt     DateTime?
+  revocatoAt      DateTime?
 
-  sessioni       WifiSession[]
+  sessioni WifiSession[]
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([hostId, revocatoAt])
   @@index([validoFino])
@@ -3892,42 +3910,122 @@ model WifiAccessCode {
 // Una sessione autenticata (compliance Pisanu: log 6 mesi, identificativo ospite).
 
 enum WifiSessionTipo {
-  PRENOTAZIONE   // ospite in struttura, login con nome+camera
-  CODICE         // walk-in, login con codice di accesso
-  COMPLIMENTARY  // accesso gratuito a tempo, nessuna auth richiesta
-  USER_FORM      // registrazione con nome+email (lead generation)
-  EMAIL_ONLY     // match prenotazione via sola email (opt-in per host)
+  PRENOTAZIONE // ospite in struttura, login con nome+camera
+  CODICE // walk-in, login con codice di accesso
+  COMPLIMENTARY // accesso gratuito a tempo, nessuna auth richiesta
+  USER_FORM // registrazione con nome+email (lead generation)
+  EMAIL_ONLY // match prenotazione via sola email (opt-in per host)
 }
 
 model WifiSession {
-  id              String   @id @default(cuid())
-  hostId          String
-  host            Host     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
-  tipo            WifiSessionTipo
-  prenotazioneId  String?
-  accessCodeId    String?
-  accessCode      WifiAccessCode? @relation(fields: [accessCodeId], references: [id], onDelete: SetNull)
+  tipo           WifiSessionTipo
+  prenotazioneId String?
+  accessCodeId   String?
+  accessCode     WifiAccessCode? @relation(fields: [accessCodeId], references: [id], onDelete: SetNull)
 
   // Identita' ospite (denormalizzata per audit log)
-  guestNome       String
-  guestCognome    String?
-  numeroCamera    String?         // solo per tipo=PRENOTAZIONE
+  guestNome    String
+  guestCognome String?
+  numeroCamera String? // solo per tipo=PRENOTAZIONE
 
   // Contesto tecnico (quando disponibile dal captive portal)
-  macClient       String?
-  ipClient        String?
-  userAgent       String?
+  macClient String?
+  ipClient  String?
+  userAgent String?
 
   // Lifecycle
-  startAt         DateTime @default(now())
-  expiresAt       DateTime
-  revokedAt       DateTime?
+  startAt   DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([hostId, startAt])
   @@index([prenotazioneId])
   @@index([accessCodeId])
   @@map("wifi_sessions")
+}
+
+// ─── Webhooks ─────────────────────────────────────────────────────────────────
+// Sottoscrizioni outbound: l'host configura un endpoint HTTPS che riceve
+// notifiche POST quando avvengono eventi (es. prenotazione creata).
+// Firma HMAC-SHA256 in header `X-Otium-Signature` (vedi lib/webhooks.ts).
+
+enum WebhookEvent {
+  PRENOTAZIONE_CREATA
+  PRENOTAZIONE_AGGIORNATA
+  PRENOTAZIONE_CANCELLATA
+  CHECKIN_COMPLETATO
+  CHECKOUT_COMPLETATO
+  PAGAMENTO_RICEVUTO
+  SPA_APPUNTAMENTO_CREATO
+  SPA_APPUNTAMENTO_AGGIORNATO
+  RECENSIONE_RICEVUTA
+}
+
+enum WebhookConsegnaStato {
+  IN_CODA
+  RIUSCITA
+  FALLITA
+  RIPROVATA
+}
+
+model WebhookSubscription {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  url         String // endpoint HTTPS dell'integratore
+  descrizione String? // etichetta umana ("Zapier prod", "Make demo", ecc.)
+  eventi      WebhookEvent[] // lista eventi sottoscritti
+  attivo      Boolean        @default(true)
+
+  // Secret HMAC: cifrato AES-GCM via lib/host-secrets.ts pattern? Per semplicita
+  // e perche' i webhook secret sono visualizzabili una sola volta alla creazione,
+  // qui salviamo l'hash sha256 del secret. Il plain viene mostrato solo al POST.
+  secretHash String
+
+  // Stats per UI
+  ultimaConsegnaAt DateTime?
+  ultimaConsegnaOk Boolean?
+  consegneRiuscite Int       @default(0)
+  consegneFallite  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consegne WebhookConsegna[]
+
+  @@index([hostId, attivo])
+  @@map("webhook_subscriptions")
+}
+
+model WebhookConsegna {
+  id             String              @id @default(cuid())
+  subscriptionId String
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  evento  WebhookEvent
+  payload Json // payload JSON inviato (snapshot)
+
+  stato               WebhookConsegnaStato @default(IN_CODA)
+  tentativi           Int                  @default(0)
+  ultimoTentativoAt   DateTime?
+  prossimoTentativoAt DateTime?
+
+  // Risposta dell'integratore
+  responseStatus Int?
+  responseBody   String? // troncata a 2KB
+  errore         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId, createdAt])
+  @@index([stato, prossimoTentativoAt]) // worker: pick next pending
+  @@map("webhook_consegne")
 }

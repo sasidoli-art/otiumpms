@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn, formatValuta, formatData } from '@/lib/utils'
+import { toast } from '@/lib/toast'
 import ImpostazioniFatturazione from './impostazioni-fatturazione'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -202,13 +203,14 @@ export default function FattureEmesseManager() {
     try {
       const res = await fetch(`/api/host/fatture/${id}/invia-sdi`, { method: 'POST' })
       if (res.ok) {
+        toast.success('Fattura inviata al SDI')
         await loadFatture()
       } else {
         const data = await res.json()
-        alert(data.error || 'Errore invio SDI')
+        toast.error(data.error || 'Errore invio SDI')
       }
-    } catch (err) { console.error(err) 
-      alert('Errore di rete')
+    } catch (err) { console.error(err)
+      toast.error('Errore di rete')
     } finally {
       setActionLoading(null)
     }
@@ -234,14 +236,15 @@ export default function FattureEmesseManager() {
     try {
       const res = await fetch(`/api/host/fatture/${id}`, { method: 'DELETE' })
       if (res.ok) {
+        toast.success('Fattura eliminata')
         setFatture(prev => prev.filter(f => f.id !== id))
         if (dettaglio?.id === id) setDettaglio(null)
       } else {
         const data = await res.json()
-        alert(data.error || 'Errore eliminazione')
+        toast.error(data.error || 'Errore eliminazione')
       }
-    } catch (err) { console.error(err) 
-      alert('Errore di rete')
+    } catch (err) { console.error(err)
+      toast.error('Errore di rete')
     } finally {
       setActionLoading(null)
     }
@@ -257,13 +260,14 @@ export default function FattureEmesseManager() {
         body: JSON.stringify({ tipo: 'nota_credito', riferimentoFatturaId: fatturaId }),
       })
       if (res.ok) {
+        toast.success('Nota di credito creata')
         await loadFatture()
       } else {
         const data = await res.json()
-        alert(data.error || 'Errore creazione nota di credito')
+        toast.error(data.error || 'Errore creazione nota di credito')
       }
-    } catch (err) { console.error(err) 
-      alert('Errore di rete')
+    } catch (err) { console.error(err)
+      toast.error('Errore di rete')
     } finally {
       setActionLoading(null)
     }
@@ -844,11 +848,11 @@ function NuovaFatturaModal({
 
   const handleSubmit = async () => {
     if (!clienteNome.trim()) {
-      alert('Inserire il nome del cliente')
+      toast.warning('Inserire il nome del cliente')
       return
     }
     if (righe.length === 0 || righe.every(r => !r.descrizione.trim())) {
-      alert('Inserire almeno una riga')
+      toast.warning('Inserire almeno una riga')
       return
     }
 
@@ -883,13 +887,14 @@ function NuovaFatturaModal({
       })
 
       if (res.ok) {
+        toast.success('Fattura creata')
         onCreated()
       } else {
         const data = await res.json()
-        alert(data.error || 'Errore nella creazione della fattura')
+        toast.error(data.error || 'Errore nella creazione della fattura')
       }
-    } catch (err) { console.error(err) 
-      alert('Errore di rete')
+    } catch (err) { console.error(err)
+      toast.error('Errore di rete')
     } finally {
       setSaving(false)
     }
