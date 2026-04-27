@@ -206,6 +206,34 @@ Badge.displayName = 'Badge'
 export default Badge
 
 // ────────────────────────────────────────────────────────────────────────────
+// StatusBadge — drop-in da una mappa di status-config
+// Uso:
+//   import { StatusBadge } from '@/components/ui/badge'
+//   import { PRENOTAZIONE_STATUS } from '@/lib/status-config'
+//   <StatusBadge map={PRENOTAZIONE_STATUS} status={p.stato} />
+// ────────────────────────────────────────────────────────────────────────────
+
+import type { BadgeConfig } from '@/lib/status-config'
+import { getStatusConfig } from '@/lib/status-config'
+
+export function StatusBadge({
+  map,
+  status,
+  size = 'md',
+}: {
+  map: Record<string, BadgeConfig>
+  status: string
+  size?: 'sm' | 'md'
+}) {
+  const cfg = getStatusConfig(map, status)
+  return (
+    <Badge variant="status" color={cfg.color} pulse={cfg.pulse} icon={cfg.icon} size={size}>
+      {cfg.label}
+    </Badge>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Legacy status mappings — mantieni funzionante /host/prenotazioni ecc.
 // NUOVO CODICE: usa `lib/status-badges.ts` (PRENOTAZIONE_BADGES, ecc.).
 // ────────────────────────────────────────────────────────────────────────────

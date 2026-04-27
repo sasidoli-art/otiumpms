@@ -77,6 +77,11 @@ function SkeletonButton({ className }: { className?: string }) {
   return <SkeletonBase className={cn('h-10 w-32', className)} rounded="lg" />
 }
 
+/** Avatar squadrato 34px (radius-lg) — usato negli arrivi/partenze guest cards */
+function SkeletonAvatar({ size = 34, className }: { size?: number; className?: string }) {
+  return <SkeletonBase className={className} rounded="lg" style={{ width: size, height: size }} />
+}
+
 // ─── Compound export ────────────────────────────────────────────────────────
 
 export const Skeleton = Object.assign(SkeletonBase, {
@@ -85,6 +90,7 @@ export const Skeleton = Object.assign(SkeletonBase, {
   Circle: SkeletonCircle,
   Rect: SkeletonRect,
   Button: SkeletonButton,
+  Avatar: SkeletonAvatar,
 })
 
 // ─── Preset composites (backward compatible) ────────────────────────────────

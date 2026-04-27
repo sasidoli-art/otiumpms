@@ -34,9 +34,12 @@ export type CardVariant =
   | 'accent'
   | 'glass'
   | 'flush'
+  | 'kpi' // metric card con sfondo gradient (P1.1 design system)
   | 'flat' // @deprecated alias di flush
 
 export type CardAccentColor = 'primary' | 'success' | 'warning' | 'error' | 'info' | 'accent'
+
+export type CardKpiColor = 'indigo' | 'green' | 'amber' | 'violet' | 'rose' | 'teal'
 
 export type CardPadding = 'none' | 'sm' | 'md' | 'lg'
 
@@ -52,6 +55,8 @@ export interface CardProps {
   variant?: CardVariant
   /** Usato solo con variant="accent" */
   accentColor?: CardAccentColor | (string & {})
+  /** Usato solo con variant="kpi" — sfondo gradient delicato */
+  kpiColor?: CardKpiColor
   padding?: CardPadding
   /** Intestazione strutturata (icona + title/subtitle + action a destra) */
   header?: CardHeader
@@ -90,6 +95,7 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
     children,
     variant = 'default',
     accentColor,
+    kpiColor,
     padding = 'md',
     header,
     showSelectedIndicator,
@@ -147,6 +153,16 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
     ),
     flush: cn(
       'bg-neutral-50',
+    ),
+    kpi: cn(
+      'border border-neutral-150',
+      // Background gradient via Tailwind utility (vedi tailwind.config.ts → backgroundImage)
+      kpiColor === 'green'  ? 'bg-kpi-green'  :
+      kpiColor === 'amber'  ? 'bg-kpi-amber'  :
+      kpiColor === 'violet' ? 'bg-kpi-violet' :
+      kpiColor === 'rose'   ? 'bg-kpi-rose'   :
+      kpiColor === 'teal'   ? 'bg-kpi-teal'   :
+      'bg-kpi-indigo', // default = indigo
     ),
   }[v]
 
@@ -227,6 +243,59 @@ export const Card = forwardRef<HTMLElement, CardProps>(function Card(
 })
 
 Card.displayName = 'Card'
+
+// ─── Compound subcomponents (Card.Header, Card.Title, Card.Body, ...) ──────
+// Per uso "ripugnante" senza prop `header`: <Card><Card.Header>...</Card.Header>...</Card>
+// Quando si usano questi, mettere `padding="none"` sulla Card root.
+
+function CardHeaderEl({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('flex items-center justify-between gap-3 px-4 py-3.5 border-b border-neutral-150', className)}>
+      {children}
+    </div>
+  )
+}
+
+function CardTitle({ children, icon: Icon, className }: { children: ReactNode; icon?: LucideIcon; className?: string }) {
+  return (
+    <div className={cn('flex items-center gap-1.5 text-[14px] font-semibold text-neutral-900', className)}>
+      {Icon && <Icon className="w-4 h-4 text-neutral-500 shrink-0" aria-hidden="true" />}
+      <span className="truncate">{children}</span>
+    </div>
+  )
+}
+
+function CardBadge({ children, color = 'primary' }: { children: ReactNode; color?: 'primary' | 'success' | 'info' | 'warning' | 'error' }) {
+  const bg = {
+    primary: 'bg-gradient-primary',
+    success: 'bg-gradient-success',
+    info:    'bg-gradient-info',
+    warning: 'bg-gradient-warning',
+    error:   'bg-gradient-error',
+  }[color]
+  return (
+    <span className={cn('inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold text-white', bg)}>
+      {children}
+    </span>
+  )
+}
+
+function CardBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('px-4 py-3', className)}>{children}</div>
+}
+
+function CardFooter({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('px-4 py-3 border-t border-neutral-150', className)}>{children}</div>
+}
+
+// Attach a Card per pattern compound (Card.Header, Card.Title, ...)
+;(Card as unknown as Record<string, unknown>).Header = CardHeaderEl
+;(Card as unknown as Record<string, unknown>).Title = CardTitle
+;(Card as unknown as Record<string, unknown>).Badge = CardBadge
+;(Card as unknown as Record<string, unknown>).Body = CardBody
+;(Card as unknown as Record<string, unknown>).Footer = CardFooter
+
+export { CardHeaderEl as CardHeader, CardTitle, CardBadge, CardBody, CardFooter }
 
 // ─── CardGroup — layout responsive per card affiancate ───────────────────────
 
