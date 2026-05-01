@@ -14,8 +14,8 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "seed:e2e": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-e2e.ts",
+    "db:seed": "ts-node --project tsconfig.scripts.json prisma/seed.ts",
+    "seed:e2e": "ts-node --project tsconfig.scripts.json prisma/seed-e2e.ts",
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
@@ -27,8 +27,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:all": "npm run lint && npm run type-check && npm run test:run",
-    "audit:visual": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/visual-audit.ts",
-    "audit:tenant": "ts-node --compiler-options {\"module\":\"CommonJS\"} scripts/audit-multi-tenant.ts"
+    "audit:visual": "ts-node --project tsconfig.scripts.json scripts/visual-audit.ts",
+    "audit:tenant": "ts-node --project tsconfig.scripts.json scripts/audit-multi-tenant.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
@@ -98,7 +98,7 @@
     "vitest-mock-extended": "^4.0.0"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.scripts.json prisma/seed.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

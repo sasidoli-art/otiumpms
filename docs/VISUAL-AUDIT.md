@@ -1,6 +1,6 @@
 # Visual Audit — Otium PMS
 
-> Generato: 2026-04-27 10:32:36 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
+> Generato: 2026-05-01 13:20:43 · Eseguibile: `npx ts-node scripts/visual-audit.ts`
 
 ## Cosa è questo report
 
@@ -23,11 +23,11 @@ Marker:
 
 ## Sintesi
 
-**148 pagine** auditate · **1184 check** totali
-- ✅ Pass: **720** (61%)
-- ⚠️ Warning: **403** (34%)
+**149 pagine** auditate · **1192 check** totali
+- ✅ Pass: **725** (61%)
+- ⚠️ Warning: **405** (34%)
 - ❌ Fail: **7** (1%)
-- — Not applicable: **54** (5%)
+- — Not applicable: **55** (5%)
 
 ## Tabella
 
@@ -52,7 +52,7 @@ Marker:
 | `/reception/display/[strutturaId]` | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
 | `/reception/spa-concierge/[strutturaId]` | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
 | `/reception/spa/[cabinaId]` | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `/host/abbonamento` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ |
+| `/host/abbonamento` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
 | `/host/alloggiati` | ✅ | ⚠️ | ✅ | ✅ | ⚠️ | — | ✅ | ✅ |
 | `/host/allotment` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
 | `/host/analytics` | ✅ | ✅ | ✅ | ✅ | ⚠️ | — | ✅ | ✅ |
@@ -95,7 +95,7 @@ Marker:
 | `/host/pacchetti/[id]` | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ⚠️ |
 | `/host/pacchetti/nuovo` | ✅ | ⚠️ | ✅ | ⚠️ | ⚠️ | ⚠️ | ✅ | ✅ |
 | `/host/pos` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ |
-| `/host/prenotazioni` | ✅ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
+| `/host/prenotazioni` | ⚠️ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
 | `/host/prenotazioni/[id]` | ⚠️ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ⚠️ |
 | `/host/prenotazioni/[id]/ricevuta` | ✅ | ⚠️ | ❌ | ✅ | ⚠️ | — | ✅ | ✅ |
 | `/host/prenotazioni/nuova` | ⚠️ | ⚠️ | ✅ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ |
@@ -179,6 +179,7 @@ Marker:
 | `/room/[unitaId]` | ⚠️ | ⚠️ | ✅ | ⚠️ | ⚠️ | ✅ | ✅ | ✅ |
 | `/room/[unitaId]/qr` | ⚠️ | ⚠️ | ⚠️ | ✅ | ⚠️ | — | ✅ | ✅ |
 | `/spa/wellness-card/[token]` | ⚠️ | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
+| `/status` | ✅ | ⚠️ | ✅ | ✅ | ⚠️ | — | ✅ | ✅ |
 | `/terms` | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ |
 | `/test` | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | — | ✅ | ✅ |
 
@@ -447,9 +448,7 @@ File: [`app/host/abbonamento/page.tsx`](../app/host/abbonamento/page.tsx)
 - **Spacing** ⚠️
   - Nessun spacing responsive (md:/lg:) trovato
 - **Componenti** ⚠️
-  - 3 <button> raw — considera <Button>
-- **Loading** ⚠️
-  - Fetch presente ma nessun loader/skeleton evidente
+  - 5 <button> raw — considera <Button>
 
 ### `/host/alloggiati`
 File: [`app/host/alloggiati/page.tsx`](../app/host/alloggiati/page.tsx)
@@ -869,6 +868,8 @@ File: [`app/host/prenotazioni/nuova/page.tsx`](../app/host/prenotazioni/nuova/pa
 
 ### `/host/prenotazioni`
 File: [`app/host/prenotazioni/page.tsx`](../app/host/prenotazioni/page.tsx)
+- **Tipografia** ⚠️
+  - Sub-12px text trovato: text-[10px], text-[11px]
 - **Spacing** ⚠️
   - Nessun spacing responsive (md:/lg:) trovato
 - **Componenti** ⚠️
@@ -1344,6 +1345,13 @@ File: [`app/spa/wellness-card/[token]/page.tsx`](../app/spa/wellness-card/[token
   - 10 <input> raw — considera <Input>/<FormField>
   - 4 <select> raw — considera <Select> custom
 
+### `/status`
+File: [`app/status/page.tsx`](../app/status/page.tsx)
+- **Spacing** ⚠️
+  - Nessun spacing responsive (md:/lg:) trovato
+- **Responsive** ⚠️
+  - Nessun breakpoint responsive trovato
+
 ### `/superadmin/abbonamenti`
 File: [`app/superadmin/abbonamenti/page.tsx`](../app/superadmin/abbonamenti/page.tsx)
 - **Spacing** ⚠️
@@ -1531,4 +1539,4 @@ File: [`app/wifi/login/page.tsx`](../app/wifi/login/page.tsx)
 - **Responsive** ⚠️
   - Nessun breakpoint responsive trovato
 
-_Totale pagine con issue: **142**._
+_Totale pagine con issue: **143**._

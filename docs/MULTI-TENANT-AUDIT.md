@@ -1,6 +1,6 @@
 # Multi-Tenant Audit
 
-> Generato: 2026-04-27 · File scansionati: **217** · CRITICAL: **0** · WARN: **245**
+> Generato: 2026-05-01 · File scansionati: **217** · CRITICAL: **0** · WARN: **245**
 
 Audit euristico statico delle route `app/api/host/*`. Verifica che
 ogni query Prisma filtri per `hostId` ricavato dalla sessione.
