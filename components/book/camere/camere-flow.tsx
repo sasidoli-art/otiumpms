@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, ArrowLeft } from 'lucide-react'
 import StepDateCamere, { type UnitaDisponibile } from './step-date-camere'
 import StepDatiOspite, { type GuestData, type ConsensiData } from './step-dati-ospite'
 import StepConferma from './step-conferma'
+import BookingStepper from '@/components/book/booking-stepper'
 
 export type SelezioneCamera = {
   arrivo: Date
@@ -40,57 +40,13 @@ export default function CamereFlow({
 
   return (
     <div>
-      {/* Stepper header (nascosto dopo submit finale) */}
       {!completato && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between gap-2">
-            {STEPS.map((label, i) => {
-              const active = i === step
-              const done = i < step
-              return (
-                <div key={i} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                        active || done ? '' : 'text-gray-400 border-gray-200 bg-white'
-                      }`}
-                      style={
-                        active || done
-                          ? {
-                              backgroundColor: 'var(--brand-primary)',
-                              borderColor: 'var(--brand-primary)',
-                              color: 'var(--brand-on-primary)',
-                            }
-                          : undefined
-                      }
-                    >
-                      {done ? <Check className="w-4 h-4" /> : i + 1}
-                    </div>
-                    <span className={`text-[10px] md:text-xs mt-1 font-medium text-center ${active ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {label}
-                    </span>
-                  </div>
-                  {i < STEPS.length - 1 && (
-                    <div
-                      className={`flex-1 h-0.5 mx-2 md:mx-3 ${done ? '' : 'bg-gray-200'}`}
-                      style={done ? { backgroundColor: 'var(--brand-primary)' } : undefined}
-                    />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Back button */}
-      {step > 0 && !completato && (
-        <button
-          onClick={() => setStep((s) => Math.max(0, s - 1) as 0 | 1 | 2)}
-          className="text-xs text-gray-500 hover:text-gray-900 flex items-center gap-1 mb-4"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Indietro
-        </button>
+        <BookingStepper
+          steps={STEPS}
+          currentStep={step}
+          onBack={() => setStep((s) => Math.max(0, s - 1) as 0 | 1 | 2)}
+          className="mb-6"
+        />
       )}
 
       {/* Step 1 */}
