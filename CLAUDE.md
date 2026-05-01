@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> Last updated: 2026-04-01
+> Last updated: 2026-05-01
 
 ## Development Commands
 
@@ -10,11 +10,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Start Next.js dev server (port 3000)
 npm run build        # Production build
 npm run start        # Start production server
-npm run lint         # ESLint
+npm run lint         # ESLint flat config v9 (max-warnings 600)
+npm run lint:fix     # ESLint con --fix
+npm run analyze      # Build con bundle analyzer (ANALYZE=true)
 npm run db:push      # Push Prisma schema to database (no migration)
 npm run db:generate  # Regenerate Prisma client after schema changes
 npm run db:studio    # Open Prisma Studio GUI (http://localhost:5555)
 npm run db:seed      # Seed database via ts-node (equivalente a: npx prisma db seed)
+npm run audit:visual # Heuristic UI audit (148 pagine)
+npm run audit:tenant # Multi-tenant isolation audit (217 route /api/host/*)
 # npx prisma db seed # Alternativa: usa la config `prisma.seed` in package.json
 ```
 
@@ -36,7 +40,7 @@ Manual smoke testing at `/test` (system sitemap page).
 
 ## Architecture
 
-**Stack**: Next.js 16 (App Router) · React 18 · TypeScript 5 · Prisma 5 (Neon PostgreSQL) · NextAuth 4 (JWT) · Tailwind CSS · Zod · next-intl · @sentry/nextjs · otpauth · qrcode · @playwright/test · Recharts · Framer Motion
+**Stack**: Next.js 16 (App Router) · React 18 · TypeScript 5 · Prisma 5 (Neon PostgreSQL) · NextAuth 4 (JWT) · Tailwind CSS · Zod · next-intl · SWR · @sentry/nextjs · otpauth · qrcode · @playwright/test · @axe-core/playwright · Recharts · Framer Motion · sonner · husky + lint-staged
 
 **What this is**: Multi-tenant SaaS for event/booking management ("Otium Week"). Three roles: **ADMIN** (platform operator), **HOST** (venue/event manager), **SUPERADMIN** (system-wide management). Public-facing booking flow for guests. Modular feature system with 27 activatable modules.
 
@@ -52,6 +56,9 @@ Manual smoke testing at `/test` (system sitemap page).
 | `/kiosk/[token]` | Public | Tablet kiosk for checkout signing |
 | `/kiosk/spa/[cabinaId]` | Public | SPA cabin tablet (waiver signing) |
 | `/privacy-policy`, `/terms`, `/cookie-policy` | Public | Legal pages |
+| `/privacy/[token]` | Public | Portale privacy ospite (export + revoca consensi) |
+| `/wifi/[strutturaId]` | Public | WiFi captive portal |
+| `/status` | Public | Status page (legge `/api/health` ogni 30s) |
 | `/test` | Public | System sitemap / dev navigation page |
 | `/host/*` | HOST role | Venue management, bookings, CRM, housekeeping, SPA |
 | `/admin/*` | ADMIN role | Platform management, invoicing, host accounts |
@@ -88,7 +95,8 @@ All API input validated with **Zod schemas** in `lib/validations.ts`. Use the `p
 - **F&B chain**: `Struttura` → `ConfigPastoStruttura` → `PastoPrenotazione` → `SceltaPastoOspite`
 - **POS chain**: `TransazionePOS` → `VocePOS`; `ChiusuraCassa` → `Incasso`
 - **Loyalty chain**: `ProgrammaFedelta` → `LivelloFedelta` → `MembroFedelta` → `MovimentoPunti`
-- **74 models total** — key additions since v1: `Ticket`, `StaffMember`, `StaffInvite`, `MenuGiornaliero`, `PiattoMenu`, `SceltaPastoOspite`, `GiftCard`, `GiftCardMovimento`, `TransazionePOS`, `VocePOS`, `ProgrammaFedelta`, `LivelloFedelta`, `MembroFedelta`, `MovimentoPunti`, `WaitingListSpa`, `TurnawayTracking`, `ChiusuraCassa`, `Incasso`, `ConfigPastoStruttura`, `PastoPrenotazione`, `ArticoloMagazzino`, `MovimentoMagazzino`, `PaymentProviderConfig`, `PagamentoCheckout`, `ServizioStruttura`, `PacchettoServizio`, `VocePacchetto`, `AddebitoPrenotazione`, `CanaleEsterno`, `PrenotazioneCanale`, `AlertOspite`, `OggettoSmarrito`, `RegolaUpsell`, `PropostaUpsell`, `DotazioneBiancheria`, `RichiestaBiancheria`, `Trace`, `Accompagnatore`, `AuditLog`, `DotazioneCabinaSpa`, `ConversazioneWhatsApp`, `MessaggioWhatsApp`, `AzioneConcierge`
+- **76 models total** — additions since v1: `Ticket`, `StaffMember`, `StaffInvite`, `MenuGiornaliero`, `PiattoMenu`, `SceltaPastoOspite`, `GiftCard`, `GiftCardMovimento`, `TransazionePOS`, `VocePOS`, `ProgrammaFedelta`, `LivelloFedelta`, `MembroFedelta`, `MovimentoPunti`, `WaitingListSpa`, `TurnawayTracking`, `ChiusuraCassa`, `Incasso`, `ConfigPastoStruttura`, `PastoPrenotazione`, `PrenotazioneRistorante`, `ArticoloMagazzino`, `MovimentoMagazzino`, `PaymentProviderConfig`, `PagamentoCheckout`, `ServizioStruttura`, `PacchettoServizio`, `VocePacchetto`, `AddebitoPrenotazione`, `CanaleEsterno`, `PrenotazioneCanale`, `AlertOspite`, `OggettoSmarrito`, `RegolaUpsell`, `PropostaUpsell`, `DotazioneBiancheria`, `RichiestaBiancheria`, `Trace`, `Accompagnatore`, `AuditLog`, `DotazioneCabinaSpa`, `ConversazioneWhatsApp`, `MessaggioWhatsApp`, `AzioneConcierge`, `WebhookSubscription`, `WebhookConsegna` (i 2 ultimi aggiunti 2026-04-27 per outbound webhook integrazioni esterne)
+- **Stripe billing**: `Host.stripeCustomerId` + `Host.stripeSubscriptionId` (entrambi `@unique`) per Stripe SaaS subscriptions piattaforma
 
 ### Import Alias
 
@@ -265,7 +273,16 @@ enum CategoriaSpa { ... }
 | `lib/email-queue.ts` | Email queue with retry logic for background sending |
 | `lib/ical.ts` | iCal (RFC 5545) generation, HMAC token auth for public calendar URLs |
 | `lib/ical-import.ts` | iCal import from external channels (Booking/Airbnb) |
-| `lib/rate-limit.ts` | In-memory sliding-window rate limiter + `getClientIp()` |
+| `lib/ical-generate.ts` | Client-side `.ics` download per "Aggiungi al calendario" post-prenotazione |
+| `lib/availability.ts` | `calcolaDisponibilita()` + `verificaDisponibilitaPrenotazione()` con motivi non-disponibilità (prenotata/blocco_ota/chiusa/esaurita/manutenzione). Half-open range `[arrivo, partenza)` |
+| `lib/spa-availability.ts` | Time primitives pure (`toMinutes`/`toHHMM`/`slotsOverlap`/`generaSlotGiornata`/`fasciaCopreSlot`) per generator slot SPA |
+| `lib/swr-fetcher.ts` | SWR fetcher con `FetchError` per `useDashboard` + `useSidebarBadges` |
+| `lib/status-config.ts` | Re-export di `lib/status-badges.ts` con nomi `*_STATUS` + `CANALE_COLORS` + `PIANO_BADGE` + `getStatusConfig()` |
+| `lib/webhooks.ts` | Outbound webhook subscriptions: HMAC-SHA256 signing + `dispatchWebhookEvent()` + `generateWebhookSecret()` |
+| `lib/stripe.ts` | Stripe SaaS facade REST-only: `getOrCreateStripeCustomer`, `createCheckoutSession` (subscription mode), `createPortalSession`, `changePlan`, `cancelSubscriptionAtPeriodEnd` |
+| `lib/health.ts` | Health check (DB + Sentry + encryption + env) usato da `/api/health` + `/status` page |
+| `lib/branding.ts` | White-label branding engine: theme da Struttura/Host con CSS custom properties |
+| `lib/rate-limit.ts` | In-memory sliding-window rate limiter + `getClientIp()` + 11 preset (`public:search/booking/checkin/wifi/ical`, `host:read/write`, `admin:all`, `webhook:all`, `auth:login/register`) + `checkRateLimit(req, preset)` drop-in helper |
 | `lib/logger.ts` | Structured logger (`logger.info/warn/error`) |
 | `lib/pdf.tsx` | React-PDF invoice/receipt generation |
 | `lib/pdf-generator.ts` | PDFKit-based PDF generation |
@@ -452,12 +469,23 @@ OLLAMA_BASE_URL=http://localhost:11434         # dev locale
 # Booking engine custom domain (vedi /host/booking-engine)
 BOOKING_CNAME_TARGET=cname.otiumweek.com       # target CNAME verificato dalla API DNS
 
-# Stripe (piattaforma abbonamenti)
+# Stripe SaaS subscriptions (piattaforma — abbonamenti host a Otium)
+STRIPE_SECRET_KEY=sk_live_...                  # API key Stripe (lib/stripe.ts)
+STRIPE_WEBHOOK_SECRET=whsec_...                # firma webhook /api/webhooks/stripe
+# 4 piani × 2 frequenze = 8 Price IDs (vedi lib/stripe.ts::getPriceId)
+STRIPE_PRICE_LIGHT_MONTHLY=price_...
+STRIPE_PRICE_LIGHT_YEARLY=price_...
+STRIPE_PRICE_EVENTO_SINGOLO_MONTHLY=price_...
+STRIPE_PRICE_EVENTO_SINGOLO_YEARLY=price_...
+STRIPE_PRICE_VISIBILITA_MENSILE_MONTHLY=price_...
+STRIPE_PRICE_VISIBILITA_MENSILE_YEARLY=price_...
+STRIPE_PRICE_PARTNER_PREMIUM_MONTHLY=price_...
+STRIPE_PRICE_PARTNER_PREMIUM_YEARLY=price_...
+# Legacy per pagamenti ospite via Stripe Checkout (acconti prenotazione)
 STRIPE_PRICE_ID_LIGHT=price_...
 STRIPE_PRICE_ID_EVENTO=price_...
 STRIPE_PRICE_ID_VISIBILITA=price_...
 STRIPE_PRICE_ID_PARTNER=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
 
 # IMAP inbound email → chat (cron/inbound-email)
 IMAP_HOST=imap.example.com
@@ -480,8 +508,15 @@ WHATSAPP_APP_SECRET=...                        # verify webhook signature
 SUPERADMIN_ALLOWED_IPS=1.2.3.4,5.6.7.8         # IP allowlist (CSV). Vuoto = nessun gate IP.
 
 # Notifiche operative
-SLACK_WEBHOOK_URL=...                          # alert incident
+SLACK_WEBHOOK_URL=...                          # alert incident (anche backup failures)
 SUPPORT_EMAIL=support@otiumweek.com
+
+# Backup logico (vedi docs/BACKUP-RECOVERY.md)
+BACKUP_S3_KEY=...                              # R2/S3 access key
+BACKUP_S3_SECRET=...
+BACKUP_S3_BUCKET=otium-pms-backups
+BACKUP_S3_ENDPOINT=https://...r2.cloudflarestorage.com
+BACKUP_S3_REGION=auto
 ```
 
 ### Auto-popolate da Vercel
@@ -537,6 +572,11 @@ npm run seed:e2e
 10. **Image upload**: `/api/host/upload` accetta base64 data URL, **max 2MB dopo encoding**. NON c'è compressione client-side: se l'immagine è più grande, comprimerla lato client PRIMA di chiamare l'endpoint (es. canvas resize a 1200px lato lungo). Stoccaggio base64 in DB è MVP, migrazione a R2/S3 è TODO.
 11. **Server actions**: non sono usate. Tutte le mutation passano da REST API route + `router.refresh()` lato client — regola assoluta, confermata anche dal pattern "Data Flow Pattern" sopra. Non aggiungere `'use server'`.
 12. **Neon adapter**: il client Prisma usa `@prisma/adapter-neon` per connessioni serverless. In locale con DB Postgres standard potrebbe dare warning su websocket — accettabile in dev.
+13. **Husky pre-commit**: `npx lint-staged` parte automaticamente al `git commit` ed esegue `eslint --fix` sui `.ts/.tsx` in stage. Se la fix dell'autoformat genera modifiche aggiuntive, vengono ri-staged automaticamente. Per emergenze: `git commit --no-verify` (sconsigliato).
+14. **ESLint v9 flat config**: `eslint.config.mjs` (NON `.eslintrc.json`). Non usa `eslint-config-next` (non ancora flat-compatible nella versione 16.x). Plugin caricati direttamente: `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `@next/eslint-plugin-next`. `npm run lint` ha `--max-warnings 600` come threshold (546 warning legacy tollerati, da pulire incrementalmente).
+15. **Half-open date range**: tutte le funzioni di availability (`lib/availability.ts`, `lib/spa-availability.ts`) usano range `[arrivo, partenza)` — il giorno di check-out NON è occupato (consistente con il modello hotel: checkout mattina = stanza libera quel giorno). `slotsOverlap(aStart, aEnd, bStart, bEnd)`: A finisce esattamente quando B inizia → NO overlap.
+16. **Stripe SaaS subscriptions vs Stripe pagamenti ospite**: due flussi separati. `lib/stripe.ts` gestisce gli abbonamenti host alla piattaforma (subscription mode, customer per host, 8 Price IDs). `/api/webhooks/stripe` gestisce i pagamenti checkout one-shot degli ospiti (acconto prenotazione). Non confondere i due — webhook eventi diversi.
+17. **Multi-tenant audit (`npm run audit:tenant`)**: euristico statico, non garantisce 100%. Esistono falsi positivi (es. iCal HMAC token, getServerSession diretto). Per ogni FAIL bisogna verificare manualmente. Snapshot corrente: 0 CRITICAL, 245 WARN documentati in `docs/MULTI-TENANT-AUDIT.md`.
 
 ## Convenzioni di naming
 
@@ -571,3 +611,14 @@ Passi standard per collegare una feature al sistema moduli:
 ## Architecture document
 
 Per flussi end-to-end (prenotazione, check-in, SPA+waiver, fatturazione, Alloggiati, GDPR, concierge AI) + ERD core + elenco cron: vedi [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Documentazione satellite
+
+| File | Scope |
+|------|-------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Flussi end-to-end + ERD + cron catalog |
+| [docs/GDPR.md](docs/GDPR.md) | Retention policy + Titolare/Responsabile + Art. 9 SPA |
+| [docs/BACKUP-RECOVERY.md](docs/BACKUP-RECOVERY.md) | Runbook 4 scenari recovery + GitHub Action template R2 |
+| [docs/MULTI-TENANT-AUDIT.md](docs/MULTI-TENANT-AUDIT.md) | Snapshot audit isolamento `hostId` (rigenerabile via `npm run audit:tenant`) |
+| [docs/VISUAL-AUDIT.md](docs/VISUAL-AUDIT.md) | Heuristic UI audit (rigenerabile via `npm run audit:visual`) |
+| [docs/api/openapi.yaml](docs/api/openapi.yaml) | OpenAPI 3.0.3 endpoint pubblici (booking + checkin + ical + webhook + health) |
