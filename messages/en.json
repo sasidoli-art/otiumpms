@@ -99,7 +99,6 @@
     "allStatuses": "All statuses",
     "noData": "No data for the selected period"
   },
-
   "nav": {
     "host": {
       "reception": "RECEPTION",
@@ -132,7 +131,6 @@
       "channelManager": "Channel Manager",
       "serviceCatalog": "Service Catalog",
       "upselling": "Upselling",
-      "cashRegister": "Cash Register",
       "aiConcierge": "AI Concierge",
       "siteIntegration": "Website Integration",
       "spaWellness": "SPA & WELLNESS",
@@ -192,7 +190,9 @@
       "monitoring": "Monitoring",
       "settings": "Settings",
       "superadmin": "SUPERADMIN",
-      "logout": "Logout"
+      "logout": "Logout",
+      "wifiFleet": "Wi-Fi Fleet",
+      "wifiOnboard": "New router"
     },
     "preview": {
       "general": "General",
@@ -204,7 +204,6 @@
       "bookPackages": "Book (Packages)"
     }
   },
-
   "login": {
     "managementPanel": "Management Panel",
     "signIn": "Sign In",
@@ -217,7 +216,6 @@
     "trouble": "Need help?",
     "contactUs": "Contact us"
   },
-
   "errors": {
     "notFound": "Page not found",
     "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
@@ -229,7 +227,6 @@
     "offlineDescription": "Check your internet connection and try again.",
     "updateError": "Status update error ({status})"
   },
-
   "topbar": {
     "searchPlaceholder": "Search bookings, guests, properties...",
     "administration": "Administration",
@@ -240,7 +237,6 @@
     "lightMode": "Light mode",
     "darkMode": "Dark mode"
   },
-
   "notifications": {
     "title": "Notifications",
     "new": "new",
@@ -248,7 +244,6 @@
     "none": "No notifications",
     "viewAll": "View all notifications"
   },
-
   "cookie": {
     "closeBanner": "Close banner",
     "privacyImportant": "Your privacy matters to us",
@@ -267,13 +262,11 @@
     "rejectAll": "Reject all",
     "learnMore": "Learn more about privacy →"
   },
-
   "pwa": {
     "install": "Install Otium Week",
     "quickAccess": "Quick access from home screen",
     "installButton": "Install"
   },
-
   "host": {
     "dashboard": {
       "welcome": "Welcome, {name}!",
@@ -882,7 +875,6 @@
       "messagePlaceholder": "Write a message..."
     }
   },
-
   "spa": {
     "dashboard": {
       "title": "SPA & Wellness",
@@ -1124,13 +1116,21 @@
       "other": "Other"
     }
   },
-
   "admin": {
     "dashboard": {
       "months": {
-        "jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr",
-        "may": "May", "jun": "Jun", "jul": "Jul", "aug": "Aug",
-        "sep": "Sep", "oct": "Oct", "nov": "Nov", "dec": "Dec"
+        "jan": "Jan",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "May",
+        "jun": "Jun",
+        "jul": "Jul",
+        "aug": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
       }
     },
     "clients": {
@@ -1255,7 +1255,6 @@
       "passwordUpdated": "Password updated successfully."
     }
   },
-
   "superadmin": {
     "dashboard": {
       "title": "Platform Dashboard",
@@ -1270,7 +1269,6 @@
       "expired": "Expired"
     }
   },
-
   "booking": {
     "discover": "Discover & Book",
     "discoverSubtitle": "Selected events, venues, experiences and accommodations across Italy",
@@ -1307,7 +1305,15 @@
     "requestBooking": "Request Booking",
     "fillForm": "Fill the form — you'll be contacted within 24h",
     "form": {
-      "weekDays": { "mon": "Mon", "tue": "Tue", "wed": "Wed", "thu": "Thu", "fri": "Fri", "sat": "Sat", "sun": "Sun" },
+      "weekDays": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      },
       "checkinOut": "Check-in/out",
       "stay": "Stay",
       "selectDates": "Select check-in and check-out on the calendar",
@@ -1377,7 +1383,6 @@
       "messagePlaceholder": "Write a message..."
     }
   },
-
   "checkin": {
     "notFound": "Check-in not found",
     "complete": "Complete your check-in",
@@ -1473,14 +1478,12 @@
       "signAcquired": "Signature acquired"
     }
   },
-
   "docTypes": {
     "passport": "Passport",
     "idCard": "ID card",
     "drivingLicense": "Driving license",
     "residencePermit": "Residence permit"
   },
-
   "structureTypes": {
     "event": "Event",
     "venue": "Venue",
@@ -1488,7 +1491,6 @@
     "accommodation": "Accommodation",
     "service": "Service"
   },
-
   "bookingStatuses": {
     "pending": "Pending",
     "confirmed": "Confirmed",
@@ -1496,7 +1498,6 @@
     "completed": "Completed",
     "noShow": "No show"
   },
-
   "onboarding": {
     "steps": {
       "struttura": "Property",
@@ -1601,7 +1602,6 @@
       }
     }
   },
-
   "help": {
     "title": "Help Center",
     "subtitle": "Guides, tutorials and frequently asked questions",
@@ -2142,7 +2142,6 @@
       "rights": "All rights reserved."
     }
   },
-
   "ticket": {
     "reportBug": "Report a problem",
     "title": "Report a problem",
@@ -2190,7 +2189,6 @@
       "CHIUSO": "Closed"
     }
   },
-
   "regCard": {
     "hotel": {
       "title": "Registration Card",

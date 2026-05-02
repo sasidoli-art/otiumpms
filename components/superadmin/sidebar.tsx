@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Building2, Users, CreditCard, BarChart3,
   Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText, Bot,
-  LifeBuoy, Bell,
+  LifeBuoy, Bell, Wifi, PlusCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -44,6 +44,13 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
       label: 'SUPPORTO',
       items: [
         { href: '/superadmin/tickets', label: 'Ticket',       icon: LifeBuoy },
+      ],
+    },
+    {
+      label: 'WI-FI',
+      items: [
+        { href: '/superadmin/wifi',         label: t('wifiFleet'),   icon: Wifi },
+        { href: '/superadmin/wifi/onboard', label: t('wifiOnboard'), icon: PlusCircle },
       ],
     },
     {

@@ -99,7 +99,6 @@
     "allStatuses": "Tutti gli stati",
     "noData": "Nessun dato nel periodo selezionato"
   },
-
   "nav": {
     "host": {
       "reception": "RICEVIMENTO",
@@ -132,7 +131,6 @@
       "channelManager": "Channel Manager",
       "serviceCatalog": "Catalogo servizi",
       "upselling": "Upselling",
-      "cashRegister": "Cassa",
       "aiConcierge": "AI Concierge",
       "siteIntegration": "Integrazione sito",
       "spaWellness": "SPA & BENESSERE",
@@ -192,7 +190,9 @@
       "monitoring": "Monitoring",
       "settings": "Impostazioni",
       "superadmin": "SUPERADMIN",
-      "logout": "Esci"
+      "logout": "Esci",
+      "wifiFleet": "Wi-Fi Fleet",
+      "wifiOnboard": "Nuovo router"
     },
     "preview": {
       "general": "Generali",
@@ -204,7 +204,6 @@
       "bookPackages": "Prenota (Pacchetti)"
     }
   },
-
   "login": {
     "managementPanel": "Pannello di gestione",
     "signIn": "Accedi",
@@ -217,7 +216,6 @@
     "trouble": "Problemi?",
     "contactUs": "Contattaci"
   },
-
   "errors": {
     "notFound": "Pagina non trovata",
     "notFoundDescription": "La pagina che cerchi non esiste o è stata spostata.",
@@ -229,7 +227,6 @@
     "offlineDescription": "Controlla la connessione internet e riprova.",
     "updateError": "Errore aggiornamento stato ({status})"
   },
-
   "topbar": {
     "searchPlaceholder": "Cerca prenotazioni, ospiti, strutture...",
     "administration": "Amministrazione",
@@ -240,7 +237,6 @@
     "lightMode": "Modalità chiara",
     "darkMode": "Modalità scura"
   },
-
   "notifications": {
     "title": "Notifiche",
     "new": "nuove",
@@ -248,7 +244,6 @@
     "none": "Nessuna notifica",
     "viewAll": "Vedi tutte le notifiche"
   },
-
   "cookie": {
     "closeBanner": "Chiudi banner",
     "privacyImportant": "La tua privacy è importante per noi",
@@ -267,13 +262,11 @@
     "rejectAll": "Rifiuta tutti",
     "learnMore": "Scopri di più sulla privacy →"
   },
-
   "pwa": {
     "install": "Installa Otium Week",
     "quickAccess": "Accesso rapido dalla home screen",
     "installButton": "Installa"
   },
-
   "host": {
     "dashboard": {
       "welcome": "Benvenuto, {name}!",
@@ -882,7 +875,6 @@
       "messagePlaceholder": "Scrivi un messaggio..."
     }
   },
-
   "spa": {
     "dashboard": {
       "title": "Spa & Benessere",
@@ -1124,13 +1116,21 @@
       "other": "Altro"
     }
   },
-
   "admin": {
     "dashboard": {
       "months": {
-        "jan": "Gen", "feb": "Feb", "mar": "Mar", "apr": "Apr",
-        "may": "Mag", "jun": "Giu", "jul": "Lug", "aug": "Ago",
-        "sep": "Set", "oct": "Ott", "nov": "Nov", "dec": "Dic"
+        "jan": "Gen",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "Mag",
+        "jun": "Giu",
+        "jul": "Lug",
+        "aug": "Ago",
+        "sep": "Set",
+        "oct": "Ott",
+        "nov": "Nov",
+        "dec": "Dic"
       }
     },
     "clients": {
@@ -1255,7 +1255,6 @@
       "passwordUpdated": "Password aggiornata con successo."
     }
   },
-
   "superadmin": {
     "dashboard": {
       "title": "Dashboard Piattaforma",
@@ -1270,7 +1269,6 @@
       "expired": "Scaduti"
     }
   },
-
   "booking": {
     "discover": "Scopri e Prenota",
     "discoverSubtitle": "Eventi, venue, esperienze e alloggi selezionati in tutta Italia",
@@ -1307,7 +1305,15 @@
     "requestBooking": "Richiedi prenotazione",
     "fillForm": "Compila il form — sarai contattato entro 24h",
     "form": {
-      "weekDays": { "mon": "Lu", "tue": "Ma", "wed": "Me", "thu": "Gi", "fri": "Ve", "sat": "Sa", "sun": "Do" },
+      "weekDays": {
+        "mon": "Lu",
+        "tue": "Ma",
+        "wed": "Me",
+        "thu": "Gi",
+        "fri": "Ve",
+        "sat": "Sa",
+        "sun": "Do"
+      },
       "checkinOut": "Check-in/out",
       "stay": "Soggiorno",
       "selectDates": "Seleziona check-in e check-out sul calendario",
@@ -1377,7 +1383,6 @@
       "messagePlaceholder": "Scrivi un messaggio..."
     }
   },
-
   "checkin": {
     "notFound": "Check-in non trovato",
     "complete": "Completa il tuo check-in",
@@ -1473,14 +1478,12 @@
       "signAcquired": "Firma acquisita correttamente"
     }
   },
-
   "docTypes": {
     "passport": "Passaporto",
     "idCard": "Carta d'identità",
     "drivingLicense": "Patente di guida",
     "residencePermit": "Permesso di soggiorno"
   },
-
   "structureTypes": {
     "event": "Evento",
     "venue": "Venue",
@@ -1488,7 +1491,6 @@
     "accommodation": "Struttura ricettiva",
     "service": "Servizio"
   },
-
   "bookingStatuses": {
     "pending": "In attesa",
     "confirmed": "Confermata",
@@ -1496,7 +1498,6 @@
     "completed": "Completata",
     "noShow": "No show"
   },
-
   "onboarding": {
     "steps": {
       "struttura": "Struttura",
@@ -1601,7 +1602,6 @@
       }
     }
   },
-
   "help": {
     "title": "Help Center",
     "subtitle": "Guide, tutorial e risposte alle domande frequenti",
@@ -1992,14 +1992,14 @@
   },
   "landing": {
     "nav": {
-      "features": "Funzionalit\u00e0",
+      "features": "Funzionalità",
       "pricing": "Prezzi",
       "login": "Accedi"
     },
     "hero": {
       "badge": "Il PMS all-in-one per l'hospitality",
       "title": "Il gestionale completo per strutture ricettive",
-      "subtitle": "Prenotazioni, CRM, Housekeeping, SPA, Fatturazione elettronica e AI Concierge WhatsApp: tutto in un'unica piattaforma pensata per l'ospitalit\u00e0 italiana.",
+      "subtitle": "Prenotazioni, CRM, Housekeeping, SPA, Fatturazione elettronica e AI Concierge WhatsApp: tutto in un'unica piattaforma pensata per l'ospitalità italiana.",
       "ctaPrimary": "Inizia gratis",
       "ctaSecondary": "Scopri i piani",
       "icons": {
@@ -2015,12 +2015,12 @@
       }
     },
     "features": {
-      "title": "Tutto ci\u00f2 che serve alla tua struttura",
-      "subtitle": "Moduli integrati per gestire ogni aspetto dell'ospitalit\u00e0, dalla prenotazione al check-out.",
+      "title": "Tutto ciò che serve alla tua struttura",
+      "subtitle": "Moduli integrati per gestire ogni aspetto dell'ospitalità, dalla prenotazione al check-out.",
       "items": {
         "0": {
           "title": "Prenotazioni & Calendario",
-          "desc": "Calendario drag-and-drop, assegnazione unit\u00e0, gestione arrivi e partenze in tempo reale."
+          "desc": "Calendario drag-and-drop, assegnazione unità, gestione arrivi e partenze in tempo reale."
         },
         "1": {
           "title": "CRM Ospiti",
@@ -2036,7 +2036,7 @@
         },
         "4": {
           "title": "AI Concierge WhatsApp",
-          "desc": "Assistente AI 24/7 su WhatsApp: risponde agli ospiti, suggerisce esperienze, parla pi\u00f9 lingue."
+          "desc": "Assistente AI 24/7 su WhatsApp: risponde agli ospiti, suggerisce esperienze, parla più lingue."
         },
         "5": {
           "title": "Fatturazione Elettronica",
@@ -2067,8 +2067,8 @@
     },
     "pricing": {
       "title": "Piani e prezzi",
-      "subtitle": "Scegli il piano pi\u00f9 adatto alla tua struttura. Tutti i piani includono 14 giorni di prova gratuita.",
-      "popular": "Pi\u00f9 scelto",
+      "subtitle": "Scegli il piano più adatto alla tua struttura. Tutti i piani includono 14 giorni di prova gratuita.",
+      "popular": "Più scelto",
       "trial": "14 giorni gratis",
       "cta": "Inizia la prova gratuita",
       "plans": {
@@ -2100,7 +2100,7 @@
           }
         },
         "monthly": {
-          "name": "Visibilit\u00e0 Mensile",
+          "name": "Visibilità Mensile",
           "period": "mese",
           "desc": "Per strutture che vogliono gestire tutto l'anno.",
           "features": {
@@ -2119,7 +2119,7 @@
           "period": "mese",
           "desc": "Per catene e strutture che vogliono il massimo.",
           "features": {
-            "0": "Tutto di Visibilit\u00e0 Mensile",
+            "0": "Tutto di Visibilità Mensile",
             "1": "Strutture illimitate",
             "2": "AI Concierge WhatsApp",
             "3": "Channel Manager",
@@ -2133,7 +2133,7 @@
       }
     },
     "footer": {
-      "tagline": "Il gestionale all-in-one per strutture ricettive italiane. Semplice, completo, pensato per l'ospitalit\u00e0.",
+      "tagline": "Il gestionale all-in-one per strutture ricettive italiane. Semplice, completo, pensato per l'ospitalità.",
       "product": "Prodotto",
       "legal": "Legale",
       "contact": "Contatti",
@@ -2142,7 +2142,6 @@
       "rights": "Tutti i diritti riservati."
     }
   },
-
   "ticket": {
     "reportBug": "Segnala un problema",
     "title": "Segnala un problema",
@@ -2190,7 +2189,6 @@
       "CHIUSO": "Chiuso"
     }
   },
-
   "regCard": {
     "hotel": {
       "title": "Registration Card",
