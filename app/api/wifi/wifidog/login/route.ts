@@ -50,6 +50,51 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Wi-Fi module non attivo', { status: 403 })
   }
 
+  // === MAC PERSISTENCE ============================================================
+  // Se questo MAC ha una sessione recente ancora valida sullo stesso host, salta il
+  // form di login e riautentica automaticamente. Risolve il bug "micro-disconnect →
+  // l'ospite deve rifare login ogni volta che il telefono perde 1ms di Wi-Fi".
+  // Match: stesso hostId + stesso macClient (case-insensitive) + non revocata +
+  // expiresAt > now. Ordinata per startAt desc per prendere la più recente.
+  if (mac && mac.length >= 11) {
+    const macUpper = mac.toUpperCase()
+    const recentSession = await prisma.wifiSession.findFirst({
+      where: {
+        hostId: device.hostId,
+        macClient: { equals: macUpper, mode: 'insensitive' },
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { startAt: 'desc' },
+      select: { id: true },
+    })
+
+    if (recentSession) {
+      logger.info('Wifidog login: MAC reauth (persistence)', 'wifi/wifidog/login', {
+        sessionId: recentSession.id.slice(0, 8),
+        mac: macUpper,
+        hostId: device.hostId,
+      })
+      const routerUrl = `http://${gw_address}:${gw_port}/wifidog/auth?token=${encodeURIComponent(recentSession.id)}`
+      const reauthHtml = `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="0;url=${escapeHtml(routerUrl)}">
+<title>Riconnessione automatica</title>
+<style>body{font-family:-apple-system,Helvetica,Arial,sans-serif;background:#f3f4f6;color:#111827;margin:0;padding:32px;text-align:center}.s{width:32px;height:32px;border:3px solid #e5e7eb;border-top-color:#4f46e5;border-radius:50%;margin:24px auto;animation:r 1s linear infinite}@keyframes r{to{transform:rotate(360deg)}}a{color:#4f46e5;font-size:13px}</style>
+</head>
+<body><div class="s"></div><p>Riconnessione in corso...</p><a href="${escapeHtml(routerUrl)}">Continua manualmente</a></body>
+</html>`
+      return new NextResponse(reauthHtml, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      })
+    }
+  }
+  // ================================================================================
+
   const hostNome = escapeHtml(device.host.nomeAzienda)
   const hostId = device.hostId
   const origin = req.nextUrl.origin
