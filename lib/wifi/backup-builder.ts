@@ -28,7 +28,7 @@ import { Buffer } from 'node:buffer'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { Readable } from 'node:stream'
 import * as tar from 'tar-stream'
-import { FACTORY_BACKUP_B64 } from './_templates/factory-backup.b64'
+import { FACTORY_BACKUP_B64 } from './_templates/factory-bak.b64'
 import { OTIUM_AGENT_SH_B64 } from './_templates/agent-script.b64'
 import { OTIUM_CHECK_ALIVE_SH_B64 } from './_templates/check-alive-script.b64'
 
