@@ -192,7 +192,8 @@
       "superadmin": "SUPERADMIN",
       "logout": "Logout",
       "wifiFleet": "Wi-Fi Fleet",
-      "wifiOnboard": "New router"
+      "wifiOnboard": "New router",
+      "wifiForensic": "Forensic Report"
     },
     "preview": {
       "general": "General",

@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import {
   LayoutDashboard, Building2, Users, CreditCard, BarChart3,
   Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText, Bot,
-  LifeBuoy, Bell, Wifi, PlusCircle,
+  LifeBuoy, Bell, Wifi, PlusCircle, FileSearch,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
@@ -49,8 +49,9 @@ export function SuperAdminSidebar({ nomeUtente }: { nomeUtente: string }) {
     {
       label: 'WI-FI',
       items: [
-        { href: '/superadmin/wifi',         label: t('wifiFleet'),   icon: Wifi },
-        { href: '/superadmin/wifi/onboard', label: t('wifiOnboard'), icon: PlusCircle },
+        { href: '/superadmin/wifi',          label: t('wifiFleet'),    icon: Wifi },
+        { href: '/superadmin/wifi/onboard',  label: t('wifiOnboard'),  icon: PlusCircle },
+        { href: '/superadmin/wifi/forensic', label: t('wifiForensic'), icon: FileSearch },
       ],
     },
     {
