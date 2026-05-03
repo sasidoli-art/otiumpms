@@ -113,6 +113,16 @@ async function main() {
     process.exit(1)
   }
 
+  // Walled garden default (OS captive portal probe URLs + Otium backend)
+  const expectedDomains = ['captive.apple.com', 'connectivitycheck.gstatic.com', 'otium-pms.vercel.app']
+  const missingDomains = expectedDomains.filter(d => !wifidog.includes(`list trusted_web_list '${d}'`))
+  if (missingDomains.length === 0) {
+    console.log('✅ Walled garden default domains presenti (Apple + Google + Otium probe URLs)')
+  } else {
+    console.error('❌ Walled garden missing domains:', missingDomains)
+    process.exit(1)
+  }
+
   const agentConfEntry = await readEntryFromTar(decompressed, 'etc/otium/agent.conf')
   const agentConf = agentConfEntry?.toString('utf8') ?? ''
   if (agentConf.includes(`API_TOKEN="${apiToken}"`) &&

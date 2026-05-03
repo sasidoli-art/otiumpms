@@ -146,7 +146,31 @@ function patchByName(name: string, text: string, opts: BuildBackupOpts): string 
         .replace("option enable_natpmp '1'", "option enable_natpmp '0'")
     case 'etc/config/mwan3':
       return text.replace(/'180\.76\.76\.76'/g, "'1.1.1.1'").replace(/'119\.29\.29\.29'/g, "'9.9.9.9'")
-    case 'etc/config/wifidog':
+    case 'etc/config/wifidog': {
+      // Walled garden: domini accessibili PRE-login (pre-auth).
+      // Critico per il rilevamento captive portal degli OS:
+      //   - iOS/macOS pinga captive.apple.com → se OK, niente popup; se 4xx,
+      //     mostra popup con la pagina di login.
+      //   - Android pinga connectivitycheck.gstatic.com / www.google.com.
+      //   - Windows pinga www.msftconnecttest.com.
+      // Senza questi nel walled garden, alcuni OS non mostrano la popup → l'utente
+      // deve aprire manualmente il browser, UX confusa.
+      // Includiamo anche il backend Otium stesso (otium-pms.vercel.app) perché la
+      // pagina di login è hostata lì → deve essere raggiungibile pre-auth.
+      const walledGardenDomains = [
+        'otium-pms.vercel.app',
+        'captive.apple.com',
+        'www.apple.com',
+        'connectivitycheck.gstatic.com',
+        'www.google.com',
+        'detectportal.firefox.com',
+        'connectivity-check.ubuntu.com',
+        'www.msftconnecttest.com',
+      ]
+      const trustedListEntries = walledGardenDomains
+        .map((d) => `\tlist trusted_web_list '${d}'`)
+        .join('\n')
+
       return text
         .replace("option enabled '0'", "option enabled '1'")
         .replace("option hostname 'c.weifeinet.com'", "option hostname 'otium-pms.vercel.app'")
@@ -154,6 +178,8 @@ function patchByName(name: string, text: string, opts: BuildBackupOpts): string 
         .replace("option path '/'", "option path '/api/wifi/wifidog/'")
         .replace(/option gateway_id '[^']*'/, `option gateway_id '${opts.deviceMacPlaceholder}'`)
         .replace("option gateway_address '172.16.0.1'", "option gateway_address '172.20.0.1'")
+        .replace(/\tlist trusted_web_list ''/, trustedListEntries)
+    }
     default:
       return null
   }
