@@ -97,10 +97,17 @@ export async function GET(req: NextRequest) {
 
   const hostNome = escapeHtml(device.host.nomeAzienda)
   const hostId = device.hostId
-  const origin = req.nextUrl.origin
+
+  // === MULTILINGUA ===============================================================
+  // Detection del language: ?lang=xx > Accept-Language > default 'it'
+  // Supportate: it (default), en, de, fr — tutte le label hanno fallback IT.
+  const queryLang = sp.get('lang') || ''
+  const acceptLang = req.headers.get('accept-language') || ''
+  const lang = pickLanguage(queryLang, acceptLang)
+  const t = TRANSLATIONS[lang] ?? TRANSLATIONS.it
 
   const html = `<!DOCTYPE html>
-<html lang="it">
+<html lang="${lang}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -123,6 +130,9 @@ input[type=text]:focus { outline: none; border-color: #4f46e5; }
 input.code { text-align: center; letter-spacing: 0.15em; font-size: 18px; text-transform: uppercase; font-weight: 700; }
 button.submit { width: 100%; margin-top: 20px; background: #4f46e5; color: #ffffff; padding: 14px; border: 0; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
 .foot { text-align: center; font-size: 11px; color: #9ca3af; padding: 16px 0 8px; }
+.langbar { text-align: center; padding: 8px 0; font-size: 11px; color: #9ca3af; }
+.langbar a { color: #6b7280; text-decoration: none; margin: 0 6px; }
+.langbar a.active { color: #4f46e5; font-weight: 600; }
 noscript { display: block; font-size: 12px; color: #6b7280; padding: 8px 0; text-align: center; }
 </style>
 </head>
@@ -130,12 +140,12 @@ noscript { display: block; font-size: 12px; color: #6b7280; padding: 8px 0; text
 <div class="wrap">
 <div class="hero">
 <h1>${hostNome}</h1>
-<p>Wi-Fi gratuito per ospiti</p>
+<p>${t.subtitle}</p>
 </div>
 <div class="card">
 <div class="tabs">
-<button type="button" class="tab active" data-tab="codice">Ho un codice</button>
-<button type="button" class="tab" data-tab="prenotazione">Sono ospite</button>
+<button type="button" class="tab active" data-tab="codice">${t.tabCode}</button>
+<button type="button" class="tab" data-tab="prenotazione">${t.tabBooking}</button>
 </div>
 <form id="f" method="post" action="/api/wifi/wifidog/submit">
 <input type="hidden" name="hostId" value="${escapeHtml(hostId)}">
@@ -146,25 +156,28 @@ noscript { display: block; font-size: 12px; color: #6b7280; padding: 8px 0; text
 <input type="hidden" name="mode" id="mode" value="codice">
 
 <div class="pane active" data-pane="codice">
-<label>Codice di accesso</label>
+<label>${t.labelCode}</label>
 <input type="text" name="codice" class="code" placeholder="XXXXXXXX" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12">
-<label>Nome (opzionale)</label>
-<input type="text" name="guestNome_codice" placeholder="Il tuo nome" autocomplete="given-name">
+<label>${t.labelNameOptional}</label>
+<input type="text" name="guestNome_codice" placeholder="${t.placeholderName}" autocomplete="given-name">
 </div>
 
 <div class="pane" data-pane="prenotazione">
-<label>Nome</label>
+<label>${t.labelFirstName}</label>
 <input type="text" name="guestNome" autocomplete="given-name">
-<label>Cognome</label>
+<label>${t.labelLastName}</label>
 <input type="text" name="guestCognome" autocomplete="family-name">
-<label>Numero camera</label>
-<input type="text" name="numeroCamera" placeholder="es. 101">
+<label>${t.labelRoom}</label>
+<input type="text" name="numeroCamera" placeholder="${t.placeholderRoom}">
 </div>
 
-<button type="submit" class="submit">Connetti</button>
+<button type="submit" class="submit">${t.btnConnect}</button>
 </form>
 </div>
-<div class="foot">Log accessi conservati 6 mesi - GDPR</div>
+<div class="langbar">
+${LANGUAGES.map((lc) => `<a href="?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), lang: lc }).toString()}" class="${lc === lang ? 'active' : ''}">${lc.toUpperCase()}</a>`).join('')}
+</div>
+<div class="foot">${t.footerGdpr}</div>
 </div>
 <script>
 (function(){
@@ -194,4 +207,107 @@ function escapeHtml(s: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+// ─── i18n ────────────────────────────────────────────────────────────────────
+
+const LANGUAGES = ['it', 'en', 'de', 'fr'] as const
+type Lang = (typeof LANGUAGES)[number]
+
+interface Translation {
+  subtitle: string
+  tabCode: string
+  tabBooking: string
+  labelCode: string
+  labelNameOptional: string
+  placeholderName: string
+  labelFirstName: string
+  labelLastName: string
+  labelRoom: string
+  placeholderRoom: string
+  btnConnect: string
+  footerGdpr: string
+}
+
+const TRANSLATIONS: Record<Lang, Translation> = {
+  it: {
+    subtitle: 'Wi-Fi gratuito per ospiti',
+    tabCode: 'Ho un codice',
+    tabBooking: 'Sono ospite',
+    labelCode: 'Codice di accesso',
+    labelNameOptional: 'Nome (opzionale)',
+    placeholderName: 'Il tuo nome',
+    labelFirstName: 'Nome',
+    labelLastName: 'Cognome',
+    labelRoom: 'Numero camera',
+    placeholderRoom: 'es. 101',
+    btnConnect: 'Connetti',
+    footerGdpr: 'Log accessi conservati 6 mesi - GDPR',
+  },
+  en: {
+    subtitle: 'Free Wi-Fi for guests',
+    tabCode: 'I have a code',
+    tabBooking: "I'm a guest",
+    labelCode: 'Access code',
+    labelNameOptional: 'Name (optional)',
+    placeholderName: 'Your name',
+    labelFirstName: 'First name',
+    labelLastName: 'Last name',
+    labelRoom: 'Room number',
+    placeholderRoom: 'e.g. 101',
+    btnConnect: 'Connect',
+    footerGdpr: 'Access logs kept 6 months — GDPR',
+  },
+  de: {
+    subtitle: 'Kostenloses WLAN für Gäste',
+    tabCode: 'Ich habe einen Code',
+    tabBooking: 'Ich bin Gast',
+    labelCode: 'Zugangscode',
+    labelNameOptional: 'Name (optional)',
+    placeholderName: 'Ihr Name',
+    labelFirstName: 'Vorname',
+    labelLastName: 'Nachname',
+    labelRoom: 'Zimmernummer',
+    placeholderRoom: 'z.B. 101',
+    btnConnect: 'Verbinden',
+    footerGdpr: 'Zugriffsprotokolle 6 Monate aufbewahrt — DSGVO',
+  },
+  fr: {
+    subtitle: 'Wi-Fi gratuit pour invités',
+    tabCode: "J'ai un code",
+    tabBooking: 'Je suis client',
+    labelCode: "Code d'accès",
+    labelNameOptional: 'Nom (facultatif)',
+    placeholderName: 'Votre nom',
+    labelFirstName: 'Prénom',
+    labelLastName: 'Nom',
+    labelRoom: 'Numéro de chambre',
+    placeholderRoom: 'ex. 101',
+    btnConnect: 'Se connecter',
+    footerGdpr: "Journaux d'accès conservés 6 mois — RGPD",
+  },
+}
+
+/**
+ * Sceglie la lingua più appropriata. Priorità:
+ *   1. Override esplicito (?lang=xx)
+ *   2. Accept-Language header (negotiation)
+ *   3. Default 'it'
+ */
+function pickLanguage(queryLang: string, acceptHeader: string): Lang {
+  const supported: readonly Lang[] = LANGUAGES
+  const isSupported = (s: string): s is Lang => (supported as readonly string[]).includes(s)
+
+  if (queryLang && isSupported(queryLang.toLowerCase())) {
+    return queryLang.toLowerCase() as Lang
+  }
+  if (acceptHeader) {
+    const candidates = acceptHeader
+      .split(',')
+      .map((part) => part.trim().split(';')[0].split('-')[0].toLowerCase())
+    for (const c of candidates) {
+      if (isSupported(c)) return c
+    }
+  }
+  return 'it'
 }
