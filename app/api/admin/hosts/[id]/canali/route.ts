@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { z } from 'zod'
-import { applySecretUpdate, maskSecret, isMasked } from '@/lib/secrets'
+import { maskSecret, isMasked } from '@/lib/secrets'
+import { getSmtpConfig, setSmtpConfig } from '@/lib/host-config'
 import { audit } from '@/lib/audit'
 
 const canaliSchema = z.object({
@@ -19,21 +20,21 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (isUnauthorized(auth)) return auth
 
   const { id } = await params
-  const host = await prisma.host.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      nomeAzienda: true,
-      smtpHost: true,
-      smtpPort: true,
-      smtpUser: true,
-      smtpPass: true,
-      emailMittente: true,
-    },
-  })
+  const [host, smtp] = await Promise.all([
+    prisma.host.findUnique({ where: { id }, select: { id: true, nomeAzienda: true } }),
+    getSmtpConfig(id),
+  ])
 
   if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
-  return NextResponse.json({ ...host, smtpPass: maskSecret(host.smtpPass) })
+  return NextResponse.json({
+    id: host.id,
+    nomeAzienda: host.nomeAzienda,
+    smtpHost: smtp?.smtpHost ?? null,
+    smtpPort: smtp?.smtpPort ?? null,
+    smtpUser: smtp?.smtpUser ?? null,
+    smtpPass: maskSecret(smtp?.smtpPass ?? null),
+    emailMittente: smtp?.emailMittente ?? null,
+  })
 }
 
 // PATCH /api/admin/hosts/[id]/canali
@@ -57,27 +58,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const data = parsed.data
 
-  const host = await prisma.host.findUnique({ where: { id } })
-  if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
+  const exists = await prisma.host.findUnique({ where: { id }, select: { id: true } })
+  if (!exists) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
 
-  const updated = await prisma.host.update({
-    where: { id },
-    data: {
-      smtpHost: data.smtpHost !== undefined ? (data.smtpHost || null) : host.smtpHost,
-      smtpPort: data.smtpPort !== undefined ? (data.smtpPort ?? null) : host.smtpPort,
-      smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
-      smtpPass: applySecretUpdate(data.smtpPass, host.smtpPass),
-      emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
-    },
-    select: {
-      id: true,
-      smtpHost: true,
-      smtpPort: true,
-      smtpUser: true,
-      smtpPass: true,
-      emailMittente: true,
-    },
-  })
+  const patch: Record<string, unknown> = {}
+  if (data.smtpHost !== undefined) patch.smtpHost = data.smtpHost || null
+  if (data.smtpPort !== undefined) patch.smtpPort = data.smtpPort ?? null
+  if (data.smtpUser !== undefined) patch.smtpUser = data.smtpUser || null
+  if (data.smtpPass !== undefined) patch.smtpPass = data.smtpPass
+  if (data.emailMittente !== undefined) patch.emailMittente = data.emailMittente || null
+
+  if (Object.keys(patch).length > 0) {
+    await setSmtpConfig(id, patch)
+  }
 
   if (data.smtpPass !== undefined && data.smtpPass !== null && !isMasked(data.smtpPass)) {
     await audit({
@@ -91,5 +84,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     })
   }
 
-  return NextResponse.json({ ...updated, smtpPass: maskSecret(updated.smtpPass) })
+  const updated = await getSmtpConfig(id)
+  return NextResponse.json({
+    id,
+    smtpHost: updated?.smtpHost ?? null,
+    smtpPort: updated?.smtpPort ?? null,
+    smtpUser: updated?.smtpUser ?? null,
+    smtpPass: maskSecret(updated?.smtpPass ?? null),
+    emailMittente: updated?.emailMittente ?? null,
+  })
 }

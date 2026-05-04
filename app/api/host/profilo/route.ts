@@ -5,7 +5,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { applySecretUpdate, maskHostSecrets } from '@/lib/secrets'
-import { setWhatsAppConfig } from '@/lib/host-config'
+import { setSmtpConfig, setWhatsAppConfig } from '@/lib/host-config'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -66,12 +66,8 @@ export async function PATCH(req: NextRequest) {
       fattPec: data.fattPec !== undefined ? (data.fattPec || null) : host.fattPec,
       fattCodiceSDI: data.fattCodiceSDI !== undefined ? data.fattCodiceSDI : host.fattCodiceSDI,
       regimeFiscale: data.regimeFiscale !== undefined ? data.regimeFiscale : host.regimeFiscale,
-      // Canali email
-      smtpHost: data.smtpHost !== undefined ? (data.smtpHost || null) : host.smtpHost,
-      smtpPort: data.smtpPort !== undefined ? (data.smtpPort ?? null) : host.smtpPort,
-      smtpUser: data.smtpUser !== undefined ? (data.smtpUser || null) : host.smtpUser,
-      smtpPass: applySecretUpdate(data.smtpPass, host.smtpPass),
-      emailMittente: data.emailMittente !== undefined ? (data.emailMittente || null) : host.emailMittente,
+      // Canali email — i 5 campi SMTP sono routati a setSmtpConfig() dopo la
+      // mega-update di Host. Il facade fa dual-write su HostSmtpConfig + Host.
       // Multi-valuta
       valutaBase: data.valutaBase !== undefined ? data.valutaBase : host.valutaBase,
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
@@ -114,6 +110,17 @@ export async function PATCH(req: NextRequest) {
       wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,
     },
   })
+
+  // SMTP: routato alla satellite HostSmtpConfig (dual-write su Host).
+  const smtpPatch: Record<string, unknown> = {}
+  if (data.smtpHost !== undefined) smtpPatch.smtpHost = data.smtpHost || null
+  if (data.smtpPort !== undefined) smtpPatch.smtpPort = data.smtpPort ?? null
+  if (data.smtpUser !== undefined) smtpPatch.smtpUser = data.smtpUser || null
+  if (data.smtpPass !== undefined) smtpPatch.smtpPass = data.smtpPass
+  if (data.emailMittente !== undefined) smtpPatch.emailMittente = data.emailMittente || null
+  if (Object.keys(smtpPatch).length > 0) {
+    await setSmtpConfig(auth.user.hostId, smtpPatch)
+  }
 
   // WhatsApp: routato alla satellite. Il facade fa dual-write su Host +
   // HostConciergeConfig + HostWhatsAppConfig.

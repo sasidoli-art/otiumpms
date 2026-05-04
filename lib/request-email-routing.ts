@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/db'
 import { sendEmailGeneric } from '@/lib/email'
+import { getSmtpConfig } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
 
 type RequestCategory = 'housekeeping' | 'manutenzione' | 'ristorazione' | 'reception'
@@ -40,26 +41,23 @@ export async function routeRequestEmail(params: {
   const { hostId, category, guestNome, cameraNome, richiesta, dettagli } = params
 
   try {
-    const host = await prisma.host.findUnique({
-      where: { id: hostId },
-      select: {
-        nomeAzienda: true,
-        emailHousekeeping: true,
-        emailManutenzione: true,
-        emailRistorazione: true,
-        emailReception: true,
-      },
-    })
+    const [host, smtp] = await Promise.all([
+      prisma.host.findUnique({
+        where: { id: hostId },
+        select: { nomeAzienda: true },
+      }),
+      getSmtpConfig(hostId),
+    ])
     if (!host) return
 
     const emailMap: Record<RequestCategory, string | null> = {
-      housekeeping: host.emailHousekeeping,
-      manutenzione: host.emailManutenzione,
-      ristorazione: host.emailRistorazione,
-      reception: host.emailReception,
+      housekeeping: smtp?.emailHousekeeping ?? null,
+      manutenzione: smtp?.emailManutenzione ?? null,
+      ristorazione: smtp?.emailRistorazione ?? null,
+      reception: smtp?.emailReception ?? null,
     }
 
-    const targetEmail = emailMap[category] || host.emailReception
+    const targetEmail = emailMap[category] || (smtp?.emailReception ?? null)
     if (!targetEmail) {
       logger.info(`[request-routing] No email configured for ${category} on host ${hostId}`)
       return
