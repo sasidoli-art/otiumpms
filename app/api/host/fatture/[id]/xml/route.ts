@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { generaFatturaPA } from '@/lib/fattura-elettronica'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
+import { getBillingInfo } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
 
 function sanitizeFilename(name: string): string {
@@ -24,14 +25,15 @@ export async function GET(
     where: { id, hostId: auth.user.hostId, deletedAt: null },
     select: {
       id: true, numero: true,
-      host: { select: { partitaIva: true, fattPartitaIva: true } },
+      host: { select: { partitaIva: true } },
     },
   })
   if (!fattura) return NextResponse.json({ error: 'Non trovata' }, { status: 404 })
 
   try {
     const xml = await generaFatturaPA(id)
-    const piva = (fattura.host.fattPartitaIva || fattura.host.partitaIva || '00000000000').replace(/^IT/i, '')
+    const billing = await getBillingInfo(auth.user.hostId)
+    const piva = (billing?.fattPartitaIva || fattura.host.partitaIva || '00000000000').replace(/^IT/i, '')
     const progressivo = fattura.numero.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10)
     const filename = sanitizeFilename(`IT${piva}_${progressivo}.xml`)
 

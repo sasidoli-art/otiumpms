@@ -14,6 +14,7 @@
 
 import PDFDocument from 'pdfkit'
 import { prisma } from '@/lib/db'
+import { getBillingInfo } from '@/lib/host-config'
 
 // ─── Tipi ────────────────────────────────────────────────────────────────────
 
@@ -185,7 +186,7 @@ export async function renderFatturaPdf(
   })
 
   // ── Tabella righe ──
-  let tableTop = clienteY + 16
+  const tableTop = clienteY + 16
   const colX = { desc: 48, qty: 310, price: 365, iva: 425, tot: 475 }
 
   doc.rect(48, tableTop, 500, 20).fill(BRAND)
@@ -335,10 +336,7 @@ async function generaPdfFatturaDaId(fatturaId: string): Promise<Uint8Array> {
         select: {
           nomeAzienda: true, partitaIva: true, codiceFiscale: true,
           indirizzo: true, citta: true, cap: true, provincia: true,
-          telefono: true, regimeFiscale: true, sitoWeb: true,
-          fattNomeAzienda: true, fattPartitaIva: true, fattIndirizzo: true,
-          fattCitta: true, fattCap: true, fattProvincia: true, fattPaese: true,
-          fattEmail: true, fattPec: true,
+          telefono: true, sitoWeb: true,
           user: { select: { email: true } },
         },
       },
@@ -349,20 +347,21 @@ async function generaPdfFatturaDaId(fatturaId: string): Promise<Uint8Array> {
 
   if (!fattura) throw new Error(`Fattura ${fatturaId} non trovata`)
 
+  const billing = await getBillingInfo(fattura.hostId)
   const h = fattura.host
   const emittente: EmittenteInput = {
-    nomeAzienda: h.fattNomeAzienda ?? h.nomeAzienda,
-    partitaIva: h.fattPartitaIva ?? h.partitaIva,
+    nomeAzienda: billing?.fattNomeAzienda ?? h.nomeAzienda,
+    partitaIva: billing?.fattPartitaIva ?? h.partitaIva,
     codiceFiscale: h.codiceFiscale,
-    regimeFiscale: h.regimeFiscale,
-    indirizzo: h.fattIndirizzo ?? h.indirizzo,
-    citta: h.fattCitta ?? h.citta,
-    cap: h.fattCap ?? h.cap,
-    provincia: h.fattProvincia ?? h.provincia,
-    paese: h.fattPaese,
+    regimeFiscale: billing?.regimeFiscale ?? null,
+    indirizzo: billing?.fattIndirizzo ?? h.indirizzo,
+    citta: billing?.fattCitta ?? h.citta,
+    cap: billing?.fattCap ?? h.cap,
+    provincia: billing?.fattProvincia ?? h.provincia,
+    paese: billing?.fattPaese ?? null,
     telefono: h.telefono,
-    email: h.fattEmail ?? h.user?.email ?? null,
-    pec: h.fattPec,
+    email: billing?.fattEmail ?? h.user?.email ?? null,
+    pec: billing?.fattPec ?? null,
     sitoWeb: h.sitoWeb,
   }
 

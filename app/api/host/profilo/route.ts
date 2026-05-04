@@ -5,7 +5,13 @@ import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { maskHostSecrets } from '@/lib/secrets'
-import { setConciergeConfig, setSmtpConfig, setWhatsAppConfig, setWifiConfig } from '@/lib/host-config'
+import {
+  setBillingInfo,
+  setConciergeConfig,
+  setSmtpConfig,
+  setWhatsAppConfig,
+  setWifiConfig,
+} from '@/lib/host-config'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -55,17 +61,9 @@ export async function PATCH(req: NextRequest) {
       provincia: data.provincia !== undefined ? data.provincia : host.provincia,
       cap: data.cap !== undefined ? data.cap : host.cap,
       regione: data.regione !== undefined ? data.regione : host.regione,
-      fattNomeAzienda: data.fattNomeAzienda !== undefined ? data.fattNomeAzienda : host.fattNomeAzienda,
-      fattPartitaIva: data.fattPartitaIva !== undefined ? data.fattPartitaIva : host.fattPartitaIva,
-      fattIndirizzo: data.fattIndirizzo !== undefined ? data.fattIndirizzo : host.fattIndirizzo,
-      fattCitta: data.fattCitta !== undefined ? data.fattCitta : host.fattCitta,
-      fattCap: data.fattCap !== undefined ? data.fattCap : host.fattCap,
-      fattProvincia: data.fattProvincia !== undefined ? data.fattProvincia : host.fattProvincia,
-      fattPaese: data.fattPaese !== undefined ? data.fattPaese : host.fattPaese,
-      fattEmail: data.fattEmail !== undefined ? (data.fattEmail || null) : host.fattEmail,
-      fattPec: data.fattPec !== undefined ? (data.fattPec || null) : host.fattPec,
-      fattCodiceSDI: data.fattCodiceSDI !== undefined ? data.fattCodiceSDI : host.fattCodiceSDI,
-      regimeFiscale: data.regimeFiscale !== undefined ? data.regimeFiscale : host.regimeFiscale,
+      // Fatturazione/SDI — gli 11 campi fatt*/regimeFiscale sono routati a
+      // setBillingInfo() dopo la mega-update di Host. Il facade fa dual-write
+      // su HostBillingInfo + Host.
       // Canali email — i 5 campi SMTP sono routati a setSmtpConfig() dopo la
       // mega-update di Host. Il facade fa dual-write su HostSmtpConfig + Host.
       // Multi-valuta
@@ -107,6 +105,23 @@ export async function PATCH(req: NextRequest) {
   if (data.conciergeSystemPrompt !== undefined) conciergePatch.conciergeSystemPrompt = data.conciergeSystemPrompt || null
   if (Object.keys(conciergePatch).length > 0) {
     await setConciergeConfig(auth.user.hostId, conciergePatch)
+  }
+
+  // Fatturazione/SDI: routato a setBillingInfo (dual-write su Host).
+  const billingPatch: Record<string, unknown> = {}
+  if (data.fattNomeAzienda !== undefined) billingPatch.fattNomeAzienda = data.fattNomeAzienda
+  if (data.fattPartitaIva !== undefined) billingPatch.fattPartitaIva = data.fattPartitaIva
+  if (data.fattIndirizzo !== undefined) billingPatch.fattIndirizzo = data.fattIndirizzo
+  if (data.fattCitta !== undefined) billingPatch.fattCitta = data.fattCitta
+  if (data.fattCap !== undefined) billingPatch.fattCap = data.fattCap
+  if (data.fattProvincia !== undefined) billingPatch.fattProvincia = data.fattProvincia
+  if (data.fattPaese !== undefined) billingPatch.fattPaese = data.fattPaese
+  if (data.fattEmail !== undefined) billingPatch.fattEmail = data.fattEmail || null
+  if (data.fattPec !== undefined) billingPatch.fattPec = data.fattPec || null
+  if (data.fattCodiceSDI !== undefined) billingPatch.fattCodiceSDI = data.fattCodiceSDI
+  if (data.regimeFiscale !== undefined) billingPatch.regimeFiscale = data.regimeFiscale
+  if (Object.keys(billingPatch).length > 0) {
+    await setBillingInfo(auth.user.hostId, billingPatch)
   }
 
   // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod).

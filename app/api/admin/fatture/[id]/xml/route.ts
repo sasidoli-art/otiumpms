@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { generateFatturaPA } from '@/lib/fattura-elettronica'
+import { getBillingInfo } from '@/lib/host-config'
 
 /**
  * GET /api/admin/fatture/[id]/xml
@@ -23,9 +24,6 @@ export async function GET(
         select: {
           nomeAzienda: true, partitaIva: true, codiceFiscale: true,
           indirizzo: true, cap: true, citta: true, provincia: true,
-          regimeFiscale: true,
-          fattNomeAzienda: true, fattPartitaIva: true, fattIndirizzo: true,
-          fattCitta: true, fattCap: true, fattProvincia: true,
         },
       },
     },
@@ -33,17 +31,19 @@ export async function GET(
 
   if (!fattura) return NextResponse.json({ error: 'Fattura non trovata' }, { status: 404 })
 
+  const billing = await getBillingInfo(fattura.hostId)
+
   // Dati emittente (preferisci dati fatturazione se presenti)
   const h = fattura.host
   const emittente = {
-    denominazione: h.fattNomeAzienda || h.nomeAzienda,
-    partitaIva: h.fattPartitaIva || h.partitaIva || '',
+    denominazione: billing?.fattNomeAzienda || h.nomeAzienda,
+    partitaIva: billing?.fattPartitaIva || h.partitaIva || '',
     codiceFiscale: h.codiceFiscale || undefined,
-    regimeFiscale: h.regimeFiscale || 'RF01',
-    indirizzo: h.fattIndirizzo || h.indirizzo || '',
-    cap: h.fattCap || h.cap || '00000',
-    comune: h.fattCitta || h.citta || '',
-    provincia: h.fattProvincia || h.provincia || '',
+    regimeFiscale: billing?.regimeFiscale || 'RF01',
+    indirizzo: billing?.fattIndirizzo || h.indirizzo || '',
+    cap: billing?.fattCap || h.cap || '00000',
+    comune: billing?.fattCitta || h.citta || '',
+    provincia: billing?.fattProvincia || h.provincia || '',
   }
 
   // Dati cliente
