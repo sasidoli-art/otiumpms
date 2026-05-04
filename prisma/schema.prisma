@@ -433,6 +433,8 @@ model Host {
   conciergeConfig HostConciergeConfig?
   wifiConfig      HostWifiConfig?
   billingInfo     HostBillingInfo?
+  whatsappConfig  HostWhatsAppConfig?
+  brandingConfig  HostBrandingConfig?
 
   // GDPR — richieste di cancellazione (Art. 17)
   richiesteCancellazione RichiestaCancellazione[]
@@ -575,6 +577,64 @@ model HostBillingInfo {
   updatedAt DateTime @updatedAt
 
   @@map("host_billing_info")
+}
+
+// ─── HostWhatsAppConfig — separato da HostConciergeConfig (god object split) ──
+// I 4 campi WhatsApp Business vivono storicamente in HostConciergeConfig.
+// Questo modello li espone come tabella satellite dedicata: dual-write
+// durante la migrazione, lib/host-config.ts gestisce read-through.
+model HostWhatsAppConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  accessToken   String? // cifrato (AES-256-GCM via lib/crypto.ts)
+  phoneNumberId String? // Phone Number ID da Meta Cloud API
+  verifyToken   String? // plaintext per webhook lookup (Meta)
+  webhookSecret String? // cifrato (HMAC verify firma webhook Meta)
+
+  configurato Boolean @default(false) // toggle "WhatsApp configurato e attivo"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([verifyToken]) // per webhook Meta findFirst (lookup hostId)
+  @@map("host_whatsapp_config")
+}
+
+// ─── HostBrandingConfig — branding per booking engine white-label ─────────────
+// Centralizza i campi visivi/testuali oggi sparsi tra Host (regCard*,
+// messaggioBenvenuto/Chiusura) e Struttura (colore*, fontFamily, borderRadius,
+// logo, fotoHero). La Struttura puo` ancora override i singoli campi, ma il
+// fallback piattaforma vive qui.
+model HostBrandingConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Visual
+  logo             String?
+  favicon          String?
+  colorePrimario   String? @default("#6366f1")
+  coloreSecondario String? @default("#818cf8")
+  coloreSfondo     String? @default("#ffffff")
+  coloreTesto      String? @default("#1a1625")
+  fontFamily       String? @default("Inter")
+  borderRadius     String? @default("12px")
+  fotoHero         String?
+
+  // Testi personalizzati ospite
+  messaggioBenvenuto String? @db.Text
+  messaggioChiusura  String? @db.Text
+
+  // Registration card HTML
+  regCardTerminiHtml    String? @db.Text
+  regCardPrivacyHtml    String? @db.Text
+  regCardSpaTerminiHtml String? @db.Text
+  regCardCampiExtra     Json? // [{ label, type, required }]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("host_branding_config")
 }
 
 /// @deprecated Modulo Eventi rimosso dal PMS (2026-04). Usa `Prenotazione.eventoEsterno`
