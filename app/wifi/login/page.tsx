@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { isModuloAttivo } from '@/lib/moduli'
+import { getWifiConfig } from '@/lib/host-config'
 import WifiLoginClient from './wifi-login-client'
 
 export const metadata = { title: 'Wi-Fi Ospiti — Login' }
@@ -32,22 +33,13 @@ export default async function WifiLoginPage({
     )
   }
 
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: {
-      id: true,
-      nomeAzienda: true,
-      moduliAttivi: true,
-      wifiAuthPms: true,
-      wifiAuthCode: true,
-      wifiAuthComplimentary: true,
-      wifiComplimentaryMins: true,
-      wifiAuthUserForm: true,
-      wifiAuthEmailOnly: true,
-      wifiRedirectUrl: true,
-      wifiWelcomeMessage: true,
-    },
-  })
+  const [host, wifi] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: hostId },
+      select: { id: true, nomeAzienda: true, moduliAttivi: true },
+    }),
+    getWifiConfig(hostId),
+  ])
 
   if (!host || !isModuloAttivo(host.moduliAttivi, 'wifi')) {
     return (
@@ -77,15 +69,15 @@ export default async function WifiLoginPage({
       hostNome={host.nomeAzienda}
       wifidog={wifidog}
       authMethods={{
-        pms: host.wifiAuthPms,
-        code: host.wifiAuthCode,
-        complimentary: host.wifiAuthComplimentary,
-        complimentaryMins: host.wifiComplimentaryMins,
-        userForm: host.wifiAuthUserForm,
-        emailOnly: host.wifiAuthEmailOnly,
+        pms: wifi?.wifiAuthPms ?? false,
+        code: wifi?.wifiAuthCode ?? false,
+        complimentary: wifi?.wifiAuthComplimentary ?? false,
+        complimentaryMins: wifi?.wifiComplimentaryMins ?? 120,
+        userForm: wifi?.wifiAuthUserForm ?? false,
+        emailOnly: wifi?.wifiAuthEmailOnly ?? false,
       }}
-      redirectUrl={host.wifiRedirectUrl}
-      welcomeMessage={host.wifiWelcomeMessage}
+      redirectUrl={wifi?.wifiRedirectUrl ?? null}
+      welcomeMessage={wifi?.wifiWelcomeMessage ?? null}
     />
   )
 }

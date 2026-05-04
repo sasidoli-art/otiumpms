@@ -5,7 +5,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { maskHostSecrets } from '@/lib/secrets'
-import { setConciergeConfig, setSmtpConfig, setWhatsAppConfig } from '@/lib/host-config'
+import { setConciergeConfig, setSmtpConfig, setWhatsAppConfig, setWifiConfig } from '@/lib/host-config'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -79,16 +79,8 @@ export async function PATCH(req: NextRequest) {
       // WhatsApp Business — i 3 campi sono routati alla satellite HostWhatsAppConfig
       // tramite setWhatsAppConfig() chiamato sotto. Il dual-write nel facade
       // mantiene allineati anche host.whatsapp* e HostConciergeConfig.whatsapp*.
-      // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod)
-      wifiAuthPms: rawObj.wifiAuthPms !== undefined ? !!rawObj.wifiAuthPms : host.wifiAuthPms,
-      wifiAuthCode: rawObj.wifiAuthCode !== undefined ? !!rawObj.wifiAuthCode : host.wifiAuthCode,
-      wifiAuthComplimentary: rawObj.wifiAuthComplimentary !== undefined ? !!rawObj.wifiAuthComplimentary : host.wifiAuthComplimentary,
-      wifiComplimentaryMins: rawObj.wifiComplimentaryMins !== undefined ? (Number(rawObj.wifiComplimentaryMins) || 120) : host.wifiComplimentaryMins,
-      wifiAuthUserForm: rawObj.wifiAuthUserForm !== undefined ? !!rawObj.wifiAuthUserForm : host.wifiAuthUserForm,
-      wifiAuthEmailOnly: rawObj.wifiAuthEmailOnly !== undefined ? !!rawObj.wifiAuthEmailOnly : host.wifiAuthEmailOnly,
-      wifiAuthSocial: rawObj.wifiAuthSocial !== undefined ? !!rawObj.wifiAuthSocial : host.wifiAuthSocial,
-      wifiRedirectUrl: rawObj.wifiRedirectUrl !== undefined ? (String(rawObj.wifiRedirectUrl) || null) : host.wifiRedirectUrl,
-      wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,
+      // Wi-Fi: i 9 campi sono routati alla satellite HostWifiConfig
+      // tramite setWifiConfig() chiamato sotto.
     },
   })
 
@@ -115,6 +107,22 @@ export async function PATCH(req: NextRequest) {
   if (data.conciergeSystemPrompt !== undefined) conciergePatch.conciergeSystemPrompt = data.conciergeSystemPrompt || null
   if (Object.keys(conciergePatch).length > 0) {
     await setConciergeConfig(auth.user.hostId, conciergePatch)
+  }
+
+  // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod).
+  // Routati alla satellite HostWifiConfig con dual-write su Host.
+  const wifiPatch: Record<string, unknown> = {}
+  if (rawObj.wifiAuthPms !== undefined) wifiPatch.wifiAuthPms = !!rawObj.wifiAuthPms
+  if (rawObj.wifiAuthCode !== undefined) wifiPatch.wifiAuthCode = !!rawObj.wifiAuthCode
+  if (rawObj.wifiAuthComplimentary !== undefined) wifiPatch.wifiAuthComplimentary = !!rawObj.wifiAuthComplimentary
+  if (rawObj.wifiComplimentaryMins !== undefined) wifiPatch.wifiComplimentaryMins = Number(rawObj.wifiComplimentaryMins) || 120
+  if (rawObj.wifiAuthUserForm !== undefined) wifiPatch.wifiAuthUserForm = !!rawObj.wifiAuthUserForm
+  if (rawObj.wifiAuthEmailOnly !== undefined) wifiPatch.wifiAuthEmailOnly = !!rawObj.wifiAuthEmailOnly
+  if (rawObj.wifiAuthSocial !== undefined) wifiPatch.wifiAuthSocial = !!rawObj.wifiAuthSocial
+  if (rawObj.wifiRedirectUrl !== undefined) wifiPatch.wifiRedirectUrl = String(rawObj.wifiRedirectUrl) || null
+  if (rawObj.wifiWelcomeMessage !== undefined) wifiPatch.wifiWelcomeMessage = String(rawObj.wifiWelcomeMessage) || null
+  if (Object.keys(wifiPatch).length > 0) {
+    await setWifiConfig(auth.user.hostId, wifiPatch)
   }
 
   // SMTP: routato alla satellite HostSmtpConfig (dual-write su Host).
