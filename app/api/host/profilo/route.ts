@@ -4,8 +4,8 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
-import { applySecretUpdate, maskHostSecrets } from '@/lib/secrets'
-import { setSmtpConfig, setWhatsAppConfig } from '@/lib/host-config'
+import { maskHostSecrets } from '@/lib/secrets'
+import { setConciergeConfig, setSmtpConfig, setWhatsAppConfig } from '@/lib/host-config'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -73,28 +73,9 @@ export async function PATCH(req: NextRequest) {
       valuteAccettate: data.valuteAccettate !== undefined ? data.valuteAccettate : host.valuteAccettate,
       // Modalita check-in
       modalitaCheckin: data.modalitaCheckin !== undefined ? data.modalitaCheckin : host.modalitaCheckin,
-      // AI Concierge — toggle ON richiede accettazione GDPR (già presente o
-      // in arrivo nello stesso PATCH). Evita il bug in cui la prima attivazione
-      // falliva perché il check leggeva solo il vecchio host.conciergeGdprAcceptedAt.
-      conciergeAttivo:
-        data.conciergeAttivo !== undefined
-          ? data.conciergeAttivo === true &&
-            !host.conciergeGdprAcceptedAt &&
-            !data.conciergeGdprAcceptedAt
-            ? false // blocca attivazione solo se GDPR non accettato né ora né prima
-            : data.conciergeAttivo
-          : host.conciergeAttivo,
-      conciergeGdprAcceptedAt:
-        data.conciergeGdprAcceptedAt !== undefined
-          ? data.conciergeGdprAcceptedAt === null
-            ? null
-            : new Date(data.conciergeGdprAcceptedAt)
-          : host.conciergeGdprAcceptedAt,
-      conciergeProvider: data.conciergeProvider !== undefined ? data.conciergeProvider : host.conciergeProvider,
-      conciergeApiKey: applySecretUpdate(data.conciergeApiKey, host.conciergeApiKey),
-      conciergeModel: data.conciergeModel !== undefined ? (data.conciergeModel || null) : host.conciergeModel,
-      conciergeBaseUrl: data.conciergeBaseUrl !== undefined ? (data.conciergeBaseUrl || null) : host.conciergeBaseUrl,
-      conciergeSystemPrompt: data.conciergeSystemPrompt !== undefined ? (data.conciergeSystemPrompt || null) : host.conciergeSystemPrompt,
+      // AI Concierge — i 7 campi sono routati alla satellite HostConciergeConfig
+      // tramite setConciergeConfig() chiamato sotto. Il facade fa dual-write
+      // verso Host per mantenere coerenti i lettori legacy.
       // WhatsApp Business — i 3 campi sono routati alla satellite HostWhatsAppConfig
       // tramite setWhatsAppConfig() chiamato sotto. Il dual-write nel facade
       // mantiene allineati anche host.whatsapp* e HostConciergeConfig.whatsapp*.
@@ -110,6 +91,31 @@ export async function PATCH(req: NextRequest) {
       wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,
     },
   })
+
+  // Concierge: routato alla satellite HostConciergeConfig.
+  // Toggle ON richiede accettazione GDPR (già presente o in arrivo nello stesso
+  // PATCH). Evita il bug della prima attivazione in cui il check leggeva solo
+  // il vecchio host.conciergeGdprAcceptedAt.
+  const conciergePatch: Record<string, unknown> = {}
+  if (data.conciergeAttivo !== undefined) {
+    const blockActivation =
+      data.conciergeAttivo === true &&
+      !host.conciergeGdprAcceptedAt &&
+      !data.conciergeGdprAcceptedAt
+    conciergePatch.conciergeAttivo = blockActivation ? false : data.conciergeAttivo
+  }
+  if (data.conciergeGdprAcceptedAt !== undefined) {
+    conciergePatch.conciergeGdprAcceptedAt =
+      data.conciergeGdprAcceptedAt === null ? null : new Date(data.conciergeGdprAcceptedAt)
+  }
+  if (data.conciergeProvider !== undefined) conciergePatch.conciergeProvider = data.conciergeProvider
+  if (data.conciergeApiKey !== undefined) conciergePatch.conciergeApiKey = data.conciergeApiKey
+  if (data.conciergeModel !== undefined) conciergePatch.conciergeModel = data.conciergeModel || null
+  if (data.conciergeBaseUrl !== undefined) conciergePatch.conciergeBaseUrl = data.conciergeBaseUrl || null
+  if (data.conciergeSystemPrompt !== undefined) conciergePatch.conciergeSystemPrompt = data.conciergeSystemPrompt || null
+  if (Object.keys(conciergePatch).length > 0) {
+    await setConciergeConfig(auth.user.hostId, conciergePatch)
+  }
 
   // SMTP: routato alla satellite HostSmtpConfig (dual-write su Host).
   const smtpPatch: Record<string, unknown> = {}

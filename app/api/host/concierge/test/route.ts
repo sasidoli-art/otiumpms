@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { createAIProvider, type AIMessage } from '@/lib/ai-provider'
-import { getHostSecret } from '@/lib/host-secrets'
 import { getConciergeConfig } from '@/lib/host-config'
 import { getPlatformSettings } from '@/lib/platform-settings'
 import { prisma } from '@/lib/db'
@@ -86,9 +85,8 @@ REGOLE:
   // Provider: BYO → fallback Platform Key
   const platform = await getPlatformSettings()
   const useBYO = !!cfg.conciergeApiKey
-  const apiKey = useBYO
-    ? await getHostSecret(hostId, 'conciergeApiKey')
-    : platform.aiApiKey
+  // cfg.conciergeApiKey è già decifrato dal facade
+  const apiKey = useBYO ? cfg.conciergeApiKey : platform.aiApiKey
 
   const provider = createAIProvider({
     provider: useBYO

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
-import { parseModuli } from '@/lib/moduli'
+import { getConciergeConfig, setConciergeConfig } from '@/lib/host-config'
 
 /**
  * PATCH /api/superadmin/host/[id]/config
@@ -40,16 +40,25 @@ export async function PATCH(
     data.moduliAttivi = merged
   }
 
-  // Aggiorna flag concierge
-  if (body.conciergeAttivo !== undefined) {
-    data.conciergeAttivo = body.conciergeAttivo
+  // Aggiorna moduli su Host se richiesto
+  let updatedHost: { id: string; moduliAttivi: unknown } | null = null
+  if (Object.keys(data).length > 0) {
+    updatedHost = await prisma.host.update({
+      where: { id },
+      data,
+      select: { id: true, moduliAttivi: true },
+    })
   }
 
-  const updated = await prisma.host.update({
-    where: { id },
-    data,
-    select: { id: true, moduliAttivi: true, conciergeAttivo: true },
-  })
+  // Aggiorna flag concierge via facade (dual-write su Host + HostConciergeConfig)
+  if (body.conciergeAttivo !== undefined) {
+    await setConciergeConfig(id, { conciergeAttivo: !!body.conciergeAttivo })
+  }
 
-  return NextResponse.json(updated)
+  const cfg = await getConciergeConfig(id)
+  return NextResponse.json({
+    id,
+    moduliAttivi: updatedHost?.moduliAttivi ?? host.moduliAttivi,
+    conciergeAttivo: cfg?.conciergeAttivo ?? false,
+  })
 }
