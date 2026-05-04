@@ -387,6 +387,65 @@ export async function setWhatsAppConfig(hostId: string, patch: WhatsAppConfigPat
       create: { hostId, ...conciergeData },
     });
   }
+  // Dual-write su Host (campi legacy) — necessario finché esistono lettori
+  // diretti di host.whatsapp* (es. GET /api/host/profilo che ritorna Host raw).
+  const hostExisting = await prisma.host.findUnique({
+    where: { id: hostId },
+    select: { whatsappAccessToken: true },
+  });
+  const hostData: Record<string, unknown> = {};
+  if (patch.accessToken !== undefined) {
+    hostData.whatsappAccessToken = applySecretUpdate(
+      patch.accessToken,
+      hostExisting?.whatsappAccessToken ?? null,
+    );
+  }
+  if (patch.phoneNumberId !== undefined) hostData.whatsappNumeroId = patch.phoneNumberId;
+  if (patch.verifyToken !== undefined) hostData.whatsappVerifyToken = patch.verifyToken;
+  if (Object.keys(hostData).length > 0) {
+    await prisma.host.update({ where: { id: hostId }, data: hostData });
+  }
+}
+
+// ─── WhatsApp lookup helpers (webhook Meta) ──────────────────────────────────
+// Risolvono hostId dal verifyToken (handshake GET) o dal phoneNumberId
+// (POST messaggi). Cercano in ordine: HostWhatsAppConfig (canonica) →
+// HostConciergeConfig (legacy intermedia) → Host (legacy originale).
+
+export async function findHostIdByWhatsAppVerifyToken(token: string): Promise<string | null> {
+  const cfg = await prisma.hostWhatsAppConfig.findFirst({
+    where: { verifyToken: token },
+    select: { hostId: true },
+  });
+  if (cfg) return cfg.hostId;
+  const concierge = await prisma.hostConciergeConfig.findFirst({
+    where: { whatsappVerifyToken: token },
+    select: { hostId: true },
+  });
+  if (concierge) return concierge.hostId;
+  const host = await prisma.host.findFirst({
+    where: { whatsappVerifyToken: token },
+    select: { id: true },
+  });
+  return host?.id ?? null;
+}
+
+export async function findHostIdByWhatsAppPhoneNumberId(phoneNumberId: string): Promise<string | null> {
+  const cfg = await prisma.hostWhatsAppConfig.findFirst({
+    where: { phoneNumberId },
+    select: { hostId: true },
+  });
+  if (cfg) return cfg.hostId;
+  const concierge = await prisma.hostConciergeConfig.findFirst({
+    where: { whatsappNumeroId: phoneNumberId },
+    select: { hostId: true },
+  });
+  if (concierge) return concierge.hostId;
+  const host = await prisma.host.findFirst({
+    where: { whatsappNumeroId: phoneNumberId },
+    select: { id: true },
+  });
+  return host?.id ?? null;
 }
 
 // ─── Branding ────────────────────────────────────────────────────────────────

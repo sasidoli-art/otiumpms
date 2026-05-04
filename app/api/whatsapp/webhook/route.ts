@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { parseWebhookMessages, sendWhatsAppMessage, verifyWebhookSignature } from '@/lib/whatsapp'
 import { processGuestMessage } from '@/lib/concierge'
+import {
+  findHostIdByWhatsAppPhoneNumberId,
+  findHostIdByWhatsAppVerifyToken,
+  getWhatsAppConfig,
+} from '@/lib/host-config'
 import { logger } from '@/lib/logger'
-import { revealSecret } from '@/lib/secrets'
 
 /**
  * GET /api/whatsapp/webhook
@@ -15,14 +19,18 @@ export async function GET(req: NextRequest) {
   const token = sp.get('hub.verify_token')
   const challenge = sp.get('hub.challenge')
 
-  if (mode === 'subscribe') {
-    // Trova l'host con questo verify token
-    const host = await prisma.host.findFirst({
-      where: { whatsappVerifyToken: token, conciergeAttivo: true },
-    })
-
-    if (host) {
-      return new NextResponse(challenge, { status: 200 })
+  if (mode === 'subscribe' && token) {
+    // Trova l'host dal verify token via facade (HostWhatsAppConfig → fallback legacy)
+    const hostId = await findHostIdByWhatsAppVerifyToken(token)
+    if (hostId) {
+      // Verifica che il concierge sia attivo per quell'host (campo legacy ancora su Host)
+      const host = await prisma.host.findUnique({
+        where: { id: hostId },
+        select: { conciergeAttivo: true },
+      })
+      if (host?.conciergeAttivo) {
+        return new NextResponse(challenge, { status: 200 })
+      }
     }
   }
 
@@ -49,19 +57,26 @@ export async function POST(req: NextRequest) {
 
   for (const msg of messages) {
     try {
-      // Trova l'host dal phoneNumberId
-      const host = await prisma.host.findFirst({
-        where: { whatsappNumeroId: msg.phoneNumberId, conciergeAttivo: true },
-      })
-
-      if (!host) {
+      // Trova l'host dal phoneNumberId via facade
+      const hostId = await findHostIdByWhatsAppPhoneNumberId(msg.phoneNumberId)
+      if (!hostId) {
         logger.warn(`Webhook WhatsApp: nessun host per phoneNumberId ${msg.phoneNumberId}`)
+        continue
+      }
+
+      // Verifica concierge attivo (campo legacy su Host)
+      const hostStatus = await prisma.host.findUnique({
+        where: { id: hostId },
+        select: { conciergeAttivo: true },
+      })
+      if (!hostStatus?.conciergeAttivo) {
+        logger.warn(`Webhook WhatsApp: concierge non attivo per host ${hostId}`)
         continue
       }
 
       // Processa il messaggio con l'AI Concierge
       const result = await processGuestMessage({
-        hostId: host.id,
+        hostId,
         telefono: msg.from,
         nomeWhatsApp: msg.name,
         testo: msg.text,
@@ -69,11 +84,11 @@ export async function POST(req: NextRequest) {
       })
 
       // Se c'è una risposta, inviala via WhatsApp
-      const accessToken = revealSecret(host.whatsappAccessToken)
-      if (result.response && accessToken) {
+      const wa = await getWhatsAppConfig(hostId)
+      if (result.response && wa?.accessToken) {
         await sendWhatsAppMessage({
           phoneNumberId: msg.phoneNumberId,
-          accessToken,
+          accessToken: wa.accessToken,
           to: msg.from,
           text: result.response,
         })

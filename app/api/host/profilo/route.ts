@@ -5,6 +5,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { parseBody, profiloUpdateSchema } from '@/lib/validations'
 import { logger } from '@/lib/logger'
 import { applySecretUpdate, maskHostSecrets } from '@/lib/secrets'
+import { setWhatsAppConfig } from '@/lib/host-config'
 
 // GET /api/host/profilo
 export async function GET() {
@@ -98,10 +99,9 @@ export async function PATCH(req: NextRequest) {
       conciergeModel: data.conciergeModel !== undefined ? (data.conciergeModel || null) : host.conciergeModel,
       conciergeBaseUrl: data.conciergeBaseUrl !== undefined ? (data.conciergeBaseUrl || null) : host.conciergeBaseUrl,
       conciergeSystemPrompt: data.conciergeSystemPrompt !== undefined ? (data.conciergeSystemPrompt || null) : host.conciergeSystemPrompt,
-      // WhatsApp Business
-      whatsappNumeroId: data.whatsappNumeroId !== undefined ? (data.whatsappNumeroId || null) : host.whatsappNumeroId,
-      whatsappAccessToken: applySecretUpdate(data.whatsappAccessToken, host.whatsappAccessToken),
-      whatsappVerifyToken: data.whatsappVerifyToken !== undefined ? (data.whatsappVerifyToken || null) : host.whatsappVerifyToken,
+      // WhatsApp Business — i 3 campi sono routati alla satellite HostWhatsAppConfig
+      // tramite setWhatsAppConfig() chiamato sotto. Il dual-write nel facade
+      // mantiene allineati anche host.whatsapp* e HostConciergeConfig.whatsapp*.
       // Wi-Fi Captive Portal auth methods (passano via rawObj, fuori dallo schema Zod)
       wifiAuthPms: rawObj.wifiAuthPms !== undefined ? !!rawObj.wifiAuthPms : host.wifiAuthPms,
       wifiAuthCode: rawObj.wifiAuthCode !== undefined ? !!rawObj.wifiAuthCode : host.wifiAuthCode,
@@ -114,6 +114,16 @@ export async function PATCH(req: NextRequest) {
       wifiWelcomeMessage: rawObj.wifiWelcomeMessage !== undefined ? (String(rawObj.wifiWelcomeMessage) || null) : host.wifiWelcomeMessage,
     },
   })
+
+  // WhatsApp: routato alla satellite. Il facade fa dual-write su Host +
+  // HostConciergeConfig + HostWhatsAppConfig.
+  const waPatch: Record<string, unknown> = {}
+  if (data.whatsappNumeroId !== undefined) waPatch.phoneNumberId = data.whatsappNumeroId || null
+  if (data.whatsappVerifyToken !== undefined) waPatch.verifyToken = data.whatsappVerifyToken || null
+  if (data.whatsappAccessToken !== undefined) waPatch.accessToken = data.whatsappAccessToken
+  if (Object.keys(waPatch).length > 0) {
+    await setWhatsAppConfig(auth.user.hostId, waPatch)
+  }
 
   logger.info('Profilo host aggiornato', 'host/profilo', { hostId: auth.user.hostId })
 
