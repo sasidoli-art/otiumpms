@@ -73,6 +73,7 @@ const I18N_LABELS: Record<string, string> = {
   'sidebar.notifiche': 'Notifiche',
   'sidebar.emailAuto': 'Email automatiche',
   'sidebar.concierge': 'AI Concierge',
+  'sidebar.wifi': 'Wi-Fi Ospiti',
   'sidebar.promemoria': 'Promemoria',
   'sidebar.strutture': 'Strutture',
   'sidebar.utenti': 'Utenti & Staff',
