@@ -247,7 +247,8 @@
       "Bash(awk '{print $9, $5}')",
       "Bash(xargs echo *)",
       "Bash(curl -s https://otium-pms.vercel.app/api/health)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "c:\\PROGETTI\\Gestionale_otium"

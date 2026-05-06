@@ -29,7 +29,8 @@
     "test:all": "npm run lint && npm run type-check && npm run test:run",
     "audit:visual": "ts-node --project tsconfig.scripts.json scripts/visual-audit.ts",
     "audit:tenant": "ts-node --project tsconfig.scripts.json scripts/audit-multi-tenant.ts",
-    "migrate:host-configs": "ts-node --project tsconfig.scripts.json scripts/migrate-host-configs.ts"
+    "migrate:host-configs": "ts-node --project tsconfig.scripts.json scripts/migrate-host-configs.ts",
+    "migrate:fattura-righe": "ts-node --project tsconfig.scripts.json scripts/migrate-fattura-righe.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
