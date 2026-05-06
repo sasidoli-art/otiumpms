@@ -907,7 +907,9 @@ model Struttura {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
+  @@index([deletedAt])
   @@map("strutture")
 }
 
@@ -1325,8 +1327,10 @@ model ArticoloMagazzino {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([hostId, categoria])
+  @@index([deletedAt])
   @@map("articoli_magazzino")
 }
 
@@ -1560,8 +1564,10 @@ model CanaleEsterno {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([strutturaId])
+  @@index([deletedAt])
   @@map("canali_esterni")
 }
 
@@ -2210,6 +2216,7 @@ model OspiteCRM {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   // Collegamento prenotazioni via email (lookup dinamico)
   appuntamentiSpa AppuntamentoSpa[]
@@ -2217,6 +2224,7 @@ model OspiteCRM {
   membriFedelta   MembroFedelta[]
 
   @@unique([hostId, email])
+  @@index([deletedAt])
   @@map("ospiti_crm")
 }
 
@@ -2785,12 +2793,14 @@ model AppuntamentoSpa {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([hostId, dataOra]) // calendario SPA + availability check
   @@index([hostId, stato]) // dashboard conteggi SPA
   @@index([terapistaId, dataOra]) // conflict detection terapista
   @@index([cabinaId, dataOra]) // conflict detection cabina
   @@index([prenotazioneId]) // lookup appuntamenti di una prenotazione
+  @@index([deletedAt])
   @@map("appuntamenti_spa")
 }
 
@@ -3080,9 +3090,11 @@ model StaffMember {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@unique([hostId, userId])
   @@index([hostId])
+  @@index([deletedAt])
   @@map("staff_members")
 }
 

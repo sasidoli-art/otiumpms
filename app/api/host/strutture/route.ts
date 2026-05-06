@@ -5,6 +5,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 const createStrutturaSchema = z.object({
   nome: z.string().min(1),
@@ -24,7 +25,7 @@ export async function GET() {
   const session = auth
 
   const strutture = await prisma.struttura.findMany({
-    where: { hostId: auth.user.hostId },
+    where: { hostId: auth.user.hostId, ...notDeleted },
     include: {
       unita: { where: { attiva: true }, select: { id: true, nome: true, prezzoBase: true } },
       _count: { select: { prenotazioni: true } },

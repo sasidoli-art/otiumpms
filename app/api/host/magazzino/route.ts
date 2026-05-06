@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 export async function GET(req: NextRequest) {
   const auth = await requireHost()
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
   const articoli = await prisma.articoloMagazzino.findMany({
     where: {
       hostId: auth.user.hostId,
+      ...notDeleted,
       ...(categoria ? { categoria } : {}),
       ...(sottoScorta ? { quantita: { lte: prisma.articoloMagazzino.fields.scorteMinime } } : {}),
     },

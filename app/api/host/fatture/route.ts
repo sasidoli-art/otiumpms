@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
 import { normalizzaRighe, calcolaTotali, buildRigheCreatePayload, type RigaInput } from '@/lib/fattura-righe'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get('page') || '1')
   const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100)
 
-  const where: Record<string, unknown> = { hostId: auth.user.hostId, deletedAt: null }
+  const where: Record<string, unknown> = { hostId: auth.user.hostId, ...notDeleted }
   if (anno) where.anno = anno
   if (stato) where.stato = stato
 

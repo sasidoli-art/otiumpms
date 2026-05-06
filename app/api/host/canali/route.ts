@@ -3,6 +3,7 @@ import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { generateIcalToken } from '@/lib/ical'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 /**
  * Costruisce l'URL di export del feed per una coppia (unitaId, canaleId).
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
   if (isUnauthorized(auth)) return auth
 
   const canali = await prisma.canaleEsterno.findMany({
-    where: { struttura: { hostId: auth.user.hostId } },
+    where: { struttura: { hostId: auth.user.hostId }, ...notDeleted },
     include: {
       struttura: { select: { nome: true } },
       unita: { select: { id: true, nome: true } },
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   // Verifica ownership struttura
   const struttura = await prisma.struttura.findFirst({
-    where: { id: strutturaId, hostId: auth.user.hostId },
+    where: { id: strutturaId, hostId: auth.user.hostId, ...notDeleted },
   })
   if (!struttura) return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })
 

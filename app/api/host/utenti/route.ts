@@ -4,6 +4,7 @@ import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { sendEmailGeneric } from '@/lib/email'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 // ─── GET: List staff members + pending invites ───────────────────────────────
 
@@ -13,7 +14,7 @@ export async function GET() {
 
   const [members, invites] = await Promise.all([
     prisma.staffMember.findMany({
-      where: { hostId: auth.user.hostId },
+      where: { hostId: auth.user.hostId, ...notDeleted },
       include: {
         user: {
           select: { id: true, nome: true, cognome: true, email: true, role: true },
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
   const existingMember = await prisma.staffMember.findFirst({
     where: {
       hostId: auth.user.hostId,
+      ...notDeleted,
       user: { email },
     },
   })

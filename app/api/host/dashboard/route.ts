@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { parseModuli } from '@/lib/moduli'
 import { format, addDays } from 'date-fns'
 import { it as itLocale } from 'date-fns/locale'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 /**
  * GET /api/host/dashboard?strutturaId=xxx
@@ -86,6 +87,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.findMany({
       where: {
         ...scope,
+        ...notDeleted,
         dataArrivo: { gte: inizioGiornata, lte: fineGiornata },
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
       },
@@ -106,6 +108,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.findMany({
       where: {
         ...scope,
+        ...notDeleted,
         dataPartenza: { gte: inizioGiornata, lte: fineGiornata },
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
       },
@@ -124,6 +127,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.count({
       where: {
         ...scope,
+        ...notDeleted,
         stato: 'CONFERMATA',
         dataArrivo: { lte: fineGiornata },
         OR: [
@@ -135,7 +139,7 @@ export async function GET(req: NextRequest) {
 
     // ── AZIONI: prenotazioni da confermare ──
     prisma.prenotazione.count({
-      where: { ...scope, stato: 'RICHIESTA' },
+      where: { ...scope, ...notDeleted, stato: 'RICHIESTA' },
     }),
 
     // ── AZIONI: task HK aperti oggi ──
@@ -174,7 +178,7 @@ export async function GET(req: NextRequest) {
     // ── AZIONI: fatture da emettere ──
     moduli.fatturazione
       ? prisma.prenotazione.count({
-          where: { ...scope, stato: 'COMPLETATA', fatturaId: null },
+          where: { ...scope, ...notDeleted, stato: 'COMPLETATA', fatturaId: null },
         })
       : Promise.resolve(0),
 
@@ -194,6 +198,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.findMany({
       where: {
         ...scope,
+        ...notDeleted,
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
         dataArrivo: { lte: addDays(fineGiornata, 7) },
         OR: [
@@ -209,6 +214,7 @@ export async function GET(req: NextRequest) {
       ? prisma.appuntamentoSpa.count({
           where: {
             hostId,
+            ...notDeleted,
             dataOra: { gte: inizioGiornata, lte: fineGiornata },
             stato: { in: ['PRENOTATO', 'CONFERMATO', 'IN_CORSO'] },
           },
@@ -220,6 +226,7 @@ export async function GET(req: NextRequest) {
       ? prisma.appuntamentoSpa.count({
           where: {
             hostId,
+            ...notDeleted,
             dataOra: { gte: inizioGiornata, lte: fineGiornata },
             stato: 'COMPLETATO',
           },
@@ -231,6 +238,7 @@ export async function GET(req: NextRequest) {
       ? prisma.appuntamentoSpa.findFirst({
           where: {
             hostId,
+            ...notDeleted,
             dataOra: { gte: now },
             stato: { in: ['PRENOTATO', 'CONFERMATO'] },
           },
@@ -263,6 +271,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.aggregate({
       where: {
         ...scope,
+        ...notDeleted,
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
         dataArrivo: { gte: inizioMeseCorrente, lte: fineGiornata },
       },
@@ -272,6 +281,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.aggregate({
       where: {
         ...scope,
+        ...notDeleted,
         stato: { in: ['CONFERMATA', 'COMPLETATA'] },
         dataArrivo: { gte: inizioMeseScorso, lte: oggiMeseScorso },
       },

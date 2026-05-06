@@ -3,6 +3,7 @@ import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { isModuloAttivo } from '@/lib/moduli'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 /**
  * GET /api/host/alert-ospite?prenotazioneId=xxx&trigger=CHECKIN
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
 
   // Verifica ownership
   const pren = await prisma.prenotazione.findFirst({
-    where: { id: prenotazioneId, hostId: auth.user.hostId },
+    where: { id: prenotazioneId, hostId: auth.user.hostId, ...notDeleted },
     select: { id: true },
   })
   if (!pren) return NextResponse.json({ error: 'Prenotazione non trovata' }, { status: 404 })

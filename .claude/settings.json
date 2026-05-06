@@ -248,7 +248,8 @@
       "Bash(xargs echo *)",
       "Bash(curl -s https://otium-pms.vercel.app/api/health)",
       "Bash(npx vitest *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(awk '/^model / { current=$2 } /deletedAt/ && current { print current; current=\"\" }' prisma/schema.prisma)"
     ],
     "additionalDirectories": [
       "c:\\PROGETTI\\Gestionale_otium"

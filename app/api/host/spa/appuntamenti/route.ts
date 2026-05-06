@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { sendEmailConfermaAppuntamentoSpa } from '@/lib/email'
 import { logger } from '@/lib/logger'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 export async function GET(req: NextRequest) {
   const auth = await requireHostOrAdmin()
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const stato = sp.get('stato')
   const prenotazioneId = sp.get('prenotazioneId')
 
-  const where: Record<string, unknown> = { hostId: auth.user.hostId }
+  const where: Record<string, unknown> = { hostId: auth.user.hostId, ...notDeleted }
 
   if (data) {
     const giorno = new Date(data)
