@@ -802,6 +802,7 @@ model Fattura {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  @@index([hostId, dataEmissione])
   @@index([hostId])
   @@index([hostId, stato])
   @@index([anno])
@@ -960,6 +961,7 @@ model Disponibilita {
   noteInterno      String?
 
   @@unique([unitaId, data])
+  @@index([unitaId, data])
   @@map("disponibilita")
 }
 
@@ -1144,8 +1146,11 @@ model Prenotazione {
   @@index([hostId, dataArrivo]) // dashboard arrivi + calendario
   @@index([hostId, dataPartenza]) // dashboard partenze + retention 40gg
   @@index([hostId, statoCheckIn]) // check-in online da verificare
-  @@index([unitaId, dataArrivo]) // calendario per-camera + conflict detection booking
-  @@index([guestEmail])
+  @@index([hostId, strutturaId, dataArrivo]) // booking view per struttura
+  @@index([hostId, guestEmail]) // lookup ospite per email
+  @@index([unitaId, dataArrivo, dataPartenza]) // calendario per-camera + conflict detection
+  @@index([checkInToken]) // lookup self checkin
+  @@index([pin, hostId]) // lookup prenotazione via PIN
   @@index([gruppoPrenotazioneId])
   @@index([deletedAt])
   @@map("prenotazioni")
@@ -1587,6 +1592,7 @@ model PrenotazioneCanale {
   updatedAt DateTime @updatedAt
 
   @@unique([canaleId, uidEvento])
+  @@index([canaleId, uidEvento])
   @@index([canaleId])
   @@map("prenotazioni_canale")
 }
@@ -2224,6 +2230,7 @@ model OspiteCRM {
   membriFedelta   MembroFedelta[]
 
   @@unique([hostId, email])
+  @@index([hostId, numSoggiorni])
   @@index([deletedAt])
   @@map("ospiti_crm")
 }
@@ -2276,6 +2283,7 @@ model SegnalazioneManutenzione {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, stato, priorita])
   @@index([hostId, stato]) // dashboard manutenzione + count aperte
   @@index([hostId, createdAt]) // lista cronologica
   @@index([unitaId]) // detail unità
@@ -2303,6 +2311,7 @@ model TaskHK {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, completato, dataScadenza])
   @@index([hostId, completato]) // dashboard HK + count task aperti
   @@index([hostId, dataScadenza]) // task in scadenza
   @@index([unitaId, completato]) // detail unità: task pendenti
@@ -2468,6 +2477,7 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([hostId, createdAt])
+  @@index([hostId, entita, entitaId])
   @@index([entita, entitaId])
   @@map("audit_log")
 }
@@ -2797,6 +2807,8 @@ model AppuntamentoSpa {
 
   @@index([hostId, dataOra]) // calendario SPA + availability check
   @@index([hostId, stato]) // dashboard conteggi SPA
+  @@index([hostId, terapistaId, dataOra]) // conflict detection terapista
+  @@index([hostId, cabinaId, dataOra]) // conflict detection cabina
   @@index([terapistaId, dataOra]) // conflict detection terapista
   @@index([cabinaId, dataOra]) // conflict detection cabina
   @@index([prenotazioneId]) // lookup appuntamenti di una prenotazione
@@ -2874,6 +2886,7 @@ model WaiverSpa {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([createdAt])
   @@map("waivers_spa")
 }
 
@@ -2975,6 +2988,7 @@ model MessaggioWhatsApp {
 
   createdAt DateTime @default(now())
 
+  @@index([conversazioneId, createdAt])
   @@index([conversazioneId])
   @@map("messaggi_whatsapp")
 }
@@ -3741,6 +3755,8 @@ model Incasso {
   riconciliato    Boolean            @default(false)
   createdAt       DateTime           @default(now())
 
+  @@index([hostId, createdAt])
+  @@index([prenotazioneId])
   @@index([hostId, data])
   @@index([hostId, metodo])
   @@index([hostId, riconciliato])
