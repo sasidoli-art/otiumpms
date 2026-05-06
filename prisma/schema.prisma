@@ -463,6 +463,7 @@ model Host {
 
   // Prenotazioni ristorante (tavoli)
   prenotazioniRistorante PrenotazioneRistorante[]
+  configRistorante       ConfigRistorante[]
   WebhookSubscription    WebhookSubscription[]
 
   @@map("hosts")
@@ -874,6 +875,7 @@ model Struttura {
   wifiDevices            WifiDevice[]
   exportAlloggiati       ExportAlloggiati[]
   prenotazioniRistorante PrenotazioneRistorante[]
+  configRistorante       ConfigRistorante?
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -1303,6 +1305,28 @@ model PrenotazioneRistorante {
   @@index([strutturaId, dataOra])
   @@index([prenotazioneId])
   @@map("prenotazioni_ristorante")
+}
+
+model ConfigRistorante {
+  id          String    @id @default(cuid())
+  hostId      String
+  host        Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String    @unique
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nomeRistorante  String?
+  oraApertura     String  @default("12:00")
+  oraChiusura     String  @default("22:00")
+  intervalloSlot  Int     @default(30) // minuti tra slot
+  maxCopertiPerSlot Int   @default(30)
+  giorniChiusura  Int[]   @default([]) // 0=lunedì, 6=domenica
+  prenotazioneOnline Boolean @default(true)
+  confermaAutomatica Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("config_ristorante")
 }
 
 // ─── Magazzino (Inventory) ────────────────────────────────────────────────────
