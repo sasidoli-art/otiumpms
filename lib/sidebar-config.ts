@@ -339,6 +339,13 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
         modulo: 'concierge',
       },
       {
+        id: 'wifi',
+        label: 'sidebar.wifi',
+        href: '/host/wifi',
+        icon: 'Wifi',
+        modulo: 'wifi',
+      },
+      {
         id: 'promemoria',
         label: 'sidebar.promemoria',
         href: '/host/promemoria',
