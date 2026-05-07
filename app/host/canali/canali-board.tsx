@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2MB after encoding
 

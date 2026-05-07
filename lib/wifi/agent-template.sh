@@ -74,16 +74,16 @@ api_post "/api/wifi/agent/${MAC}/heartbeat" \
 
 # ── 4. Poll pending commands ──────────────────────────────────────────────
 RESP=$(api_get "/api/wifi/agent/${MAC}/pending-commands")
-COUNT=$(echo "$RESP" | jsonfilter -e 'length(@.commands)' 2>/dev/null)
-[ -z "$COUNT" ] || [ "$COUNT" = "0" ] && exit 0
-log "$COUNT command(s)"
+CMD0=$(echo "$RESP" | jsonfilter -e '@.commands[0].id' 2>/dev/null)
+[ -z "$CMD0" ] && exit 0
 
 # ── 5. Execute & collect results ──────────────────────────────────────────
 RESULTS="["
 SEP=""
 i=0
-while [ "$i" -lt "$COUNT" ]; do
-  ID=$(echo     "$RESP" | jsonfilter -e "@.commands[$i].id")
+while true; do
+  ID=$(echo "$RESP" | jsonfilter -e "@.commands[$i].id" 2>/dev/null)
+  [ -z "$ID" ] && break
   ACTION=$(echo "$RESP" | jsonfilter -e "@.commands[$i].action")
   PARAMS=$(echo "$RESP" | jsonfilter -e "@.commands[$i].params" 2>/dev/null || echo '{}')
   NOW=$(date '+%Y-%m-%dT%H:%M:%SZ')

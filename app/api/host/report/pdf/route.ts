@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { generateReportPdf } from '@/lib/pdf-generator'
 import { startOfMonth, endOfMonth, eachDayOfInterval, startOfDay, subMonths, subYears, addDays } from 'date-fns'

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Lock, Unlock, Save } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore, startOfDay } from 'date-fns'
 import { it } from 'date-fns/locale'
 

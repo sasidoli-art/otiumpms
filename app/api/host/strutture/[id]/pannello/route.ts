@@ -2,7 +2,6 @@
 import { prisma } from '@/lib/db'
 import { format } from 'date-fns'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 
 const STATI_ESCLUSI = ['ANNULLATA', 'NO_SHOW'] as const
 

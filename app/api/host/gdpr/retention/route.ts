@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { runAllRetentionPolicies, RETENTION_POLICIES } from '@/lib/gdpr-retention'
 
 /** GET /api/host/gdpr/retention — lista policy di retention */

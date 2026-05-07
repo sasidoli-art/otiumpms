@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { AlertTriangle, Plus, X, Loader2, Bell, Info, ShieldAlert } from 'lucide-react'
-import { useTranslations } from 'next-intl'
 
 type Alert = {
   id: string

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
 import {
   Shield, Search, Download, Trash2, Loader2, AlertTriangle,
   CheckCircle2, FileText, X, Clock, Play, RefreshCw,

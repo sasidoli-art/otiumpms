@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { useTranslations } from 'next-intl'
 import { it } from 'date-fns/locale'
 import {
   Bell, Plus, X, Loader2, CheckCircle2, Clock, AlertTriangle,

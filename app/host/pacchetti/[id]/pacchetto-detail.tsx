@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { Trash2, Save, Plus, Eye, EyeOff } from 'lucide-react'
 
 type Pacchetto = {

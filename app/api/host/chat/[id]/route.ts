@@ -1,8 +1,6 @@
 ﻿import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { sendEmailNuovoMessaggio } from '@/lib/email'
 

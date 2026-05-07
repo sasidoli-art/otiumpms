@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { calcolaBiancheria } from '@/lib/biancheria'
 import { addDays } from 'date-fns'

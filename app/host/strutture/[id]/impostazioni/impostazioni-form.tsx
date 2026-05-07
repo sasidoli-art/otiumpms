@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import { Save, Loader2, FileText, Users, Info, Palette } from 'lucide-react'
 
 interface StrutturaProp {

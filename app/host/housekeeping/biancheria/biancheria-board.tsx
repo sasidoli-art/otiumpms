@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { format, addDays, subDays } from 'date-fns'
-import { useTranslations } from 'next-intl'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
 import {

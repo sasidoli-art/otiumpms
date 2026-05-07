@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { format } from 'date-fns'
 
 // GET /api/host/prenotazioni/export?formato=csv&stato=CONFERMATA&da=2025-01-01&a=2025-12-31

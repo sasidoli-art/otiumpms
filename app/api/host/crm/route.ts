@@ -1,8 +1,6 @@
 ﻿import { z } from 'zod'
-import { getServerSession } from 'next-auth'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
 import { notDeleted } from '@/lib/prisma-helpers'

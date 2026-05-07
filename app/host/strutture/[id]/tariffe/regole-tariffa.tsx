@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
 import {
   Plus, Trash2, X, Pencil, Zap, Calendar, Sun, Star,
   ToggleLeft, ToggleRight, Loader2, Percent, Euro,

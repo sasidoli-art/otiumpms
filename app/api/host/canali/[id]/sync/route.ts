@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { fetchAndParseIcal } from '@/lib/ical-import'
 import { logger } from '@/lib/logger'
