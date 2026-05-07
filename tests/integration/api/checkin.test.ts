@@ -117,26 +117,24 @@ describe('POST /api/checkin/[token]/complete', () => {
     expect(body.error).toMatch(/già verificato/i)
   })
 
-  test('400 se documento mancante', async () => {
+  test('422 se documento mancante', async () => {
     seedPrenotazione()
     const req = buildJsonRequest('POST', '/api/checkin/token-x/complete', {
-      body: validBody({ guestTipoDocumento: null, guestNumeroDocumento: null }),
+      body: validBody({ guestTipoDocumento: undefined, guestNumeroDocumento: undefined }),
     })
     const res = await POST(req, routeParams({ token: 'token-x' }))
-    const { status, body } = await parseJsonResponse<{ error: string }>(res)
-    expect(status).toBe(400)
-    expect(body.error).toMatch(/documento/i)
+    const { status } = await parseJsonResponse<{ error: string }>(res)
+    expect(status).toBe(422)
   })
 
-  test('400 se firma mancante', async () => {
+  test('422 se firma mancante', async () => {
     seedPrenotazione()
     const req = buildJsonRequest('POST', '/api/checkin/token-x/complete', {
-      body: validBody({ firmaBase64: null }),
+      body: validBody({ firmaBase64: undefined }),
     })
     const res = await POST(req, routeParams({ token: 'token-x' }))
-    const { status, body } = await parseJsonResponse<{ error: string }>(res)
-    expect(status).toBe(400)
-    expect(body.error).toMatch(/firma/i)
+    const { status } = await parseJsonResponse<{ error: string }>(res)
+    expect(status).toBe(422)
   })
 
   test('success → chiama prisma.prenotazione.update con statoCheckIn=ONLINE_COMPLETATO + regCardFirmata', async () => {

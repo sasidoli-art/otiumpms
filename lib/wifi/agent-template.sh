@@ -59,7 +59,7 @@ sync_vercel_ip() {
 sync_vercel_ip
 
 # ── 2. Watchdog stunnel ───────────────────────────────────────────────────
-if ! pgrep -f otium-stunnel >/dev/null 2>&1; then
+if ! pgrep stunnel >/dev/null 2>&1; then
   log "stunnel down, riavvio"
   /etc/init.d/otium-stunnel start >/dev/null 2>&1
   sleep 2
@@ -187,6 +187,9 @@ while [ "$i" -lt "$COUNT" ]; do
 done
 
 RESULTS="${RESULTS}]"
-api_post "/api/wifi/agent/${MAC}/command-results" \
-  "{\"results\":$RESULTS}" > /dev/null
-log "done"
+RES=$(api_post "/api/wifi/agent/${MAC}/command-results" "{\"results\":$RESULTS}")
+if [ $? -ne 0 ] || [ -z "$RES" ]; then
+  log "command-results failed"
+else
+  log "done: $RES"
+fi
