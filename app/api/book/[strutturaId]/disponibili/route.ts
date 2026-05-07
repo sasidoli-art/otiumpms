@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { format } from 'date-fns'
-import { calcolaPrezzo } from '@/lib/pricing'
+import { calcolaPrezzo, type RegolaTariffa } from '@/lib/pricing'
 
 export async function GET(req: NextRequest, { params: paramsPromise }: { params: Promise<{ strutturaId: string }> }) {
   const params = await paramsPromise
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest, { params: paramsPromise }: { params:
       regole: regole.map(r => ({
         id: r.id,
         nome: r.nome,
-        tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
+        tipo: r.tipo as RegolaTariffa['tipo'],
         attiva: r.attiva,
         priorita: r.priorita,
         modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',
@@ -87,6 +87,9 @@ export async function GET(req: NextRequest, { params: paramsPromise }: { params:
         meseFine: r.meseFine,
         giornoFine: r.giornoFine,
         giorniSettimana: r.giorniSettimana,
+        nottiMinime: r.nottiMinime ?? null,
+        giorniMinimi: r.giorniMinimi ?? null,
+        giorniMassimi: r.giorniMassimi ?? null,
       })),
     })
 

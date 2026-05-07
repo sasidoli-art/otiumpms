@@ -118,17 +118,18 @@ export async function POST(
   const regoleDb = await prisma.regolaTariffa.findMany({
     where: { strutturaId, attiva: true },
   })
-  const regolePricing: PricingRegola[] = regoleDb
-    .filter((r) => r.tipo !== 'DURATA')
-    .map((r) => ({
-      id: r.id, nome: r.nome, tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO',
-      attiva: r.attiva, priorita: r.priorita,
-      modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO', valore: r.valore,
-      unitaId: r.unitaId,
-      meseInizio: r.meseInizio, giornoInizio: r.giornoInizio,
-      meseFine: r.meseFine, giornoFine: r.giornoFine,
-      giorniSettimana: r.giorniSettimana,
-    }))
+  const regolePricing: PricingRegola[] = regoleDb.map((r) => ({
+    id: r.id, nome: r.nome, tipo: r.tipo as PricingRegola['tipo'],
+    attiva: r.attiva, priorita: r.priorita,
+    modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO', valore: r.valore,
+    unitaId: r.unitaId,
+    meseInizio: r.meseInizio, giornoInizio: r.giornoInizio,
+    meseFine: r.meseFine, giornoFine: r.giornoFine,
+    giorniSettimana: r.giorniSettimana,
+    nottiMinime: r.nottiMinime ?? null,
+    giorniMinimi: r.giorniMinimi ?? null,
+    giorniMassimi: r.giorniMassimi ?? null,
+  }))
 
   const calc = calcolaPrezzo({
     arrivo, partenza, prezzoBase: unita.prezzoBase, unitaId: unita.id,

@@ -1,42 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { calcolaPrezzo, type RegolaTariffa as PricingRegola } from '@/lib/pricing'
-import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
+import { calcolaPrezzoBreakdown, type RegolaTariffa as PricingRegola, type PriceBreakdown } from '@/lib/pricing'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
-
-type UnitaDisponibile = {
-  unitaId: string
-  nome: string
-  descrizione: string | null
-  immagine: string | null
-  capacita: number
-  lettiExtra: number
-  piano: number | null
-  prezzoNotte: number
-  prezzoTotale: number
-  prezzoLettoExtra: number | null
-  tariffaNome: string | null
-  scontoApplicato: { regola: string; percentuale?: number; nottiMinime: number } | null
-  prezzoTotaleScontato: number | null
-  tassaSoggiornoNotte: number | null
-}
 
 /**
  * GET /api/book/[strutturaId]/camere/disponibilita
  * Query: ?arrivo=YYYY-MM-DD&partenza=YYYY-MM-DD&adulti=2&bambini=0
+ * Rate: 60/min (public:search)
+ * Cache-Control: max-age=30
  *
- * Per ogni unità della struttura verifica:
- *  - Disponibilita per ogni giorno (postiDisponibili > postiOccupati, !chiuso)
- *  - PrenotazioneCanale (OTA) non sovrapposte
- *  - Prenotazione locali (CONFERMATA/RICHIESTA) non sovrapposte
- *  - capacita + lettiExtra >= adulti + bambini
- *  - Pricing via lib/pricing.ts + regola DURATA se applicabile
+ * Ritorna: { struttura, ricerca, camere: CameraDisponibile[], suggerimenti }
  */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ strutturaId: string }> },
 ) {
+  const blocked = checkRateLimit(req, 'public:search')
+  if (blocked) return blocked
+
   const { strutturaId } = await params
   const sp = req.nextUrl.searchParams
   const arrivoStr = sp.get('arrivo')
@@ -53,10 +36,12 @@ export async function GET(
   if (!arrivo || !partenza) {
     return NextResponse.json({ error: 'date non valide' }, { status: 400 })
   }
+
   const notti = Math.round((partenza.getTime() - arrivo.getTime()) / 86400000)
   if (notti < 1 || notti > 30) {
     return NextResponse.json({ error: 'durata soggiorno non valida (1-30 notti)' }, { status: 400 })
   }
+
   const oggi = new Date(); oggi.setHours(0, 0, 0, 0)
   if (arrivo < oggi) {
     return NextResponse.json({ error: 'data di arrivo nel passato' }, { status: 400 })
@@ -64,28 +49,47 @@ export async function GET(
 
   const struttura = await prisma.struttura.findFirst({
     where: { id: strutturaId, attiva: true },
-    select: { id: true, citta: true },
+    select: {
+      id: true, nome: true, citta: true, logo: true, colorePrimario: true,
+      tassaSoggiornoPerNotte: true,
+    },
   })
   if (!struttura) {
     return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })
   }
 
   const totOspiti = adulti + bambini
+  const tassaPerNotte = struttura.tassaSoggiornoPerNotte ?? 0
 
-  // Carica unità + tariffe periodo + regole tariffa (struttura o per-unita) + blocchi OTA
+  // Carica regole tariffa struttura
+  const regoleDb = await prisma.regolaTariffa.findMany({
+    where: { strutturaId, attiva: true },
+  })
+  const regolePricing: PricingRegola[] = regoleDb.map((r) => ({
+    id: r.id,
+    nome: r.nome,
+    tipo: r.tipo as PricingRegola['tipo'],
+    attiva: r.attiva,
+    priorita: r.priorita,
+    modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',
+    valore: r.valore,
+    unitaId: r.unitaId,
+    meseInizio: r.meseInizio,
+    giornoInizio: r.giornoInizio,
+    meseFine: r.meseFine,
+    giornoFine: r.giornoFine,
+    giorniSettimana: r.giorniSettimana,
+    nottiMinime: r.nottiMinime ?? null,
+    giorniMinimi: r.giorniMinimi ?? null,
+    giorniMassimi: r.giorniMassimi ?? null,
+  }))
+
+  // Carica unità con tariffe periodo e blocchi
   const unita = await prisma.unitaPrenotabile.findMany({
-    where: {
-      strutturaId,
-      attiva: true,
-      // Capacità: almeno senza lettiExtra deve poter contenere gli adulti
-      // (check fine: capacita+lettiExtra >= totOspiti)
-    },
+    where: { strutturaId, attiva: true },
     include: {
       tariffe: {
-        where: {
-          dataInizio: { lte: partenza },
-          dataFine: { gte: arrivo },
-        },
+        where: { dataInizio: { lte: partenza }, dataFine: { gte: arrivo } },
       },
       disponibilita: {
         where: { data: { gte: arrivo, lt: partenza } },
@@ -105,114 +109,66 @@ export async function GET(
     orderBy: { prezzoBase: 'asc' },
   })
 
-  // Regole tariffa (struttura-wide + unit-specific)
-  const regoleDb = await prisma.regolaTariffa.findMany({
-    where: { strutturaId, attiva: true },
-  })
-  const regolePricing: PricingRegola[] = regoleDb
-    .filter((r) => r.tipo !== 'DURATA')
-    .map((r) => ({
-      id: r.id,
-      nome: r.nome,
-      tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO',
-      attiva: r.attiva,
-      priorita: r.priorita,
-      modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',
-      valore: r.valore,
-      unitaId: r.unitaId,
-      meseInizio: r.meseInizio,
-      giornoInizio: r.giornoInizio,
-      meseFine: r.meseFine,
-      giornoFine: r.giornoFine,
-      giorniSettimana: r.giorniSettimana,
-    }))
+  type CameraDisponibile = {
+    unitaId: string
+    nome: string
+    descrizione: string | null
+    immagine: string | null
+    capacita: number
+    lettiExtra: number
+    piano: number | null
+    prezzo: PriceBreakdown
+  }
 
-  // Regole DURATA per lo sconto post-calcolo
-  const regoleDurata = regoleDb
-    .filter((r) => r.tipo === 'DURATA' && r.nottiMinime && r.nottiMinime > 0)
-    .sort((a, b) => (b.nottiMinime ?? 0) - (a.nottiMinime ?? 0)) // più lunga prima
-
-  // Tassa soggiorno per notte (media su range)
-  const tassaMedia = calcolaTassaSuggerita(struttura.citta ?? undefined, arrivo, partenza)
-
-  const risultati: UnitaDisponibile[] = []
+  const camere: CameraDisponibile[] = []
 
   for (const u of unita) {
-    // Capacità insufficiente
     if (u.capacita + u.lettiExtra < totOspiti) continue
 
     // Check Disponibilita giorno-per-giorno
-    const giorniRichiesti = enumDays(arrivo, partenza) // notti (senza checkout day)
-    let disponibile = true
+    const giorniRichiesti = enumDays(arrivo, partenza)
+    let unitaDisponibile = true
     for (const g of giorniRichiesti) {
       const d = u.disponibilita.find((x) => sameDay(x.data, g))
       if (d) {
-        if (d.chiuso) { disponibile = false; break }
-        if (d.postiOccupati >= d.postiDisponibili) { disponibile = false; break }
+        if (d.chiuso || d.postiOccupati >= d.postiDisponibili) { unitaDisponibile = false; break }
       }
-      // Se manca il record Disponibilita: per default assumiamo disponibile
-      // (l'host non ha fatto override manuale)
     }
-    if (!disponibile) continue
+    if (!unitaDisponibile) continue
 
-    // Check blocchi OTA (qualsiasi canale con unitaId = u.id o unitaId null a livello struttura)
-    const canaliRilevanti = await prisma.canaleEsterno.findMany({
-      where: { strutturaId, attivo: true, OR: [{ unitaId: u.id }, { unitaId: null }] },
-      include: {
-        prenotazioniImportate: {
-          where: { dataInizio: { lt: partenza }, dataFine: { gt: arrivo } },
-          take: 1,
-        },
+    // Check blocchi OTA
+    const haBloccoOta = await prisma.canaleEsterno.findFirst({
+      where: {
+        strutturaId, attivo: true,
+        OR: [{ unitaId: u.id }, { unitaId: null }],
+        prenotazioniImportate: { some: { dataInizio: { lt: partenza }, dataFine: { gt: arrivo } } },
       },
     })
-    const haBloccoOta = canaliRilevanti.some((c) => c.prenotazioniImportate.length > 0)
     if (haBloccoOta) continue
 
-    // Check prenotazioni interne sovrapposte (già filtrate, conta)
+    // Check prenotazioni interne
     if (u.prenotazioni.length > 0) continue
 
-    // Calcola prezzo
-    const calc = calcolaPrezzo({
-      arrivo,
-      partenza,
+    // Calcola prezzo con breakdown completo
+    const prezzo = calcolaPrezzoBreakdown({
+      dataArrivo: arrivo,
+      dataPartenza: partenza,
+      dataPrenotazione: oggi,
+      adulti,
+      bambini,
+      lettoExtra: 0,
       prezzoBase: u.prezzoBase,
+      prezzoLettoExtra: u.prezzoLettoExtra ?? null,
       unitaId: u.id,
       tariffePeriodo: u.tariffe.map((t) => ({
-        nome: t.nome,
-        colore: t.colore,
-        prezzo: t.prezzo,
-        dataInizio: t.dataInizio,
-        dataFine: t.dataFine,
+        nome: t.nome, colore: t.colore, prezzo: t.prezzo,
+        dataInizio: t.dataInizio, dataFine: t.dataFine,
       })),
       regole: regolePricing,
+      tassaSoggiornoPerNotte: tassaPerNotte,
     })
 
-    // Applica regola DURATA (sconto) se applicabile
-    let prezzoScontato: number | null = null
-    let scontoInfo: UnitaDisponibile['scontoApplicato'] = null
-    for (const r of regoleDurata) {
-      if ((r.nottiMinime ?? 0) <= notti) {
-        // Prima regola matchante (più lunga) vince
-        let delta: number
-        if (r.modificatore === 'PERCENTUALE') {
-          delta = -Math.round((calc.prezzoTotale * r.valore) / 100 * 100) / 100
-        } else {
-          delta = -r.valore
-        }
-        prezzoScontato = Math.max(0, calc.prezzoTotale + delta)
-        scontoInfo = {
-          regola: r.nome,
-          percentuale: r.modificatore === 'PERCENTUALE' ? r.valore : undefined,
-          nottiMinime: r.nottiMinime ?? 0,
-        }
-        break
-      }
-    }
-
-    // Nome tariffa (se almeno una notte è in TariffaPeriodo)
-    const tariffaNome = calc.dettaglioNotti.find((d) => d.tariffaPeriodo)?.tariffaPeriodo?.nome ?? null
-
-    risultati.push({
+    camere.push({
       unitaId: u.id,
       nome: u.nome,
       descrizione: u.descrizione,
@@ -220,24 +176,18 @@ export async function GET(
       capacita: u.capacita,
       lettiExtra: u.lettiExtra,
       piano: u.piano,
-      prezzoNotte: calc.prezzoMedioNotte,
-      prezzoTotale: calc.prezzoTotale,
-      prezzoLettoExtra: u.prezzoLettoExtra,
-      tariffaNome,
-      scontoApplicato: scontoInfo,
-      prezzoTotaleScontato: prezzoScontato,
-      tassaSoggiornoNotte: tassaMedia,
+      prezzo,
     })
   }
 
-  return NextResponse.json({
-    arrivo: arrivoStr,
-    partenza: partenzaStr,
-    notti,
-    adulti,
-    bambini,
-    unita: risultati,
+  const res = NextResponse.json({
+    struttura: { id: struttura.id, nome: struttura.nome, citta: struttura.citta, logo: struttura.logo, colorePrimario: struttura.colorePrimario },
+    ricerca: { arrivo: arrivoStr, partenza: partenzaStr, notti, adulti, bambini },
+    camere,
+    suggerimenti: [],
   })
+  res.headers.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60')
+  return res
 }
 
 // ─── Utils ──────────────────────────────────────────────────────────────────
@@ -253,19 +203,11 @@ function parseYMD(s: string): Date | null {
 
 function enumDays(start: Date, endExcl: Date): Date[] {
   const out: Date[] = []
-  const d = new Date(start)
-  d.setHours(0, 0, 0, 0)
-  while (d < endExcl) {
-    out.push(new Date(d))
-    d.setDate(d.getDate() + 1)
-  }
+  const d = new Date(start); d.setHours(0, 0, 0, 0)
+  while (d < endExcl) { out.push(new Date(d)); d.setDate(d.getDate() + 1) }
   return out
 }
 
 function sameDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
