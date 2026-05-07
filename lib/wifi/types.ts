@@ -29,6 +29,7 @@ export type WifiAgentAction =
   | 'get_splash_branding'
   | 'set_splash_branding'
   | 'upload_splash_image'
+  | 'update_agent'
 
 export interface WifiAgentCommand {
   id: string

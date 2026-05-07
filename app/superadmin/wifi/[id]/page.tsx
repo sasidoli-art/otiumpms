@@ -28,6 +28,7 @@ const ACTIONS = [
   { value: 'list_guest_users',  label: 'MAC whitelist', params: null },
   { value: 'add_guest_user',    label: 'Aggiungi MAC', params: 'mac' },
   { value: 'revoke_guest_user', label: 'Rimuovi MAC', params: 'mac' },
+  { value: 'update_agent',      label: 'Aggiorna agent', params: null },
 ]
 
 function formatDate(d: string | null) {
@@ -77,7 +78,11 @@ export default function WifiDeviceDetail() {
 
   const sendCmd = () => {
     const selected = ACTIONS.find(a => a.value === action)
-    const payload = selected?.params === 'mac' ? { mac } : {}
+    const payload = selected?.params === 'mac'
+      ? { mac }
+      : action === 'update_agent'
+        ? { url: `${window.location.origin}/api/wifi/agent/bundle`, version: '0.4' }
+        : {}
     startSend(async () => {
       const res = await fetch(`/api/superadmin/wifi/${id}/commands`, {
         method: 'POST',
