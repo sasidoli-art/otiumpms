@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Search, MessageSquare, ArrowLeft, Send, Check, CheckCheck,
-  ExternalLink, Zap, ChevronDown, Loader2,
+  ExternalLink, Zap, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useChat } from '@/lib/use-chat'

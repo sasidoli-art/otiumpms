@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Handshake, Plus, X, Loader2, Search, Filter, Trash2, Pencil,
-  Building2, Calendar, Users, TrendingUp,
+  Building2, Calendar, TrendingUp, CheckCircle2,
 } from 'lucide-react'
 
 
@@ -245,7 +245,7 @@ export default function AllotmentBoard() {
         {[
           { label: 'Contratti attivi', value: kpi.contrattiAttivi, icon: Handshake, color: 'text-indigo-600' },
           { label: 'Unita riservate', value: kpi.unitaRiservate, icon: Building2, color: 'text-blue-600' },
-          { label: 'Unita vendute', value: kpi.unitaVendute, icon: Users, color: 'text-green-600' },
+          { label: 'Unita vendute', value: kpi.unitaVendute, icon: CheckCircle2, color: 'text-green-600' },
           { label: 'Revenue partner', value: fmt(kpi.revenuePartner), icon: TrendingUp, color: 'text-amber-600' },
         ].map((k, i) => (
           <div key={i} className="bg-white dark:bg-slate-800 rounded-xl border border-gray-200 dark:border-slate-700 p-4">

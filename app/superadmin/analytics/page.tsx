@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db'
 import { subMonths, startOfMonth, endOfMonth, format } from 'date-fns'
 import { it } from 'date-fns/locale'
-import { Building2, Users, CalendarCheck, Euro, TrendingUp } from 'lucide-react'
+import { Building2, CalendarCheck, Euro, TrendingUp } from 'lucide-react'
 import { AnalyticsPlatformCharts } from './analytics-charts'
 
 export const metadata = { title: 'Analytics — SuperAdmin' }

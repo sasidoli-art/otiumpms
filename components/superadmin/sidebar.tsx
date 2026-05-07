@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import {
-  LayoutDashboard, Building2, Users, CreditCard, BarChart3,
+  LayoutDashboard, Building2, CreditCard, BarChart3,
   Settings, LogOut, Shield, Activity, Globe, FileText, Puzzle, ScrollText, Bot,
-  LifeBuoy, Bell, Wifi,
+  LifeBuoy, Bell, Wifi, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'

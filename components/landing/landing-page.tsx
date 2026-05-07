@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { LanguageSwitcher } from '@/components/layout/language-switcher'
 import {
   Calendar,
-  Users,
   Sparkles,
   MessageCircle,
   FileText,
@@ -20,6 +19,7 @@ import {
   Building2,
   BookOpen,
   ThumbsUp,
+  Users,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -171,7 +171,7 @@ function Hero() {
 
 /* ───────────────────────── Features ───────────────────────── */
 const FEATURE_ICONS = [
-  Calendar, Users, Brush, Sparkles, MessageCircle, FileText, Home, BarChart3, Globe, Smartphone,
+  Calendar, Brush, Sparkles, MessageCircle, FileText, Home, BarChart3, Globe, Smartphone,
 ] as const
 
 function Features() {

@@ -5,7 +5,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Plus, FileDown, Send, Eye, Trash2, RefreshCw, FileText,
-  Search, Filter, X, ChevronDown, ChevronUp, Loader2,
+  Search, Filter, X, ChevronUp, Loader2,
   CheckCircle2, XCircle, Clock, AlertTriangle, Receipt,
   Building2, User, Calendar, Euro, Settings,
 } from 'lucide-react'

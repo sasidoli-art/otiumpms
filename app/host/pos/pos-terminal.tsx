@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo } from 'react'
 import {
   ShoppingCart, Plus, Minus, Trash2, Search, CreditCard,
   Banknote, Building, Gift, Check, X, Receipt, Printer,
-  Package, Sparkles, ChevronDown, RotateCcw,
+  Package, Sparkles, RotateCcw,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn, formatValuta } from '@/lib/utils'

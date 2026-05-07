@@ -5,8 +5,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
   Plus, Wrench, Zap, Droplets, DoorOpen, Armchair, Star,
-  CheckCircle2, Clock, AlertTriangle, Loader2, X, Filter,
-  ChevronDown, Trash2, Pencil, RefreshCw, Search
+  CheckCircle2, Clock, AlertTriangle, Loader2, X, Filter, Trash2, Pencil, RefreshCw, Search
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 

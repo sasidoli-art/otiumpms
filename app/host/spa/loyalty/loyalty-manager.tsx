@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Crown, ArrowLeft, Plus, Trash2, Save, Users, Star, TrendingUp,
-  Gift, Search, MoreHorizontal, Award, ChevronDown, ChevronUp, X,
+  Gift, Search, MoreHorizontal, Award, ChevronUp, X,
   Loader2, RefreshCw
 } from 'lucide-react'
 import { formatValuta, cn } from '@/lib/utils'

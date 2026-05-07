@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useReducer, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useReducer, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 

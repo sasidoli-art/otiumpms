@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Shield, CheckCircle2, AlertTriangle, XCircle, FileText, Users, Database, Lock, Bot, Cookie, Eye, Loader2 } from 'lucide-react'
+import { Shield, CheckCircle2, AlertTriangle, XCircle, FileText, Database, Lock, Bot, Cookie, Eye, Loader2 } from 'lucide-react'
 
 type CheckResult = { id: string; label: string; status: 'ok' | 'warning' | 'error'; detail: string; category: string }
 

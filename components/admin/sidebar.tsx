@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { useState, useEffect, useMemo } from 'react'
 import {
-  LayoutDashboard, Activity, Users, Building2, CreditCard, Puzzle,
+  LayoutDashboard, Activity, Building2, CreditCard, Puzzle,
   LifeBuoy, BookOpen, Settings, Mail, ScrollText, Home,
   ChevronDown, LogOut, Shield, Database, UserCog, Rocket, ExternalLink,
   type LucideIcon,
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { ADMIN_SIDEBAR_GROUPS, type AdminBadgeType } from '@/lib/admin-sidebar-config'
 
 const ICONS: Record<string, LucideIcon> = {
-  LayoutDashboard, Activity, Users, Building2, CreditCard, Puzzle,
+  LayoutDashboard, Activity, Building2, CreditCard, Puzzle,
   LifeBuoy, BookOpen, Settings, Mail, ScrollText, Home,
   Shield, Database, UserCog, Rocket,
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import {
   Building2, MapPin, Sparkles, ChevronRight, ChevronLeft, Check,
-  Loader2, Waves, Users, Wrench, Shield, Bot, Mail, FileText,
+  Loader2, Waves, Wrench, Shield, Bot, Mail, FileText,
   CalendarDays, Search, Boxes, UtensilsCrossed, ShoppingBag,
   TrendingUp, AlertTriangle, ClipboardCheck, MessageSquare,
   CalendarRange, Globe, BookOpen, Award,
@@ -15,7 +15,7 @@ import { CATALOGO_MODULI } from '@/lib/moduli'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICONS: Record<string, any> = {
-  BookOpen, Building2, Users, Sparkles, Wrench, ClipboardCheck, MessageSquare,
+  BookOpen, Building2, Sparkles, Wrench, ClipboardCheck, MessageSquare,
   Shield, Search, Boxes, AlertTriangle, Waves, CalendarDays, FileText,
   TrendingUp, UtensilsCrossed, ShoppingBag, Bot, Mail, CalendarRange, Globe, Award,
 }

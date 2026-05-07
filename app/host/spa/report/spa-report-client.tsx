@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { format, addMonths, subMonths, parseISO, startOfMonth } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
-  BarChart3, ChevronLeft, ChevronRight, Users, Euro, Clock,
+  BarChart3, ChevronLeft, ChevronRight, Euro, Clock,
   TrendingDown, CalendarClock, ArrowLeft, Award
 } from 'lucide-react'
 import { formatValuta, cn } from '@/lib/utils'

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  Search, BookOpen, Building2, CalendarDays, Users, Sparkles,
+  Search, BookOpen, Building2, CalendarDays, Sparkles,
   Waves, CreditCard, Settings, ChevronDown, ChevronRight,
   ExternalLink, Lightbulb, Rocket, HelpCircle, Mail,
   Shield, Bot, FileText, BarChart3, Wrench, MessageSquare,
@@ -13,7 +13,7 @@ import Link from 'next/link'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ICONS: Record<string, any> = {
-  Rocket, BookOpen, Building2, CalendarDays, Users, Sparkles,
+  Rocket, BookOpen, Building2, CalendarDays, Sparkles,
   Waves, CreditCard, Settings, Shield, Bot, FileText,
   BarChart3, Wrench, MessageSquare, Mail,
 }

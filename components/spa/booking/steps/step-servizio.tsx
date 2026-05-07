@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Check, Clock, ChevronDown, ChevronUp, Phone, ArrowRight } from 'lucide-react'
+import { Check, Clock, ChevronUp, Phone, ArrowRight } from 'lucide-react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

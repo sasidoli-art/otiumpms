@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Search, Plus, Minus, X, Trash2, ShoppingCart,
   Banknote, CreditCard, BedDouble, MoreHorizontal,

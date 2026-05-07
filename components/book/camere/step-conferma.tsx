@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { format, differenceInCalendarDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
-  Check, MapPin, CalendarDays, Users, User, Loader2, AlertCircle,
+  Check, MapPin, CalendarDays, User, Loader2, AlertCircle,
   Edit2, Phone, Sparkles, Download,
 } from 'lucide-react'
 import type { UnitaDisponibile } from './step-date-camere'

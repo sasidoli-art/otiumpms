@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-import { Bot, MessageSquare, AlertTriangle, CheckCircle2, Loader2, Settings, FlaskConical, Users } from 'lucide-react'
+import { Bot, MessageSquare, AlertTriangle, CheckCircle2, Loader2, Settings, FlaskConical } from 'lucide-react'
 
 type Conv = {
   id: string; telefonoOspite: string; nomeOspite: string | null; stato: string; lingua: string; updatedAt: string

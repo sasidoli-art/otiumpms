@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search, Plus,
-  Home, CalendarCheck, Calendar, BookOpen, Users, Globe, Package,
+  Home, CalendarCheck, Calendar, BookOpen, Globe, Package,
   Sparkles, Wrench, UtensilsCrossed, Boxes,
   Waves, Flower2, CalendarDays, CalendarClock, DoorOpen, Gift, Award, Clock,
   BarChart3, CreditCard, Banknote, FileText,
@@ -21,7 +21,7 @@ import { getAllowedSections, type StaffRole } from '@/lib/permissions'
 // ─── Icon registry ──────────────────────────────────────────────────────────
 
 const ICONS: Record<string, LucideIcon> = {
-  Home, CalendarCheck, Calendar, BookOpen, Users, Globe, Package,
+  Home, CalendarCheck, Calendar, BookOpen, Globe, Package,
   Sparkles, Wrench, UtensilsCrossed, Boxes, Search,
   Waves, Flower2, CalendarDays, CalendarClock, DoorOpen, Gift, Award, Clock,
   BarChart3, CreditCard, Banknote, FileText,

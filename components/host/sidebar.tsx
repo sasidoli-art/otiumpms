@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Home, CalendarCheck, Calendar, BookOpen, Users, Globe, Package,
+  Home, CalendarCheck, Calendar, BookOpen, Globe, Package,
   Sparkles, Wrench, UtensilsCrossed, Boxes, Search,
   Waves, Flower2, CalendarDays, CalendarClock, DoorOpen, Gift, Award, Clock,
   BarChart3, CreditCard, Banknote, FileText,
@@ -27,7 +27,7 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 // ─── Icon registry ──────────────────────────────────────────────────────────
 
 const ICONS: Record<string, LucideIcon> = {
-  Home, CalendarCheck, Calendar, BookOpen, Users, Globe, Package,
+  Home, CalendarCheck, Calendar, BookOpen, Globe, Package,
   Sparkles, Wrench, UtensilsCrossed, Boxes, Search,
   Waves, Flower2, CalendarDays, CalendarClock, DoorOpen, Gift, Award, Clock,
   BarChart3, CreditCard, Banknote, FileText,

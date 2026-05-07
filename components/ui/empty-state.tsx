@@ -13,7 +13,7 @@
  */
 import Link from 'next/link'
 import {
-  BookOpen, Users, Sparkles, Calendar, FileText, MessageSquare,
+  BookOpen, Sparkles, Calendar, FileText, MessageSquare,
   Package, Wrench, Clock, Search, type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -91,7 +91,7 @@ const PRESETS: Record<EmptyStateKind, Preset> = {
 // ────────────────────────────────────────────────────────────────────────────
 
 const ICON_REGISTRY: Record<string, LucideIcon> = {
-  BookOpen, Users, Sparkles, Calendar, FileText, MessageSquare,
+  BookOpen, Sparkles, Calendar, FileText, MessageSquare,
   Package, Wrench, Clock, Search,
 }
 

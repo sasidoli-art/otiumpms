@@ -6,8 +6,7 @@ import { it } from 'date-fns/locale'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import {
-  TrendingUp, Plus, X, Loader2, CheckCircle2, XCircle, Euro,
-  Users, Target, Award, ChevronLeft, ChevronRight,
+  TrendingUp, Plus, X, Loader2, CheckCircle2, XCircle, Euro, Target, Award, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 type Regola = {

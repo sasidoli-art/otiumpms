@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
-  Search, X, Loader2, ChevronRight, Users, Plus, Eye,
+  Search, X, Loader2, ChevronRight, Plus, Eye,
   UserX, Pause, LogIn, AlertCircle, CheckCircle2,
 } from 'lucide-react'
 

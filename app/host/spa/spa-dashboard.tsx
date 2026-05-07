@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
-  Waves, CalendarClock, Users, DoorOpen, Sparkles, Euro,
-  ChevronRight, Clock, Star, BarChart3
+  Waves, CalendarClock, DoorOpen, Sparkles, Euro,
+  ChevronRight, Clock, Star, BarChart3, Users
 } from 'lucide-react'
 import { formatValuta } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'

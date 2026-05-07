@@ -7,8 +7,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import {
   Loader2, Save, Building2, CreditCard, Package, ShieldCheck, Activity,
-  LogIn, UserX, Pause, CheckCircle2, AlertCircle, Pencil, X,
-  Users, Calendar, Globe,
+  LogIn, UserX, Pause, CheckCircle2, AlertCircle, Pencil, X, Calendar, Globe,
 } from 'lucide-react'
 import { CATALOGO_MODULI } from '@/lib/moduli'
 

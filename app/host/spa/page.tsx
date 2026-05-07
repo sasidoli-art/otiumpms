@@ -4,7 +4,7 @@ import { getHostId } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
 import { redirect } from 'next/navigation'
 import SpaDashboard from './spa-dashboard'
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
+import { startOfDay, endOfDay, startOfMonth, endOfMonth } from 'date-fns'
 import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function SpaPage() {

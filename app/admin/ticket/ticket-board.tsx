@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  Bug, Loader2, ChevronDown, Send, Trash2, Clock,
+  Bug, Loader2, Send, Trash2, Clock,
   CheckCircle, Wrench, XCircle, User, Building2,
   AlertTriangle, Lightbulb, HelpCircle, ShieldAlert, MoreHorizontal,
 } from 'lucide-react'

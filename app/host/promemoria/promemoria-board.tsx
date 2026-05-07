@@ -6,7 +6,7 @@ import { it } from 'date-fns/locale'
 import Link from 'next/link'
 import {
   Bell, Plus, X, Loader2, CheckCircle2, Clock, AlertTriangle,
-  Filter, RefreshCw, User, Search, ChevronDown,
+  Filter, RefreshCw, User, Search,
 } from 'lucide-react'
 
 type Trace = {
