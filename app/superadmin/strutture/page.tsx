@@ -41,7 +41,7 @@ export default async function SuperAdminStrutturePage({
     citta: s.citta,
     attiva: s.attiva,
     hostId: s.hostId,
-    host: { nomeAzienda: s.host.nomeAzienda },
+    host: s.host ? { nomeAzienda: s.host.nomeAzienda } : { nomeAzienda: '—' },
     _count: s._count,
   }))
 
