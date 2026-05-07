@@ -2,14 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
-import { calcolaPrezzo, type RegolaTariffa as PricingRegola } from '@/lib/pricing'
-import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
+import { calcolaPrezzoBreakdown, type RegolaTariffa as PricingRegola } from '@/lib/pricing'
 import { registraConsenso } from '@/lib/consent'
-import { upsertOspiteFromBooking } from '@/lib/crm'
+import { syncOspiteCRM } from '@/lib/crm-sync'
 import { audit } from '@/lib/audit'
 import { sendEmailConfermaRicezione, sendEmailNuovaPrenotazione } from '@/lib/email'
 import { logger } from '@/lib/logger'
-import { getClientIp } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 import { generateUniquePin } from '@/lib/guest-pin'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +30,7 @@ const prenotaSchema = z.object({
   guestTelefono: z.string().trim().max(30).optional().nullable(),
   guestNote: z.string().trim().max(500).optional().nullable(),
   guestLingua: z.enum(['it', 'en', 'de', 'fr', 'es']).default('it'),
+  codicePromo: z.string().trim().max(50).optional().nullable(),
   consensi: z.object({
     tos: z.literal(true),
     privacy: z.literal(true),
@@ -64,6 +64,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ strutturaId: string }> },
 ) {
+  const blocked = checkRateLimit(req, 'public:booking')
+  if (blocked) return blocked
+
   const { strutturaId } = await params
 
   let body: unknown
@@ -91,6 +94,7 @@ export async function POST(
     where: { id: strutturaId, attiva: true },
     select: {
       id: true, hostId: true, nome: true, citta: true, autoConferma: true,
+      tassaSoggiornoPerNotte: true,
     },
   })
   if (!struttura) {
@@ -131,38 +135,26 @@ export async function POST(
     giorniMassimi: r.giorniMassimi ?? null,
   }))
 
-  const calc = calcolaPrezzo({
-    arrivo, partenza, prezzoBase: unita.prezzoBase, unitaId: unita.id,
+  const breakdown = calcolaPrezzoBreakdown({
+    dataArrivo: arrivo,
+    dataPartenza: partenza,
+    dataPrenotazione: oggi,
+    adulti: data.adulti,
+    bambini: data.bambini,
+    lettoExtra: data.lettoExtra ? 1 : 0,
+    prezzoBase: unita.prezzoBase,
+    prezzoLettoExtra: unita.prezzoLettoExtra ?? null,
+    unitaId: unita.id,
     tariffePeriodo: unita.tariffe.map((t) => ({
       nome: t.nome, colore: t.colore, prezzo: t.prezzo,
       dataInizio: t.dataInizio, dataFine: t.dataFine,
     })),
     regole: regolePricing,
+    tassaSoggiornoPerNotte: struttura.tassaSoggiornoPerNotte ?? 0,
   })
 
-  // Sconto DURATA
-  let prezzoFinale = calc.prezzoTotale
-  const regoleDurata = regoleDb
-    .filter((r) => r.tipo === 'DURATA' && r.nottiMinime && r.nottiMinime > 0)
-    .sort((a, b) => (b.nottiMinime ?? 0) - (a.nottiMinime ?? 0))
-  for (const r of regoleDurata) {
-    if ((r.nottiMinime ?? 0) <= notti) {
-      const delta = r.modificatore === 'PERCENTUALE'
-        ? -Math.round((calc.prezzoTotale * r.valore) / 100 * 100) / 100
-        : -r.valore
-      prezzoFinale = Math.max(0, calc.prezzoTotale + delta)
-      break
-    }
-  }
-
-  // Letto extra
-  if (data.lettoExtra && unita.prezzoLettoExtra) {
-    prezzoFinale += unita.prezzoLettoExtra * notti
-  }
-
-  // Tassa soggiorno
-  const tassaMedia = calcolaTassaSuggerita(struttura.citta ?? undefined, arrivo, partenza) ?? 0
-  const tassaTotale = Math.round(tassaMedia * notti * totOspiti * 100) / 100
+  const prezzoFinale = breakdown.totale
+  const tassaSoggiornoNotte = breakdown.tassaSoggiorno.importoNotte
 
   // ─── TRANSAZIONE: ricontrolla disponibilità + crea prenotazione ────────────
 
@@ -238,7 +230,7 @@ export async function POST(
           stato,
           fonte: 'Web',
           prezzoTotale: Math.round(prezzoFinale * 100) / 100,
-          tassaSoggiorno: tassaMedia > 0 ? Math.round(tassaMedia * 100) / 100 : null,
+          tassaSoggiorno: tassaSoggiornoNotte > 0 ? Math.round(tassaSoggiornoNotte * 100) / 100 : null,
           checkInToken,
         },
       })
@@ -276,11 +268,15 @@ export async function POST(
   } catch { /* idempotent fallback */ }
 
   // CRM sync
-  upsertOspiteFromBooking(struttura.hostId, {
+  syncOspiteCRM({
+    hostId: struttura.hostId,
     guestEmail: data.guestEmail,
     guestNome: data.guestNome,
     guestCognome: data.guestCognome,
     guestTelefono: data.guestTelefono ?? null,
+    guestLingua: data.guestLingua,
+    prenotazioneId,
+    importo: prezzoFinale,
   }).catch(() => { /* non blocca */ })
 
   // Consensi GDPR
