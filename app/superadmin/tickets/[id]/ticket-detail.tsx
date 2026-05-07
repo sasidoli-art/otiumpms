@@ -103,9 +103,7 @@ export default function TicketDetail({ ticket }: { ticket: Ticket }) {
 
           {ticket.screenshot && (
             <details className="mt-3">
-              <summary className="text-xs text-brand-600 cursor-pointer">📷 Screenshot allegato</summary>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ticket.screenshot} alt="Screenshot" className="mt-2 max-w-full rounded border border-gray-200" />
+              <summary className="text-xs text-brand-600 cursor-pointer">📷 Screenshot allegato</summary>              <img src={ticket.screenshot} alt="Screenshot" className="mt-2 max-w-full rounded border border-gray-200" />
             </details>
           )}
         </div>

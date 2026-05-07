@@ -261,7 +261,6 @@ export default function StepDateCamere({ strutturaId, capacitaMax, onConferma }:
                       {/* Immagine */}
                       <div className="md:w-56 h-48 md:h-auto bg-gray-100 shrink-0 relative">
                         {u.immagine ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={u.immagine} alt={u.nome} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-300">

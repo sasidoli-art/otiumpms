@@ -459,7 +459,6 @@ function NuovaSegnalazioneModal({
             {immagini.filter((u) => u.trim().length > 0).length > 0 && (
               <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                 {immagini.filter((u) => u.trim().length > 0).map((url, idx) => (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img key={idx} src={url} alt="" className="w-14 h-14 rounded object-cover border border-gray-200" />
                 ))}
               </div>

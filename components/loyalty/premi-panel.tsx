@@ -104,7 +104,6 @@ export default function PremiPanel() {
               }`}
             >
               {p.immagine && (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.immagine} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
               )}
               <div className="flex-1 min-w-0">

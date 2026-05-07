@@ -58,7 +58,6 @@ export function SelezioneStrutturaClient({ cards }: { cards: StrutturaCard[] }) 
           >
             <div className="flex items-start gap-3 mb-4">
               {c.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img src={c.logo} alt={c.nome} className="w-12 h-12 rounded-lg object-cover" />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shrink-0">

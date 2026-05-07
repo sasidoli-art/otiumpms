@@ -38,7 +38,6 @@ export function CheckinLayout({
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logo}
                 alt={strutturaNome}

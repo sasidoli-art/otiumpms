@@ -186,9 +186,7 @@ ${backupCodes.map((c, i) => `${(i + 1).toString().padStart(2, '0')}. ${c}`).join
             </p>
           </div>
 
-          <div className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={setupData.qrCodeDataUrl} alt="QR 2FA" className="w-56 h-56" />
+          <div className="flex flex-col items-center gap-3 p-4 bg-gray-50 dark:bg-slate-800 rounded-xl">            <img src={setupData.qrCodeDataUrl} alt="QR 2FA" className="w-56 h-56" />
             <details className="text-xs text-gray-500 w-full">
               <summary className="cursor-pointer hover:text-gray-700">
                 Non riesci a scansionare? Mostra secret manuale

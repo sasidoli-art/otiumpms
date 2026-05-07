@@ -551,9 +551,7 @@ function UploadField({
     <Field label={label}>
       <div className="flex items-center gap-2">
         {value ? (
-          <div className="flex items-center gap-2 flex-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="" className="w-10 h-10 rounded border border-gray-200 object-cover bg-gray-50" />
+          <div className="flex items-center gap-2 flex-1">            <img src={value} alt="" className="w-10 h-10 rounded border border-gray-200 object-cover bg-gray-50" />
             <button
               type="button"
               onClick={onClear}

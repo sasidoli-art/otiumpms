@@ -62,8 +62,9 @@ export default [
       'no-useless-escape': 'warn',
       'no-constant-condition': 'warn',
       'prefer-const': 'warn',
-      // Next.js: registriamo le regole base così i `// eslint-disable-next-line @next/next/...` sono validi
-      '@next/next/no-img-element': 'warn',
+      // Disabilitata: le immagini sono tutte user-uploaded (base64 data URL, QR code, loghi da DB)
+      // dove next/image non è applicabile. Abilitare solo quando si migra a storage esterno (R2/S3).
+      '@next/next/no-img-element': 'off',
       '@next/next/no-html-link-for-pages': 'off',
     },
   },

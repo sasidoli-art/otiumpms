@@ -47,9 +47,7 @@ export default function BookingLayout({ struttura, children, hero, heroActions }
         <section
           className="relative -mt-16 w-full overflow-hidden"
           style={{ height: 'min(50vh, 500px)' }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+        >          <img
             src={struttura.fotoHero!}
             alt={struttura.nome}
             className="absolute inset-0 w-full h-full object-cover"

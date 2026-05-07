@@ -110,9 +110,7 @@ export default async function DpaViewPage() {
           </dl>
           {ultima.firmaBase64 && (
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <dt className="text-xs text-gray-500 mb-2">Firma digitale</dt>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={ultima.firmaBase64} alt="Firma" className="max-h-32 bg-white border border-gray-200 rounded" />
+              <dt className="text-xs text-gray-500 mb-2">Firma digitale</dt>              <img src={ultima.firmaBase64} alt="Firma" className="max-h-32 bg-white border border-gray-200 rounded" />
             </div>
           )}
         </div>

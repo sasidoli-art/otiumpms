@@ -55,7 +55,6 @@ export default function BookingHeader({
           className="flex items-center gap-2.5 min-w-0 shrink-0"
         >
           {struttura.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={struttura.logo}
               alt={struttura.nome}

@@ -181,7 +181,6 @@ export default function PrivacyPortal(props: Props) {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-3xl mx-auto px-4 py-6 flex items-center gap-4">
           {host.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={host.logo} alt={host.nomeAzienda} className="w-14 h-14 rounded-lg object-cover" />
           ) : (
             <div className="w-14 h-14 rounded-lg bg-indigo-100 flex items-center justify-center">

@@ -333,9 +333,7 @@ function PhotoCapture({
         </button>
       ) : (
         <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-100">
-          {/* Preview foto — proporzioni documento */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* Preview foto — proporzioni documento */}          <img
             src={photo}
             alt={`Documento ${label}`}
             className="w-full aspect-[3/2] object-cover"

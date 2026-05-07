@@ -114,16 +114,13 @@ export default function KioskDisplay({ strutturaId, struttura }: Props) {
         style={{ backgroundColor: accent }}>
         {/* Foto hero sfondo */}
         {struttura.fotoHero && (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={struttura.fotoHero} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <>            <img src={struttura.fotoHero} alt="" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-black/50" />
           </>
         )}
 
         <div className="relative text-center text-white z-10">
           {struttura.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={struttura.logo} alt={struttura.nome} className="h-20 w-auto mx-auto mb-8 drop-shadow-lg" />
           ) : (
             <h1 className="text-5xl font-extrabold mb-8 drop-shadow-lg">{struttura.nome}</h1>
@@ -168,7 +165,6 @@ export default function KioskDisplay({ strutturaId, struttura }: Props) {
 
           {/* Logo */}
           {struttura.logo && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={struttura.logo} alt={struttura.nome} className="h-16 w-auto mb-10" />
           )}
 
@@ -225,7 +221,6 @@ export default function KioskDisplay({ strutturaId, struttura }: Props) {
               </p>
             </div>
             {struttura.logo && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={struttura.logo} alt="" className="h-8 w-auto opacity-50" />
             )}
           </div>

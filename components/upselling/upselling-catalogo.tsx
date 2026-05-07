@@ -181,7 +181,6 @@ export default function UpsellingCatalogo() {
               <div key={s.id} className={`rounded-xl bg-white border shadow-sm p-4 ${s.attivo ? 'border-gray-200' : 'border-gray-200 opacity-60'}`}>
                 <div className="flex items-start gap-4">
                   {s.immagine && (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={s.immagine} alt="" className="w-20 h-20 rounded-lg object-cover shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">

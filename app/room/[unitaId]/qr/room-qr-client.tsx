@@ -46,7 +46,6 @@ export default function RoomQrClient({
         {/* QR */}
         <div className="flex justify-center mb-4">
           {qrDataUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={qrDataUrl} alt={`QR ${unitaNome}`} className="w-56 h-56" />
           ) : (
             <div className="w-56 h-56 bg-gray-100 rounded-lg flex items-center justify-center">

@@ -56,7 +56,6 @@ export function PriceSummary({
       {intestazione && (
         <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-150">
           {intestazione.immagine && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={intestazione.immagine}
               alt=""

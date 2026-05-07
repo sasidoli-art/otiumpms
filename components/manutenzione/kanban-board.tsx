@@ -227,7 +227,6 @@ function KanbanCard({
       {fotoCount > 0 && (
         <div className="mt-2 flex items-center gap-1.5">
           {fotoPreview && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={fotoPreview} alt="" className="w-12 h-12 rounded object-cover" />
           )}
           {fotoCount > 1 && (
