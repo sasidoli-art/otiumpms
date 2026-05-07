@@ -4,7 +4,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
-import { revealSecret } from '@/lib/secrets'
+import { getSmtpConfig } from '@/lib/host-config'
 import {
   renderEmail, EMAIL_TEMPLATES,
   type EmailTemplateId, type RenderContext, type TemplateOverride,
@@ -33,14 +33,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Template sconosciuto' }, { status: 404 })
   }
 
-  const host = await prisma.host.findUnique({
-    where: { id: auth.user.hostId },
-    select: {
-      id: true, nomeAzienda: true, telefono: true,
-      smtpHost: true, smtpPort: true, smtpUser: true, smtpPass: true, emailMittente: true,
-      user: { select: { email: true } },
-    },
-  })
+  const [host, smtp] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: auth.user.hostId },
+      select: {
+        id: true, nomeAzienda: true, telefono: true,
+        user: { select: { email: true } },
+      },
+    }),
+    getSmtpConfig(auth.user.hostId),
+  ])
   if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
 
   const destinatario = toOverride ?? host.user.email
@@ -93,14 +95,14 @@ export async function POST(req: Request) {
   // Invio diretto (non accodato) per feedback immediato
   let transporter: nodemailer.Transporter
   let from: string
-  if (host.smtpUser && host.smtpPass && host.smtpHost) {
+  if (smtp?.smtpUser && smtp.smtpPass && smtp.smtpHost) {
     transporter = nodemailer.createTransport({
-      host: host.smtpHost,
-      port: host.smtpPort ?? 587,
-      secure: (host.smtpPort ?? 587) === 465,
-      auth: { user: host.smtpUser, pass: revealSecret(host.smtpPass) ?? '' },
+      host: smtp.smtpHost,
+      port: smtp.smtpPort ?? 587,
+      secure: (smtp.smtpPort ?? 587) === 465,
+      auth: { user: smtp.smtpUser, pass: smtp.smtpPass },
     })
-    from = host.emailMittente ?? host.smtpUser
+    from = smtp.emailMittente ?? smtp.smtpUser
   } else {
     const port = Number(process.env.SMTP_PORT) || 587
     transporter = nodemailer.createTransport({

@@ -16,9 +16,8 @@
 
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/db'
-import { getHostSecret } from '@/lib/host-secrets'
+import { getConciergeConfig } from '@/lib/host-config'
 import { getPlatformSettings } from '@/lib/platform-settings'
-import { revealSecret } from '@/lib/secrets'
 
 // ─── Tipi comuni ──────────────────────────────────────────────────────────────
 
@@ -515,40 +514,26 @@ export async function generaRispostaConcierge(params: {
 }): Promise<RispostaConcierge> {
   const { hostId, conversazioneId, messaggioOspite, contestoOspite } = params
 
-  // ─── Host + HostConciergeConfig ─────────────────────────────────────────
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: {
-      id: true,
-      nomeAzienda: true,
-      conciergeAttivo: true,
-      conciergeProvider: true,
-      conciergeModel: true,
-      conciergeBaseUrl: true,
-      conciergeApiKey: true,
-      conciergeSystemPrompt: true,
-      strutture: {
-        take: 1,
-        orderBy: { createdAt: 'asc' },
-        select: {
-          id: true, nome: true, citta: true, regione: true,
-          indirizzo: true, descrizione: true,
+  // ─── Host (per nomeAzienda + struttura) + ConciergeConfig in parallelo ──
+  const [host, cfg] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: hostId },
+      select: {
+        id: true,
+        nomeAzienda: true,
+        strutture: {
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true, nome: true, citta: true, regione: true,
+            indirizzo: true, descrizione: true,
+          },
         },
       },
-    },
-  })
+    }),
+    getConciergeConfig(hostId),
+  ])
   if (!host) throw new Error(`Host ${hostId} non trovato`)
-
-  // Campi tuning + knowledge base sono SOLO su HostConciergeConfig (non su Host legacy)
-  const cfg = await prisma.hostConciergeConfig.findUnique({
-    where: { hostId },
-    select: {
-      conciergeTemperatura: true,
-      conciergeMaxToken: true,
-      conciergeKnowledgeBase: true,
-      conciergeLinguaDefault: true,
-    },
-  })
 
   // Conversazione → prenotazione → struttura (se disponibile)
   const conversazione = await prisma.conversazioneWhatsApp.findUnique({
@@ -589,7 +574,11 @@ export async function generaRispostaConcierge(params: {
 
   // ─── Costruzione messaggi ──────────────────────────────────────────────
   const systemPrompt = buildSystemPrompt(
-    { ...host, conciergeKnowledgeBase: cfg?.conciergeKnowledgeBase ?? null },
+    {
+      nomeAzienda: host.nomeAzienda,
+      conciergeSystemPrompt: cfg?.conciergeSystemPrompt ?? null,
+      conciergeKnowledgeBase: cfg?.conciergeKnowledgeBase ?? null,
+    },
     struttura,
     contestoOspite ? { ...contestoOspite, lingua } : undefined,
   )
@@ -605,15 +594,15 @@ export async function generaRispostaConcierge(params: {
 
   // ─── Provider config: BYO host → fallback Platform Key ──────────────────
   const platformSettings = await getPlatformSettings()
-  const useBYO = !!host.conciergeApiKey
-  const providerConfig: AIProviderConfig = useBYO
+  const useBYO = !!cfg?.conciergeApiKey
+  const providerConfig: AIProviderConfig = useBYO && cfg
     ? {
-        provider: (host.conciergeProvider as AIProviderConfig['provider']) || 'claude',
-        apiKey: await getHostSecret(hostId, 'conciergeApiKey') ?? revealSecret(host.conciergeApiKey),
-        model: host.conciergeModel,
-        baseUrl: host.conciergeBaseUrl,
-        temperature: cfg?.conciergeTemperatura ?? null,
-        maxTokens: cfg?.conciergeMaxToken ?? null,
+        provider: (cfg.conciergeProvider as AIProviderConfig['provider']) || 'claude',
+        apiKey: cfg.conciergeApiKey, // già decifrato dal facade
+        model: cfg.conciergeModel,
+        baseUrl: cfg.conciergeBaseUrl,
+        temperature: cfg.conciergeTemperatura ?? null,
+        maxTokens: cfg.conciergeMaxToken ?? null,
       }
     : {
         provider: (platformSettings.aiProvider as AIProviderConfig['provider']) || 'claude',

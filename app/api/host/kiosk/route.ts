@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 const kioskSchema = z.object({
   prenotazioneId: z.string().min(1),
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   // Verifica che la prenotazione appartenga a questo host
   const prenotazione = await prisma.prenotazione.findFirst({
-    where: { id: prenotazioneId, hostId: auth.user.hostId },
+    where: { id: prenotazioneId, hostId: auth.user.hostId, ...notDeleted },
     select: {
       id: true,
       guestNome: true,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { isModuloAttivo } from '@/lib/moduli'
+import { getWifiConfig } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
 
 /**
@@ -236,15 +237,12 @@ export async function POST(req: NextRequest) {
     const guestNome = typeof body.guestNome === 'string' ? body.guestNome.trim() : 'Visitatore'
 
     // Controlla se l'host ha abilitato complimentary
-    const hostFull = await prisma.host.findUnique({
-      where: { id: hostId },
-      select: { wifiAuthComplimentary: true, wifiComplimentaryMins: true },
-    })
-    if (!hostFull?.wifiAuthComplimentary) {
+    const wifi = await getWifiConfig(hostId)
+    if (!wifi?.wifiAuthComplimentary) {
       return NextResponse.json({ error: 'Accesso gratuito non disponibile' }, { status: 403 })
     }
 
-    const durataMin = hostFull.wifiComplimentaryMins || 120
+    const durataMin = wifi.wifiComplimentaryMins || 120
     const expiresAt = new Date(Date.now() + durataMin * 60 * 1000)
 
     const session = await prisma.wifiSession.create({
@@ -280,11 +278,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email non valida' }, { status: 422 })
     }
 
-    const hostFull = await prisma.host.findUnique({
-      where: { id: hostId },
-      select: { wifiAuthUserForm: true },
-    })
-    if (!hostFull?.wifiAuthUserForm) {
+    const wifi = await getWifiConfig(hostId)
+    if (!wifi?.wifiAuthUserForm) {
       return NextResponse.json({ error: 'Registrazione non disponibile' }, { status: 403 })
     }
 
@@ -319,11 +314,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email non valida' }, { status: 422 })
     }
 
-    const hostFull = await prisma.host.findUnique({
-      where: { id: hostId },
-      select: { wifiAuthEmailOnly: true },
-    })
-    if (!hostFull?.wifiAuthEmailOnly) {
+    const wifi = await getWifiConfig(hostId)
+    if (!wifi?.wifiAuthEmailOnly) {
       return NextResponse.json({ error: 'Login con email non disponibile' }, { status: 403 })
     }
 

@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db'
 import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 export async function GET(req: NextRequest) {
   const auth = await requireHostOrAdmin()
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
     prisma.prenotazione.findMany({
       where: {
         hostId,
+        ...notDeleted,
         OR: [
           { guestNome: { contains: q, mode: 'insensitive' } },
           { guestCognome: { contains: q, mode: 'insensitive' } },
@@ -30,6 +32,7 @@ export async function GET(req: NextRequest) {
     prisma.ospiteCRM.findMany({
       where: {
         hostId,
+        ...notDeleted,
         OR: [
           { nome: { contains: q, mode: 'insensitive' } },
           { cognome: { contains: q, mode: 'insensitive' } },
@@ -42,6 +45,7 @@ export async function GET(req: NextRequest) {
     prisma.struttura.findMany({
       where: {
         hostId,
+        ...notDeleted,
         OR: [
           { nome: { contains: q, mode: 'insensitive' } },
           { citta: { contains: q, mode: 'insensitive' } },

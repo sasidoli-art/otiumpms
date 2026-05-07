@@ -136,3 +136,198 @@ export function fasciaCopreSlot(
   const fFin = toMinutes(fasciaFine)
   return fIni <= slotInizioMin && fFin >= slotFineMin
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// calcolaSlotSpa — async, DB-loading (Prompt 11)
+// ───────────────────────────────────────────────────────────────────────────
+
+export interface SpaSlot {
+  oraInizio: string           // "09:00"
+  oraFine: string             // "09:50"
+  terapistiDisponibili: string[]  // ids terapisti liberi per questo slot
+  cabineDisponibili: string[]     // ids cabine libere per questo slot
+}
+
+/**
+ * Calcola gli slot SPA disponibili per una data e durata specifica.
+ * Slot da 08:00 a 20:00, intervallo 30 min.
+ * Uno slot è disponibile se ha >= 1 terapista E >= 1 cabina liberi.
+ *
+ * Terapista libero nello slot se:
+ *   - Ha DisponibilitaTerapista SETTIMANALE per quel giorno della settimana
+ *     che copre l'intero slot (orarioInizio <= slotStart, orarioFine >= slotEnd)
+ *   - OPPURE ha DisponibilitaTerapista SPECIFICA per quella data esatta
+ *   - E NON è bloccato (BLOCCO che copre lo slot)
+ *   - E NON ha AppuntamentoSpa (CONFERMATO/PENDENTE) sovrapposto
+ *
+ * Cabina libera nello slot se:
+ *   - Nessun AppuntamentoSpa (CONFERMATO/PENDENTE) sovrapposto
+ *     incluso il buffer di pulizia post-appuntamento (durataPuliziaMinuti)
+ */
+export async function calcolaSlotSpa(opts: {
+  hostId: string
+  data: Date
+  durata: number   // minuti trattamento
+  startHour?: number  // default 8
+  endHour?: number    // default 20
+  intervalMin?: number // default 30
+}): Promise<SpaSlot[]> {
+  const { prisma } = await import('@/lib/db')
+  const { hostId, data, durata } = opts
+  const startHour = opts.startHour ?? 8
+  const endHour = opts.endHour ?? 20
+  const intervalMin = opts.intervalMin ?? 30
+
+  // Giorno settimana (0=Lun..6=Dom, convenzione lib)
+  const jsDay = data.getDay() // 0=Dom..6=Sab
+  const giornoLib = jsDay === 0 ? 6 : jsDay - 1
+
+  const dataInizio = new Date(data)
+  dataInizio.setHours(0, 0, 0, 0)
+  const dataFine = new Date(dataInizio)
+  dataFine.setDate(dataFine.getDate() + 1)
+
+  // 1. Carica terapisti, cabine e appuntamenti in parallelo
+  const [terapisti, cabine, appuntamentiGiorno] = await Promise.all([
+    prisma.terapistaSpa.findMany({
+      where: { hostId, attivo: true },
+      select: { id: true, disponibilita: { where: { attiva: true } } },
+    }),
+    prisma.cabinaSpa.findMany({
+      where: { hostId, attiva: true },
+      select: { id: true, durataPuliziaMinuti: true },
+    }),
+    prisma.appuntamentoSpa.findMany({
+      where: {
+        hostId,
+        stato: { in: ['CONFERMATO', 'PRENOTATO'] },
+        dataOra: { gte: dataInizio, lt: dataFine },
+      },
+      select: { terapistaId: true, cabinaId: true, dataOra: true, durata: true },
+    }),
+  ])
+
+  // 2. Converti appuntamenti in occupazione (minuti dal giorno)
+  const occupazioniAppt = appuntamentiGiorno.map(a => {
+    const h = a.dataOra.getHours()
+    const m = a.dataOra.getMinutes()
+    const inizio = h * 60 + m
+    return { inizioMin: inizio, fineMin: inizio + a.durata, terapistaId: a.terapistaId, cabinaId: a.cabinaId }
+  })
+
+  // 3. Genera tutti gli slot del giorno
+  const slots = generaSlotGiornata({ startHour, endHour, intervalMin, durataMin: durata })
+
+  return slots.map(slot => {
+    // Terapisti disponibili
+    const terapistiLiberi = terapisti.filter(t => {
+      const disp = t.disponibilita
+
+      // Verifica se bloccato (BLOCCO che copre lo slot)
+      const bloccato = disp.some(d => {
+        if (d.tipo !== 'BLOCCO') return false
+        // BLOCCO è per data specifica
+        if (d.data && !sameDate(d.data, data)) return false
+        return fasciaCopreSlot(d.orarioInizio, d.orarioFine, slot.inizioMin, slot.fineMin)
+      })
+      if (bloccato) return false
+
+      // Ha disponibilità SETTIMANALE o SPECIFICA che copre lo slot
+      const haFascia = disp.some(d => {
+        if (d.tipo === 'SETTIMANALE') {
+          return d.giorno === giornoLib && fasciaCopreSlot(d.orarioInizio, d.orarioFine, slot.inizioMin, slot.fineMin)
+        }
+        if (d.tipo === 'SPECIFICA') {
+          return d.data != null && sameDate(d.data, data) && fasciaCopreSlot(d.orarioInizio, d.orarioFine, slot.inizioMin, slot.fineMin)
+        }
+        return false
+      })
+      if (!haFascia) return false
+
+      // Non ha appuntamenti sovrapposti
+      const occupato = occupazioniAppt.some(
+        o => o.terapistaId === t.id && slotsOverlap(o.inizioMin, o.fineMin, slot.inizioMin, slot.fineMin)
+      )
+      return !occupato
+    })
+
+    // Cabine disponibili (con buffer pulizia)
+    const cabineLibere = cabine.filter(c => {
+      return !occupazioniAppt.some(o => {
+        if (o.cabinaId !== c.id) return false
+        // Slot cabina = [oraInizio, oraInizio + durata + buffer)
+        const fineConBuffer = o.fineMin + c.durataPuliziaMinuti
+        return slotsOverlap(o.inizioMin, fineConBuffer, slot.inizioMin, slot.fineMin)
+      })
+    })
+
+    return {
+      oraInizio: slot.oraInizio,
+      oraFine: slot.oraFine,
+      terapistiDisponibili: terapistiLiberi.map(t => t.id),
+      cabineDisponibili: cabineLibere.map(c => c.id),
+    }
+  }).filter(s => s.terapistiDisponibili.length > 0 && s.cabineDisponibili.length > 0)
+}
+
+/**
+ * Assegna la prima cabina libera per un dato orario e durata.
+ * Considera il buffer di pulizia degli appuntamenti precedenti.
+ */
+export async function assegnaCabina(opts: {
+  hostId: string
+  dataOra: Date
+  durata: number
+}): Promise<string | null> {
+  const { prisma } = await import('@/lib/db')
+  const { hostId, dataOra, durata } = opts
+
+  const dataInizio = new Date(dataOra)
+  dataInizio.setHours(0, 0, 0, 0)
+  const dataFine = new Date(dataInizio)
+  dataFine.setDate(dataFine.getDate() + 1)
+
+  const h = dataOra.getHours()
+  const m = dataOra.getMinutes()
+  const slotInizio = h * 60 + m
+  const slotFine = slotInizio + durata
+
+  const [cabine, appuntamenti] = await Promise.all([
+    prisma.cabinaSpa.findMany({
+      where: { hostId, attiva: true },
+      select: { id: true, durataPuliziaMinuti: true },
+      orderBy: { nome: 'asc' },
+    }),
+    prisma.appuntamentoSpa.findMany({
+      where: {
+        hostId,
+        stato: { in: ['CONFERMATO', 'PRENOTATO'] },
+        dataOra: { gte: dataInizio, lt: dataFine },
+      },
+      select: { cabinaId: true, dataOra: true, durata: true },
+    }),
+  ])
+
+  const occupazioni = appuntamenti.map(a => {
+    const ah = a.dataOra.getHours()
+    const am = a.dataOra.getMinutes()
+    const ini = ah * 60 + am
+    return { cabinaId: a.cabinaId, inizioMin: ini, fineMin: ini + a.durata }
+  })
+
+  for (const cabina of cabine) {
+    const occupata = occupazioni.some(o => {
+      if (o.cabinaId !== cabina.id) return false
+      const fineConBuffer = o.fineMin + cabina.durataPuliziaMinuti
+      return slotsOverlap(o.inizioMin, fineConBuffer, slotInizio, slotFine)
+    })
+    if (!occupata) return cabina.id
+  }
+
+  return null
+}
+
+// helper locale (non esportato)
+function sameDate(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}

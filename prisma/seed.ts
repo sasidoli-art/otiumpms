@@ -1371,6 +1371,116 @@ async function main() {
   ])
   console.log('✅ Host 2 creato:', host2User.email, '→', host2.nomeAzienda, `(${camere3.length} camere, piano LIGHT)`)
 
+  // ─── ConfigRistorante ────────────────────────────────────────────────
+  await prisma.configRistorante.upsert({
+    where: { strutturaId: struttura1.id },
+    update: {},
+    create: {
+      hostId: host.id,
+      strutturaId: struttura1.id,
+      nomeRistorante: 'Ristorante Villa Aurora',
+      oraApertura: '12:00',
+      oraChiusura: '22:00',
+      intervalloSlot: 30,
+      maxCopertiPerSlot: 40,
+      giorniChiusura: [1], // lunedì chiuso
+      prenotazioneOnline: true,
+      confermaAutomatica: true,
+    },
+  })
+  console.log('✅ ConfigRistorante creata per struttura 1')
+
+  // ─── Fatture demo ────────────────────────────────────────────────────
+  const fattureDemo = await Promise.all([
+    prisma.fattura.upsert({
+      where: { numero: '2026/001' },
+      update: {},
+      create: {
+        hostId: host.id,
+        numero: '2026/001',
+        anno: 2026,
+        stato: 'PAGATA',
+        clienteNome: 'Rossi Mario',
+        clientePIva: undefined,
+        clienteCF: 'RSSMRA80A01H501Z',
+        clienteIndirizzo: 'Via Roma 1',
+        clienteCitta: 'Milano',
+        clienteCap: '20121',
+        clienteProvincia: 'MI',
+        clientePaese: 'Italia',
+        clienteEmail: 'mario.rossi@email.it',
+        clienteSDI: '0000000',
+        righe: [{ descrizione: 'Soggiorno 3 notti Camera Deluxe', quantita: 3, prezzoUnitario: 200, iva: 10, totale: 600 }],
+        imponibile: 600,
+        iva: 60,
+        totale: 660,
+        aliquotaIva: 10,
+        dataEmissione: new Date('2026-03-15'),
+        dataScadenza: new Date('2026-04-15'),
+        tipoDocumento: 'TD01',
+      },
+    }),
+    prisma.fattura.upsert({
+      where: { numero: '2026/002' },
+      update: {},
+      create: {
+        hostId: host.id,
+        numero: '2026/002',
+        anno: 2026,
+        stato: 'INVIATA',
+        clienteNome: 'Bianchi Costruzioni Srl',
+        clientePIva: '01234567890',
+        clienteIndirizzo: 'Via Garibaldi 50',
+        clienteCitta: 'Roma',
+        clienteCap: '00100',
+        clienteProvincia: 'RM',
+        clientePaese: 'Italia',
+        clienteEmail: 'amministrazione@bianchi.it',
+        clientePec: 'bianchi@pec.it',
+        clienteSDI: 'ABCDEFG',
+        righe: [
+          { descrizione: 'Meeting aziendale 2 giorni', quantita: 2, prezzoUnitario: 500, iva: 22, totale: 1000 },
+          { descrizione: 'Coffee break e pranzo x 20 persone', quantita: 1, prezzoUnitario: 400, iva: 10, totale: 400 },
+        ],
+        imponibile: 1400,
+        iva: 268,
+        totale: 1668,
+        aliquotaIva: 22,
+        dataEmissione: new Date('2026-04-01'),
+        dataScadenza: new Date('2026-05-01'),
+        tipoDocumento: 'TD01',
+      },
+    }),
+  ])
+  // Crea le RigaFattura relazionali per entrambe
+  await prisma.rigaFattura.createMany({
+    skipDuplicates: true,
+    data: [
+      { fatturaId: fattureDemo[0].id, ordine: 0, descrizione: 'Soggiorno 3 notti Camera Deluxe', quantita: 3, prezzoUnitario: 200, aliquotaIva: 10, totale: 600, categoria: 'soggiorno' },
+      { fatturaId: fattureDemo[1].id, ordine: 0, descrizione: 'Meeting aziendale 2 giorni', quantita: 2, prezzoUnitario: 500, aliquotaIva: 22, totale: 1000, categoria: 'servizi' },
+      { fatturaId: fattureDemo[1].id, ordine: 1, descrizione: 'Coffee break e pranzo x 20 persone', quantita: 1, prezzoUnitario: 400, aliquotaIva: 10, totale: 400, categoria: 'food' },
+    ],
+  })
+  console.log(`✅ ${fattureDemo.length} fatture demo create (con RigaFattura)`)
+
+  // ─── Articoli magazzino demo ──────────────────────────────────────────
+  await prisma.articoloMagazzino.createMany({
+    skipDuplicates: true,
+    data: [
+      { hostId: host.id, nome: 'Lenzuola singolo', categoria: 'BIANCHERIA', unita: 'pz', quantita: 80, scorteMinime: 20, costoUnitario: 12 },
+      { hostId: host.id, nome: 'Lenzuola matrimoniale', categoria: 'BIANCHERIA', unita: 'pz', quantita: 60, scorteMinime: 15, costoUnitario: 18 },
+      { hostId: host.id, nome: 'Asciugamano bagno grande', categoria: 'BIANCHERIA', unita: 'pz', quantita: 120, scorteMinime: 30, costoUnitario: 8 },
+      { hostId: host.id, nome: 'Asciugamano viso', categoria: 'BIANCHERIA', unita: 'pz', quantita: 150, scorteMinime: 40, costoUnitario: 4.5 },
+      { hostId: host.id, nome: 'Sapone liquido 50ml', categoria: 'AMENITIES', unita: 'pz', quantita: 200, scorteMinime: 50, costoUnitario: 1.2 },
+      { hostId: host.id, nome: 'Shampoo 50ml', categoria: 'AMENITIES', unita: 'pz', quantita: 180, scorteMinime: 50, costoUnitario: 1.5 },
+      { hostId: host.id, nome: 'Acqua minerale 0.5L', categoria: 'MINIBAR', unita: 'pz', quantita: 96, scorteMinime: 24, costoUnitario: 0.4 },
+      { hostId: host.id, nome: 'Coca Cola 0.33L', categoria: 'MINIBAR', unita: 'pz', quantita: 48, scorteMinime: 12, costoUnitario: 0.9 },
+      { hostId: host.id, nome: 'Detersivo bagno professionale', categoria: 'PULIZIA', unita: 'lt', quantita: 20, scorteMinime: 5, costoUnitario: 6 },
+      { hostId: host.id, nome: 'Carta igienica rotoli x 12', categoria: 'PULIZIA', unita: 'conf', quantita: 30, scorteMinime: 10, costoUnitario: 8 },
+    ],
+  })
+  console.log('✅ 10 articoli magazzino creati')
+
   // ─── Riepilogo ───────────────────────────────────────────────────────
   console.log('\n📋 RIEPILOGO SEED')
   console.log('─────────────────────────────────────────')

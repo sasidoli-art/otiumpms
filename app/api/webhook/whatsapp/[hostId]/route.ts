@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
 import { verifyWebhookSignature } from '@/lib/whatsapp'
 import { verificaWebhook, processaWebhookWhatsApp } from '@/lib/whatsapp-webhook'
+import { getWhatsAppConfig } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
 import * as Sentry from '@sentry/nextjs'
 
@@ -41,16 +41,13 @@ export async function GET(
   const token = sp.get('hub.verify_token')
   const challenge = sp.get('hub.challenge')
 
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: { whatsappVerifyToken: true },
-  })
-  if (!host?.whatsappVerifyToken) {
+  const wa = await getWhatsAppConfig(hostId)
+  if (!wa?.verifyToken) {
     logger.warn('Webhook WA GET: host senza verifyToken', { hostId })
     return new NextResponse('Host not configured', { status: 404 })
   }
 
-  const result = verificaWebhook(mode, token, challenge, host.whatsappVerifyToken)
+  const result = verificaWebhook(mode, token, challenge, wa.verifyToken)
   if (!result) {
     logger.warn('Webhook WA GET: verifica fallita', { hostId, mode })
     return new NextResponse('Forbidden', { status: 403 })

@@ -15,7 +15,7 @@ type Regola = {
   strutturaId: string
   unitaId: string | null
   nome: string
-  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA'
+  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA' | 'EARLY_BIRD' | 'LAST_MINUTE'
   attiva: boolean
   priorita: number
   modificatore: 'PERCENTUALE' | 'FISSO'
@@ -25,6 +25,9 @@ type Regola = {
   meseFine: number | null
   giornoFine: number | null
   giorniSettimana: number[]
+  nottiMinime: number | null
+  giorniMinimi: number | null
+  giorniMassimi: number | null
   unita: { nome: string } | null
 }
 
@@ -79,7 +82,7 @@ export default function RegoleTariffaManager({
   const [form, setForm] = useState({
     unitaId: '',
     nome: '',
-    tipo: 'WEEKEND' as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
+    tipo: 'WEEKEND' as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA' | 'EARLY_BIRD' | 'LAST_MINUTE',
     modificatore: 'PERCENTUALE' as 'PERCENTUALE' | 'FISSO',
     valore: '',
     meseInizio: '6',

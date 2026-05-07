@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db'
 import { format, eachDayOfInterval, startOfDay } from 'date-fns'
 import { it } from 'date-fns/locale'
 import { generateContoOspitePdf } from '@/lib/pdf-generator'
-import { calcolaPrezzo } from '@/lib/pricing'
+import { calcolaPrezzo, type RegolaTariffa } from '@/lib/pricing'
 
 /**
  * GET /api/host/prenotazioni/[id]/conto
@@ -65,7 +65,7 @@ export async function GET(
       regole: regole.map(r => ({
         id: r.id,
         nome: r.nome,
-        tipo: (['WEEKEND', 'STAGIONE', 'FESTIVO', 'DURATA'].includes(r.tipo) ? r.tipo : 'DURATA') as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
+        tipo: r.tipo as RegolaTariffa['tipo'],
         attiva: r.attiva,
         priorita: r.priorita,
         modificatore: (['PERCENTUALE', 'FISSO'].includes(r.modificatore) ? r.modificatore : 'PERCENTUALE') as 'PERCENTUALE' | 'FISSO',
@@ -76,6 +76,9 @@ export async function GET(
         meseFine: r.meseFine,
         giornoFine: r.giornoFine,
         giorniSettimana: r.giorniSettimana,
+        nottiMinime: r.nottiMinime ?? null,
+        giorniMinimi: r.giorniMinimi ?? null,
+        giorniMassimi: r.giorniMassimi ?? null,
       })),
     })
 

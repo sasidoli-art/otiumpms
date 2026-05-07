@@ -306,3 +306,252 @@ export async function setBillingInfo(hostId: string, patch: BillingInfoPatch): P
   }
   await prisma.host.update({ where: { id: hostId }, data: hostData });
 }
+
+// ─── WhatsApp ────────────────────────────────────────────────────────────────
+// HostWhatsAppConfig estrae i 4 campi WhatsApp da HostConciergeConfig come
+// modello satellite dedicato (Fase 1 god object split, batch 2 — 2026-05-04).
+// I campi `whatsapp*` su HostConciergeConfig restano per dual-write durante
+// la migrazione. Read-through: prefer HostWhatsAppConfig → fallback Concierge.
+
+export type WhatsAppConfig = {
+  accessToken: string | null;   // decrypted on read
+  phoneNumberId: string | null;
+  verifyToken: string | null;
+  webhookSecret: string | null; // decrypted on read
+  configurato: boolean;
+};
+
+export async function getWhatsAppConfig(hostId: string): Promise<WhatsAppConfig | null> {
+  const cfg = await prisma.hostWhatsAppConfig.findUnique({ where: { hostId } });
+  if (cfg) {
+    return {
+      accessToken: revealSecret(cfg.accessToken),
+      phoneNumberId: cfg.phoneNumberId,
+      verifyToken: cfg.verifyToken,
+      webhookSecret: revealSecret(cfg.webhookSecret),
+      configurato: cfg.configurato,
+    };
+  }
+  // Fallback legacy: campi WhatsApp dentro HostConciergeConfig
+  const concierge = await prisma.hostConciergeConfig.findUnique({
+    where: { hostId },
+    select: { whatsappAccessToken: true, whatsappNumeroId: true, whatsappVerifyToken: true },
+  });
+  if (!concierge) return null;
+  return {
+    accessToken: revealSecret(concierge.whatsappAccessToken),
+    phoneNumberId: concierge.whatsappNumeroId,
+    verifyToken: concierge.whatsappVerifyToken,
+    webhookSecret: null, // legacy non aveva webhookSecret separato
+    configurato: !!(concierge.whatsappAccessToken && concierge.whatsappNumeroId),
+  };
+}
+
+export type WhatsAppConfigPatch = Partial<Omit<WhatsAppConfig, 'accessToken' | 'webhookSecret'>> & {
+  accessToken?: string | null | undefined;
+  webhookSecret?: string | null | undefined;
+};
+
+export async function setWhatsAppConfig(hostId: string, patch: WhatsAppConfigPatch): Promise<void> {
+  const existing = await prisma.hostWhatsAppConfig.findUnique({ where: { hostId } });
+  const data: Record<string, unknown> = { ...patch };
+  if (patch.accessToken !== undefined) {
+    data.accessToken = applySecretUpdate(patch.accessToken, existing?.accessToken ?? null);
+  }
+  if (patch.webhookSecret !== undefined) {
+    data.webhookSecret = applySecretUpdate(patch.webhookSecret, existing?.webhookSecret ?? null);
+  }
+  await prisma.hostWhatsAppConfig.upsert({
+    where: { hostId },
+    update: data,
+    create: { hostId, ...data },
+  });
+  // Dual-write su HostConciergeConfig (campi legacy)
+  const conciergeExisting = await prisma.hostConciergeConfig.findUnique({
+    where: { hostId },
+    select: { whatsappAccessToken: true },
+  });
+  const conciergeData: Record<string, unknown> = {};
+  if (patch.accessToken !== undefined) {
+    conciergeData.whatsappAccessToken = applySecretUpdate(
+      patch.accessToken,
+      conciergeExisting?.whatsappAccessToken ?? null,
+    );
+  }
+  if (patch.phoneNumberId !== undefined) conciergeData.whatsappNumeroId = patch.phoneNumberId;
+  if (patch.verifyToken !== undefined) conciergeData.whatsappVerifyToken = patch.verifyToken;
+  if (Object.keys(conciergeData).length > 0) {
+    await prisma.hostConciergeConfig.upsert({
+      where: { hostId },
+      update: conciergeData,
+      create: { hostId, ...conciergeData },
+    });
+  }
+  // Dual-write su Host (campi legacy) — necessario finché esistono lettori
+  // diretti di host.whatsapp* (es. GET /api/host/profilo che ritorna Host raw).
+  const hostExisting = await prisma.host.findUnique({
+    where: { id: hostId },
+    select: { whatsappAccessToken: true },
+  });
+  const hostData: Record<string, unknown> = {};
+  if (patch.accessToken !== undefined) {
+    hostData.whatsappAccessToken = applySecretUpdate(
+      patch.accessToken,
+      hostExisting?.whatsappAccessToken ?? null,
+    );
+  }
+  if (patch.phoneNumberId !== undefined) hostData.whatsappNumeroId = patch.phoneNumberId;
+  if (patch.verifyToken !== undefined) hostData.whatsappVerifyToken = patch.verifyToken;
+  if (Object.keys(hostData).length > 0) {
+    await prisma.host.update({ where: { id: hostId }, data: hostData });
+  }
+}
+
+// ─── WhatsApp lookup helpers (webhook Meta) ──────────────────────────────────
+// Risolvono hostId dal verifyToken (handshake GET) o dal phoneNumberId
+// (POST messaggi). Cercano in ordine: HostWhatsAppConfig (canonica) →
+// HostConciergeConfig (legacy intermedia) → Host (legacy originale).
+
+export async function findHostIdByWhatsAppVerifyToken(token: string): Promise<string | null> {
+  const cfg = await prisma.hostWhatsAppConfig.findFirst({
+    where: { verifyToken: token },
+    select: { hostId: true },
+  });
+  if (cfg) return cfg.hostId;
+  const concierge = await prisma.hostConciergeConfig.findFirst({
+    where: { whatsappVerifyToken: token },
+    select: { hostId: true },
+  });
+  if (concierge) return concierge.hostId;
+  const host = await prisma.host.findFirst({
+    where: { whatsappVerifyToken: token },
+    select: { id: true },
+  });
+  return host?.id ?? null;
+}
+
+export async function findHostIdByWhatsAppPhoneNumberId(phoneNumberId: string): Promise<string | null> {
+  const cfg = await prisma.hostWhatsAppConfig.findFirst({
+    where: { phoneNumberId },
+    select: { hostId: true },
+  });
+  if (cfg) return cfg.hostId;
+  const concierge = await prisma.hostConciergeConfig.findFirst({
+    where: { whatsappNumeroId: phoneNumberId },
+    select: { hostId: true },
+  });
+  if (concierge) return concierge.hostId;
+  const host = await prisma.host.findFirst({
+    where: { whatsappNumeroId: phoneNumberId },
+    select: { id: true },
+  });
+  return host?.id ?? null;
+}
+
+// ─── Branding ────────────────────────────────────────────────────────────────
+// HostBrandingConfig centralizza branding/testi/regCard*. I campi regCard*
+// vivono storicamente su Host; durante la migrazione si fa dual-write.
+
+export type BrandingConfig = {
+  logo: string | null;
+  favicon: string | null;
+  colorePrimario: string | null;
+  coloreSecondario: string | null;
+  coloreSfondo: string | null;
+  coloreTesto: string | null;
+  fontFamily: string | null;
+  borderRadius: string | null;
+  fotoHero: string | null;
+  messaggioBenvenuto: string | null;
+  messaggioChiusura: string | null;
+  regCardTerminiHtml: string | null;
+  regCardPrivacyHtml: string | null;
+  regCardSpaTerminiHtml: string | null;
+  regCardCampiExtra: unknown; // JSON
+};
+
+export async function getBrandingConfig(hostId: string): Promise<BrandingConfig | null> {
+  const cfg = await prisma.hostBrandingConfig.findUnique({ where: { hostId } });
+  if (cfg) {
+    return {
+      logo: cfg.logo,
+      favicon: cfg.favicon,
+      colorePrimario: cfg.colorePrimario,
+      coloreSecondario: cfg.coloreSecondario,
+      coloreSfondo: cfg.coloreSfondo,
+      coloreTesto: cfg.coloreTesto,
+      fontFamily: cfg.fontFamily,
+      borderRadius: cfg.borderRadius,
+      fotoHero: cfg.fotoHero,
+      messaggioBenvenuto: cfg.messaggioBenvenuto,
+      messaggioChiusura: cfg.messaggioChiusura,
+      regCardTerminiHtml: cfg.regCardTerminiHtml,
+      regCardPrivacyHtml: cfg.regCardPrivacyHtml,
+      regCardSpaTerminiHtml: cfg.regCardSpaTerminiHtml,
+      regCardCampiExtra: cfg.regCardCampiExtra,
+    };
+  }
+  // Fallback legacy: i campi regCard* + logo vivono su Host
+  const host = await prisma.host.findUnique({
+    where: { id: hostId },
+    select: {
+      logo: true, regCardTerminiHtml: true, regCardPrivacyHtml: true,
+      regCardSpaTerminiHtml: true, regCardCampiExtra: true,
+    },
+  });
+  if (!host) return null;
+  return {
+    logo: host.logo,
+    favicon: null,
+    colorePrimario: null,
+    coloreSecondario: null,
+    coloreSfondo: null,
+    coloreTesto: null,
+    fontFamily: null,
+    borderRadius: null,
+    fotoHero: null,
+    messaggioBenvenuto: null,
+    messaggioChiusura: null,
+    regCardTerminiHtml: host.regCardTerminiHtml,
+    regCardPrivacyHtml: host.regCardPrivacyHtml,
+    regCardSpaTerminiHtml: host.regCardSpaTerminiHtml,
+    regCardCampiExtra: host.regCardCampiExtra,
+  };
+}
+
+export type BrandingConfigPatch = Partial<BrandingConfig>;
+
+export async function setBrandingConfig(hostId: string, patch: BrandingConfigPatch): Promise<void> {
+  await prisma.hostBrandingConfig.upsert({
+    where: { hostId },
+    update: patch as Record<string, unknown>,
+    create: { hostId, ...(patch as Record<string, unknown>) },
+  });
+  // Dual-write su Host per i campi che lì esistono ancora
+  const hostData: Record<string, unknown> = {};
+  if (patch.logo !== undefined) hostData.logo = patch.logo;
+  if (patch.regCardTerminiHtml !== undefined) hostData.regCardTerminiHtml = patch.regCardTerminiHtml;
+  if (patch.regCardPrivacyHtml !== undefined) hostData.regCardPrivacyHtml = patch.regCardPrivacyHtml;
+  if (patch.regCardSpaTerminiHtml !== undefined) hostData.regCardSpaTerminiHtml = patch.regCardSpaTerminiHtml;
+  if (patch.regCardCampiExtra !== undefined) hostData.regCardCampiExtra = patch.regCardCampiExtra;
+  if (Object.keys(hostData).length > 0) {
+    await prisma.host.update({ where: { id: hostId }, data: hostData });
+  }
+}
+
+// ─── Stripe SaaS billing ─────────────────────────────────────────────────────
+// Helper per leggere stripeCustomerId / stripeSubscriptionId su Host
+// (campi non spostati in tabella satellite — vivono direttamente su Host
+// per essere @unique a livello DB con index).
+
+export async function getStripeIds(hostId: string): Promise<{
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+} | null> {
+  const host = await prisma.host.findUnique({
+    where: { id: hostId },
+    select: { stripeCustomerId: true, stripeSubscriptionId: true },
+  });
+  if (!host) return null;
+  return host;
+}

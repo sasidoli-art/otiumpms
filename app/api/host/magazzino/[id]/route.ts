@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
+import { softDelete } from '@/lib/prisma-helpers'
 
 export async function PATCH(
   req: NextRequest,
@@ -42,6 +43,6 @@ export async function DELETE(
   const articolo = await prisma.articoloMagazzino.findFirst({ where: { id, hostId: auth.user.hostId } })
   if (!articolo) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
-  await prisma.articoloMagazzino.delete({ where: { id } })
+  await softDelete(prisma.articoloMagazzino, id)
   return NextResponse.json({ ok: true })
 }

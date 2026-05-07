@@ -4,6 +4,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 // ─── Zod schema ──────────────────────────────────────────────────────────────
 
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
 
   // Verifica che la struttura appartenga all'host
   const struttura = await prisma.struttura.findFirst({
-    where: { id: data.strutturaId, hostId: auth.user.hostId },
+    where: { id: data.strutturaId, hostId: auth.user.hostId, ...notDeleted },
   })
   if (!struttura) {
     return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })

@@ -4,6 +4,7 @@ import { getHostId } from '@/lib/auth-middleware'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { isModuloAttivo } from '@/lib/moduli'
+import { getWifiConfig } from '@/lib/host-config'
 import WifiClient from './wifi-client'
 
 export const metadata = { title: 'Wi-Fi Ospiti — Otium' }
@@ -15,23 +16,13 @@ export default async function WifiHostPage() {
   const hostId = await getHostId()
   if (!hostId) redirect('/login')
 
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: {
-      id: true,
-      nomeAzienda: true,
-      moduliAttivi: true,
-      wifiAuthPms: true,
-      wifiAuthCode: true,
-      wifiAuthComplimentary: true,
-      wifiComplimentaryMins: true,
-      wifiAuthUserForm: true,
-      wifiAuthEmailOnly: true,
-      wifiAuthSocial: true,
-      wifiRedirectUrl: true,
-      wifiWelcomeMessage: true,
-    },
-  })
+  const [host, wifi] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: hostId },
+      select: { id: true, nomeAzienda: true, moduliAttivi: true },
+    }),
+    getWifiConfig(hostId),
+  ])
   if (!host) redirect('/host/dashboard')
 
   if (!isModuloAttivo(host.moduliAttivi, 'wifi')) {
@@ -49,15 +40,15 @@ export default async function WifiHostPage() {
       hostNome={host.nomeAzienda}
       loginUrl={`${origin}/wifi/login?h=${host.id}`}
       wifiConfig={{
-        authPms: host.wifiAuthPms,
-        authCode: host.wifiAuthCode,
-        authComplimentary: host.wifiAuthComplimentary,
-        complimentaryMins: host.wifiComplimentaryMins,
-        authUserForm: host.wifiAuthUserForm,
-        authEmailOnly: host.wifiAuthEmailOnly,
-        authSocial: host.wifiAuthSocial,
-        redirectUrl: host.wifiRedirectUrl,
-        welcomeMessage: host.wifiWelcomeMessage,
+        authPms: wifi?.wifiAuthPms ?? false,
+        authCode: wifi?.wifiAuthCode ?? false,
+        authComplimentary: wifi?.wifiAuthComplimentary ?? false,
+        complimentaryMins: wifi?.wifiComplimentaryMins ?? 120,
+        authUserForm: wifi?.wifiAuthUserForm ?? false,
+        authEmailOnly: wifi?.wifiAuthEmailOnly ?? false,
+        authSocial: wifi?.wifiAuthSocial ?? false,
+        redirectUrl: wifi?.wifiRedirectUrl ?? null,
+        welcomeMessage: wifi?.wifiWelcomeMessage ?? null,
       }}
     />
   )

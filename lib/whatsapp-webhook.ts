@@ -36,6 +36,7 @@ import {
 } from '@/lib/whatsapp-send'
 import { prisma } from '@/lib/db'
 import { getHostSecret } from '@/lib/host-secrets'
+import { getConciergeConfig } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
 import { audit } from '@/lib/audit'
 
@@ -135,26 +136,17 @@ async function processaSingoloMessaggio(
   msg: WhatsAppIncomingMessage,
   result: WebhookProcessingResult,
 ): Promise<void> {
-  // ─── 1. Host + HostConciergeConfig ──────────────────────────────────────
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: { id: true, nomeAzienda: true, conciergeAttivo: true },
-  })
+  // ─── 1. Host (per nome) + ConciergeConfig in parallelo ─────────────────
+  const [host, cfg] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: hostId },
+      select: { id: true, nomeAzienda: true },
+    }),
+    getConciergeConfig(hostId),
+  ])
   if (!host) {
     throw new Error(`Host ${hostId} non trovato`)
   }
-
-  // Nuovi campi di comportamento — vivono SOLO su HostConciergeConfig
-  const cfg = await prisma.hostConciergeConfig.findUnique({
-    where: { hostId },
-    select: {
-      conciergeAutoEscalation: true,
-      conciergeOrariAttiviDa: true,
-      conciergeOrariAttiviA: true,
-      conciergeMessaggioFuoriOrario: true,
-      conciergeLinguaDefault: true,
-    },
-  })
 
   // ─── 2. Identifica ospite (contesto per AI) ─────────────────────────────
   const contesto = await risolviContestoOspite(hostId, msg.from)
@@ -169,7 +161,7 @@ async function processaSingoloMessaggio(
   )
 
   // Disclosure AI Act Art. 50 alla prima interazione (solo se AI attivo)
-  if (appenaCreata && host.conciergeAttivo !== false) {
+  if (appenaCreata && cfg?.conciergeAttivo !== false) {
     const disclosure = disclosureTesto(contesto.lingua ?? 'it', host.nomeAzienda)
     await prisma.messaggioWhatsApp.create({
       data: {
@@ -199,7 +191,7 @@ async function processaSingoloMessaggio(
   }
 
   // ─── 6. Concierge off → auto-reply human-only ──────────────────────────
-  if (host.conciergeAttivo === false) {
+  if (cfg?.conciergeAttivo === false) {
     const autoReply = autoReplyUmano(contesto.lingua ?? 'it')
     await prisma.messaggioWhatsApp.create({
       data: {

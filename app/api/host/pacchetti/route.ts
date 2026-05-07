@@ -4,6 +4,7 @@ import { requireHostOrAdmin, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { z } from 'zod'
 import { parseBody } from '@/lib/validations'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 const pachettoCreateSchema = z.object({
   strutturaId: z.string().min(1),
@@ -26,7 +27,7 @@ export async function GET() {
   if (isUnauthorized(auth)) return auth
 
   const pacchetti = await prisma.pacchetto.findMany({
-    where: { hostId: auth.user.hostId },
+    where: { hostId: auth.user.hostId, ...notDeleted },
     include: {
       struttura: { select: { id: true, nome: true } },
     },
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   // Verify struttura belongs to host
   const struttura = await prisma.struttura.findFirst({
-    where: { id: data.strutturaId, hostId: auth.user.hostId },
+    where: { id: data.strutturaId, hostId: auth.user.hostId, ...notDeleted },
   })
   if (!struttura) {
     return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })

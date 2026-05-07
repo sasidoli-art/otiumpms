@@ -11,9 +11,8 @@
  * uniforme.
  */
 
-import { prisma } from '@/lib/db'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
-import { getHostSecret } from '@/lib/host-secrets'
+import { getWhatsAppConfig } from '@/lib/host-config'
 import { audit } from '@/lib/audit'
 import { logger } from '@/lib/logger'
 
@@ -42,24 +41,19 @@ export async function inviaMessaggioWhatsApp(
   destinatario: string,
   testo: string,
 ): Promise<{ messageId: string }> {
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: { whatsappNumeroId: true },
-  })
+  const cfg = await getWhatsAppConfig(hostId)
 
   const missing: string[] = []
-  if (!host?.whatsappNumeroId) missing.push('whatsappNumeroId')
-
-  const accessToken = await getHostSecret(hostId, 'whatsappAccessToken')
-  if (!accessToken) missing.push('whatsappAccessToken')
+  if (!cfg?.phoneNumberId) missing.push('whatsappNumeroId')
+  if (!cfg?.accessToken) missing.push('whatsappAccessToken')
 
   if (missing.length > 0) {
     throw new WhatsAppNotConfiguredError(hostId, missing)
   }
 
   const res = await sendWhatsAppMessage({
-    phoneNumberId: host!.whatsappNumeroId!,
-    accessToken: accessToken!,
+    phoneNumberId: cfg!.phoneNumberId!,
+    accessToken: cfg!.accessToken!,
     to: destinatario,
     text: testo,
   })
@@ -105,16 +99,11 @@ export async function inviaTemplateWhatsApp(
   params: string[] = [],
   lingua: string = 'it',
 ): Promise<{ messageId: string }> {
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: { whatsappNumeroId: true },
-  })
+  const cfg = await getWhatsAppConfig(hostId)
 
   const missing: string[] = []
-  if (!host?.whatsappNumeroId) missing.push('whatsappNumeroId')
-
-  const accessToken = await getHostSecret(hostId, 'whatsappAccessToken')
-  if (!accessToken) missing.push('whatsappAccessToken')
+  if (!cfg?.phoneNumberId) missing.push('whatsappNumeroId')
+  if (!cfg?.accessToken) missing.push('whatsappAccessToken')
 
   if (missing.length > 0) {
     throw new WhatsAppNotConfiguredError(hostId, missing)
@@ -124,12 +113,12 @@ export async function inviaTemplateWhatsApp(
 
   try {
     const res = await fetch(
-      `https://graph.facebook.com/v21.0/${host!.whatsappNumeroId}/messages`,
+      `https://graph.facebook.com/v21.0/${cfg!.phoneNumberId}/messages`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
+          Authorization: `Bearer ${cfg!.accessToken}`,
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',

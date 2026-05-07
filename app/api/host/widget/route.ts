@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 /**
  * GET /api/host/widget?strutturaId=xxx
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!strutturaId) return NextResponse.json({ error: 'strutturaId obbligatorio' }, { status: 400 })
 
   const struttura = await prisma.struttura.findFirst({
-    where: { id: strutturaId, hostId: auth.user.hostId },
+    where: { id: strutturaId, hostId: auth.user.hostId, ...notDeleted },
     select: { id: true, nome: true },
   })
   if (!struttura) return NextResponse.json({ error: 'Struttura non trovata' }, { status: 404 })

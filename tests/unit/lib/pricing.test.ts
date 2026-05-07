@@ -250,14 +250,228 @@ describe('pricing — calcoloPrezzo', () => {
     expect(resMay.prezzoTotale).toBe(80)
   })
 
-  // NON IMPLEMENTATO: tipo DURATA — l'enum esiste ma `regolaApplicabile`
-  // ritorna false per questo case. Skippato con flag.
-  test.skip('DURATA: sconto per soggiorno 3+ notti (non implementato nel codice)', () => {
-    // Quando il team implementerà il case DURATA in regolaApplicabile(),
-    // rimuovere lo skip e completare questo test.
+})
+
+// ─── calcolaEtaPasqua ───────────────────────────────────────────────────────
+import { calcolaEtaPasqua, eFestivoItaliano, contaNottiWeekend, contaGiorniFestivi, calcolaPrezzoBreakdown } from '@/lib/pricing'
+import type { PrezzoBreakdownInput } from '@/lib/pricing'
+
+describe('calcolaEtaPasqua', () => {
+  test('2026 → domenica 5 aprile', () => {
+    const p = calcolaEtaPasqua(2026)
+    expect(p.getFullYear()).toBe(2026)
+    expect(p.getMonth() + 1).toBe(4) // aprile
+    expect(p.getDate()).toBe(5)
   })
 
-  // NON IMPLEMENTATO: pricing.ts non calcola la tassa di soggiorno.
-  // La tassa vive su `Prenotazione.tassaSoggiorno` (calcolata nel booking flow).
-  test.skip('tassa di soggiorno (non in lib/pricing.ts — vedi flusso booking)', () => {})
+  test('2024 → domenica 31 marzo', () => {
+    const p = calcolaEtaPasqua(2024)
+    expect(p.getFullYear()).toBe(2024)
+    expect(p.getMonth() + 1).toBe(3) // marzo
+    expect(p.getDate()).toBe(31)
+  })
+
+  test('2025 → domenica 20 aprile', () => {
+    const p = calcolaEtaPasqua(2025)
+    expect(p.getFullYear()).toBe(2025)
+    expect(p.getMonth() + 1).toBe(4)
+    expect(p.getDate()).toBe(20)
+  })
+})
+
+// ─── eFestivoItaliano ───────────────────────────────────────────────────────
+describe('eFestivoItaliano', () => {
+  test('25 dicembre = Natale → festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 11, 25))).toBe(true)
+  })
+  test('1 gennaio = Capodanno → festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 0, 1))).toBe(true)
+  })
+  test('Pasqua 2026 (5 aprile) → festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 3, 5))).toBe(true)
+  })
+  test('Pasquetta 2026 (6 aprile) → festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 3, 6))).toBe(true)
+  })
+  test('15 agosto = Ferragosto → festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 7, 15))).toBe(true)
+  })
+  test('10 giugno = giorno feriale → non festivo', () => {
+    expect(eFestivoItaliano(new Date(2026, 5, 10))).toBe(false)
+  })
+})
+
+// ─── contaNottiWeekend ──────────────────────────────────────────────────────
+describe('contaNottiWeekend', () => {
+  // 2026-05-01 venerdì, 05-02 sabato, 05-03 domenica
+  test('ven-dom 3 notti = 2 notti weekend (ven+sab)', () => {
+    expect(contaNottiWeekend(new Date('2026-05-01'), new Date('2026-05-04'))).toBe(2)
+  })
+  test('lun-mer 2 notti = 0 notti weekend', () => {
+    // 2026-05-04 lunedì, 2026-05-06 mercoledì
+    expect(contaNottiWeekend(new Date('2026-05-04'), new Date('2026-05-06'))).toBe(0)
+  })
+  test('arrivo = partenza → 0', () => {
+    expect(contaNottiWeekend(new Date('2026-05-01'), new Date('2026-05-01'))).toBe(0)
+  })
+})
+
+// ─── contaGiorniFestivi ─────────────────────────────────────────────────────
+describe('contaGiorniFestivi', () => {
+  test('soggiorno 25-26-27 dicembre = 2 festivi (Natale + S.Stefano)', () => {
+    // notti: 25, 26 (27 è partenza, esclusa)
+    expect(contaGiorniFestivi(new Date('2026-12-25'), new Date('2026-12-27'))).toBe(2)
+  })
+  test('soggiorno ferragosto 14-17 agosto = 1 festivo (15 ago)', () => {
+    // notti: 14, 15, 16
+    expect(contaGiorniFestivi(new Date('2026-08-14'), new Date('2026-08-17'))).toBe(1)
+  })
+  test('soggiorno senza festivi → 0', () => {
+    // 10-13 giugno: nessun festivo
+    expect(contaGiorniFestivi(new Date('2026-06-10'), new Date('2026-06-13'))).toBe(0)
+  })
+})
+
+// ─── calcolaPrezzoBreakdown ─────────────────────────────────────────────────
+describe('calcolaPrezzoBreakdown', () => {
+  const base: PrezzoBreakdownInput = {
+    dataArrivo: new Date('2026-06-01'),
+    dataPartenza: new Date('2026-06-04'),
+    adulti: 2,
+    bambini: 0,
+    lettoExtra: 0,
+    prezzoBase: 80,
+    prezzoLettoExtra: null,
+    unitaId: 'u1',
+    tariffePeriodo: [],
+    regole: [],
+    tassaSoggiornoPerNotte: 0,
+  }
+
+  test('senza regole né tassa: totale = subtotaleAlloggio = 80×3=240', () => {
+    const r = calcolaPrezzoBreakdown(base)
+    expect(r.notti).toBe(3)
+    expect(r.subtotaleAlloggio).toBe(240)
+    expect(r.totale).toBe(240)
+    expect(r.regoleApplicate).toHaveLength(0)
+    expect(r.supplementi).toHaveLength(0)
+    expect(r.valuta).toBe('EUR')
+  })
+
+  test('DURATA 3+ notti -10% → sconto -24', () => {
+    const r = calcolaPrezzoBreakdown({
+      ...base,
+      regole: [{
+        id: 'r-dur', nome: 'Lunga durata -10%', tipo: 'DURATA', attiva: true,
+        priorita: 10, modificatore: 'PERCENTUALE', valore: 10,
+        unitaId: null, nottiMinime: 3, giorniMinimi: null, giorniMassimi: null,
+        meseInizio: null, giornoInizio: null, meseFine: null, giornoFine: null,
+        giorniSettimana: [],
+      }],
+    })
+    expect(r.regoleApplicate).toHaveLength(1)
+    expect(r.regoleApplicate[0].importo).toBe(-24)
+    expect(r.subtotaleSconti).toBe(-24)
+    expect(r.totale).toBe(216)
+  })
+
+  test('DURATA non raggiunta (2 notti, min 3) → nessuno sconto', () => {
+    const r = calcolaPrezzoBreakdown({
+      ...base,
+      dataArrivo: new Date('2026-06-01'),
+      dataPartenza: new Date('2026-06-03'), // 2 notti
+      regole: [{
+        id: 'r-dur', nome: 'Lunga durata -10%', tipo: 'DURATA', attiva: true,
+        priorita: 10, modificatore: 'PERCENTUALE', valore: 10,
+        unitaId: null, nottiMinime: 3, giorniMinimi: null, giorniMassimi: null,
+        meseInizio: null, giornoInizio: null, meseFine: null, giornoFine: null,
+        giorniSettimana: [],
+      }],
+    })
+    expect(r.regoleApplicate).toHaveLength(0)
+  })
+
+  test('EARLY_BIRD 30+ giorni anticipo -15% → sconto applicato', () => {
+    // dataPrenotazione = 60 giorni prima dell'arrivo
+    const arrivo = new Date('2026-09-01')
+    const prenotazione = new Date('2026-07-01') // 62 giorni prima
+    const r = calcolaPrezzoBreakdown({
+      ...base,
+      dataArrivo: arrivo,
+      dataPartenza: new Date('2026-09-04'), // 3 notti × 80 = 240
+      dataPrenotazione: prenotazione,
+      regole: [{
+        id: 'r-eb', nome: 'Early Bird -15%', tipo: 'EARLY_BIRD', attiva: true,
+        priorita: 10, modificatore: 'PERCENTUALE', valore: 15,
+        unitaId: null, nottiMinime: null, giorniMinimi: 30, giorniMassimi: null,
+        meseInizio: null, giornoInizio: null, meseFine: null, giornoFine: null,
+        giorniSettimana: [],
+      }],
+    })
+    expect(r.regoleApplicate).toHaveLength(1)
+    expect(r.regoleApplicate[0].tipo).toBe('EARLY_BIRD')
+    expect(r.subtotaleSconti).toBe(-36) // 15% di 240
+    expect(r.totale).toBe(204)
+  })
+
+  test('LAST_MINUTE 3 giorni o meno → sconto -10%', () => {
+    const arrivo = new Date('2026-06-03')
+    const prenotazione = new Date('2026-06-01') // 2 giorni prima
+    const r = calcolaPrezzoBreakdown({
+      ...base,
+      dataArrivo: arrivo,
+      dataPartenza: new Date('2026-06-06'), // 3 notti × 80 = 240
+      dataPrenotazione: prenotazione,
+      regole: [{
+        id: 'r-lm', nome: 'Last Minute -10%', tipo: 'LAST_MINUTE', attiva: true,
+        priorita: 10, modificatore: 'PERCENTUALE', valore: 10,
+        unitaId: null, nottiMinime: null, giorniMinimi: null, giorniMassimi: 3,
+        meseInizio: null, giornoInizio: null, meseFine: null, giornoFine: null,
+        giorniSettimana: [],
+      }],
+    })
+    expect(r.regoleApplicate).toHaveLength(1)
+    expect(r.regoleApplicate[0].tipo).toBe('LAST_MINUTE')
+    expect(r.subtotaleSconti).toBe(-24)
+  })
+
+  test('letto extra €15/notte × 1 letto × 3 notti = supplemento €45', () => {
+    const r = calcolaPrezzoBreakdown({ ...base, lettoExtra: 1, prezzoLettoExtra: 15 })
+    expect(r.supplementi).toHaveLength(1)
+    expect(r.supplementi[0].importo).toBe(45)
+    expect(r.subtotaleSupplementi).toBe(45)
+    expect(r.totale).toBe(285)
+  })
+
+  test('tassa soggiorno €2/persona × 2 adulti × 3 notti = €12', () => {
+    const r = calcolaPrezzoBreakdown({ ...base, tassaSoggiornoPerNotte: 2 })
+    expect(r.tassaSoggiorno.totale).toBe(12)
+    expect(r.tassaSoggiorno.persone).toBe(2)
+    expect(r.tassaSoggiorno.notti).toBe(3)
+    expect(r.totale).toBe(252)
+  })
+
+  test('bambini non contano per tassa soggiorno (adulti = 2, bambini = 2)', () => {
+    const r = calcolaPrezzoBreakdown({ ...base, adulti: 2, bambini: 2, tassaSoggiornoPerNotte: 2 })
+    expect(r.tassaSoggiorno.persone).toBe(2) // solo adulti
+    expect(r.tassaSoggiorno.totale).toBe(12)
+  })
+
+  test('FESTIVO applicato via calcolaPrezzo: notte di Natale +€20', () => {
+    // 25 dicembre è festivo → regola FESTIVO applicata nella per-notte breakdown
+    const r = calcolaPrezzoBreakdown({
+      ...base,
+      dataArrivo: new Date('2026-12-25'),
+      dataPartenza: new Date('2026-12-26'), // 1 notte
+      regole: [{
+        id: 'r-fest', nome: 'Festivo +€20', tipo: 'FESTIVO', attiva: true,
+        priorita: 10, modificatore: 'FISSO', valore: 20,
+        unitaId: null, nottiMinime: null, giorniMinimi: null, giorniMassimi: null,
+        meseInizio: null, giornoInizio: null, meseFine: null, giornoFine: null,
+        giorniSettimana: [],
+      }],
+    })
+    expect(r.subtotaleAlloggio).toBe(100) // 80 + 20 festivo
+    expect(r.totale).toBe(100)
+  })
 })

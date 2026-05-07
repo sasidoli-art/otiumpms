@@ -354,7 +354,7 @@ export function createTestFattura(overrides: Partial<TestFattura> = {}): TestFat
 export function createTestRegolaTariffa(overrides: Partial<{
   id: string
   nome: string
-  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA'
+  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA' | 'EARLY_BIRD' | 'LAST_MINUTE'
   attiva: boolean
   priorita: number
   modificatore: 'PERCENTUALE' | 'FISSO'
@@ -365,6 +365,9 @@ export function createTestRegolaTariffa(overrides: Partial<{
   meseFine: number | null
   giornoFine: number | null
   giorniSettimana: number[]
+  nottiMinime: number | null
+  giorniMinimi: number | null
+  giorniMassimi: number | null
 }> = {}) {
   return {
     id: 'regola-test-001',
@@ -380,6 +383,9 @@ export function createTestRegolaTariffa(overrides: Partial<{
     meseFine: null,
     giornoFine: null,
     giorniSettimana: [4, 5], // Ven, Sab (0=Lun convention del lib)
+    nottiMinime: null,
+    giorniMinimi: null,
+    giorniMassimi: null,
     ...overrides,
   }
 }

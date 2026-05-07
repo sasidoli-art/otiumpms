@@ -15,7 +15,7 @@
 import nodemailer from 'nodemailer'
 import { prisma } from '@/lib/db'
 import { emailQueue } from '@/lib/email-queue'
-import { revealSecret } from '@/lib/secrets'
+import { getSmtpConfig } from '@/lib/host-config'
 import { renderEmail, isTemplateAttivo, type EmailTemplateId, type RenderContext } from '@/lib/email-templates'
 import { logger } from '@/lib/logger'
 
@@ -26,18 +26,15 @@ async function getTransporterAndFrom(hostId?: string | null): Promise<{
   from: string
 }> {
   if (hostId) {
-    const host = await prisma.host.findUnique({
-      where: { id: hostId },
-      select: { smtpHost: true, smtpPort: true, smtpUser: true, smtpPass: true, emailMittente: true },
-    })
-    if (host?.smtpUser && host.smtpPass && host.smtpHost) {
+    const cfg = await getSmtpConfig(hostId)
+    if (cfg?.smtpUser && cfg.smtpPass && cfg.smtpHost) {
       const t = nodemailer.createTransport({
-        host: host.smtpHost,
-        port: host.smtpPort ?? 587,
-        secure: (host.smtpPort ?? 587) === 465,
-        auth: { user: host.smtpUser, pass: revealSecret(host.smtpPass) ?? '' },
+        host: cfg.smtpHost,
+        port: cfg.smtpPort ?? 587,
+        secure: (cfg.smtpPort ?? 587) === 465,
+        auth: { user: cfg.smtpUser, pass: cfg.smtpPass },
       })
-      return { transporter: t, from: host.emailMittente ?? host.smtpUser }
+      return { transporter: t, from: cfg.emailMittente ?? cfg.smtpUser }
     }
   }
   const port = Number(process.env.SMTP_PORT) || 587

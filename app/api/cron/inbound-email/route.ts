@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { pollInboundEmails } from '@/lib/inbound-email'
 import { logger } from '@/lib/logger'
-import { revealSecret } from '@/lib/secrets'
+import { getSmtpConfig } from '@/lib/host-config'
 
 /**
  * GET /api/cron/inbound-email
@@ -44,26 +44,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 2. Polling caselle per-host (solo host con SMTP configurato)
+    // 2. Polling caselle per-host (solo host con SMTP configurato).
+    // Selezione su Host legacy: il dual-write nel facade garantisce che i campi
+    // smtp* siano popolati ogni volta che HostSmtpConfig lo è. La lettura dei
+    // valori (in particolare smtpPass cifrato) avviene poi via getSmtpConfig.
     const hosts = await prisma.host.findMany({
       where: {
         smtpHost: { not: null },
         smtpUser: { not: null },
         smtpPass: { not: null },
       },
-      select: { id: true, smtpHost: true, smtpUser: true, smtpPass: true, nomeAzienda: true },
+      select: { id: true, nomeAzienda: true },
     })
 
     for (const host of hosts) {
       try {
+        const cfg = await getSmtpConfig(host.id)
+        if (!cfg?.smtpHost || !cfg.smtpUser || !cfg.smtpPass) continue
+
         // Deriva host IMAP da host SMTP (smtps.aruba.it → imaps.aruba.it)
-        const imapHost = host.smtpHost!.replace(/^smtps?\./, 'imaps.')
+        const imapHost = cfg.smtpHost.replace(/^smtps?\./, 'imaps.')
 
         const count = await pollInboundEmails({
           host: imapHost,
           port: 993,
-          user: host.smtpUser!,
-          pass: revealSecret(host.smtpPass)!,
+          user: cfg.smtpUser,
+          pass: cfg.smtpPass,
           tls: true,
         })
         totalProcessed += count

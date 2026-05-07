@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { prisma } from '@/lib/db'
+import { setBillingInfo } from '@/lib/host-config'
 import { z } from 'zod'
 
 /**
@@ -63,7 +64,8 @@ export async function POST(req: Request) {
 
   // $transaction: Host update + Struttura create + UnitaPrenotabile creates + Notifica
   const [host, struttura] = await prisma.$transaction(async (tx) => {
-    // 1. Update Host
+    // 1. Update Host. I campi billing escono dal $transaction e passano per
+    // setBillingInfo() dopo (dual-write su HostBillingInfo + Host).
     const updatedHost = await tx.host.update({
       where: { id: hostId },
       data: {
@@ -74,15 +76,6 @@ export async function POST(req: Request) {
         onboardingCompletato: true,
         onboardingStep: 5,
         onboardingData: {},
-        // Billing fields (only if fattDiversa)
-        ...(d.fattDiversa && {
-          fattNomeAzienda: d.fattNomeAzienda || undefined,
-          fattPartitaIva: d.fattPartitaIva || undefined,
-          fattIndirizzo: d.fattIndirizzo || undefined,
-          fattCitta: d.fattCitta || undefined,
-          fattCap: d.fattCap || undefined,
-          fattProvincia: d.fattProvincia || undefined,
-        }),
       },
     })
 
@@ -127,6 +120,21 @@ export async function POST(req: Request) {
 
     return [updatedHost, newStruttura]
   })
+
+  // Fatturazione: solo se l'utente ha selezionato dati di fatturazione diversi
+  // dall'azienda principale. Routato a HostBillingInfo via facade.
+  if (d.fattDiversa) {
+    const billingPatch: Record<string, unknown> = {}
+    if (d.fattNomeAzienda) billingPatch.fattNomeAzienda = d.fattNomeAzienda
+    if (d.fattPartitaIva) billingPatch.fattPartitaIva = d.fattPartitaIva
+    if (d.fattIndirizzo) billingPatch.fattIndirizzo = d.fattIndirizzo
+    if (d.fattCitta) billingPatch.fattCitta = d.fattCitta
+    if (d.fattCap) billingPatch.fattCap = d.fattCap
+    if (d.fattProvincia) billingPatch.fattProvincia = d.fattProvincia
+    if (Object.keys(billingPatch).length > 0) {
+      await setBillingInfo(hostId, billingPatch)
+    }
+  }
 
   return NextResponse.json({
     ok: true,

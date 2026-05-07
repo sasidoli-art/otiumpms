@@ -433,6 +433,8 @@ model Host {
   conciergeConfig HostConciergeConfig?
   wifiConfig      HostWifiConfig?
   billingInfo     HostBillingInfo?
+  whatsappConfig  HostWhatsAppConfig?
+  brandingConfig  HostBrandingConfig?
 
   // GDPR — richieste di cancellazione (Art. 17)
   richiesteCancellazione RichiestaCancellazione[]
@@ -461,6 +463,7 @@ model Host {
 
   // Prenotazioni ristorante (tavoli)
   prenotazioniRistorante PrenotazioneRistorante[]
+  configRistorante       ConfigRistorante[]
   WebhookSubscription    WebhookSubscription[]
 
   @@map("hosts")
@@ -575,6 +578,64 @@ model HostBillingInfo {
   updatedAt DateTime @updatedAt
 
   @@map("host_billing_info")
+}
+
+// ─── HostWhatsAppConfig — separato da HostConciergeConfig (god object split) ──
+// I 4 campi WhatsApp Business vivono storicamente in HostConciergeConfig.
+// Questo modello li espone come tabella satellite dedicata: dual-write
+// durante la migrazione, lib/host-config.ts gestisce read-through.
+model HostWhatsAppConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  accessToken   String? // cifrato (AES-256-GCM via lib/crypto.ts)
+  phoneNumberId String? // Phone Number ID da Meta Cloud API
+  verifyToken   String? // plaintext per webhook lookup (Meta)
+  webhookSecret String? // cifrato (HMAC verify firma webhook Meta)
+
+  configurato Boolean @default(false) // toggle "WhatsApp configurato e attivo"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([verifyToken]) // per webhook Meta findFirst (lookup hostId)
+  @@map("host_whatsapp_config")
+}
+
+// ─── HostBrandingConfig — branding per booking engine white-label ─────────────
+// Centralizza i campi visivi/testuali oggi sparsi tra Host (regCard*,
+// messaggioBenvenuto/Chiusura) e Struttura (colore*, fontFamily, borderRadius,
+// logo, fotoHero). La Struttura puo` ancora override i singoli campi, ma il
+// fallback piattaforma vive qui.
+model HostBrandingConfig {
+  hostId String @id
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  // Visual
+  logo             String?
+  favicon          String?
+  colorePrimario   String? @default("#6366f1")
+  coloreSecondario String? @default("#818cf8")
+  coloreSfondo     String? @default("#ffffff")
+  coloreTesto      String? @default("#1a1625")
+  fontFamily       String? @default("Inter")
+  borderRadius     String? @default("12px")
+  fotoHero         String?
+
+  // Testi personalizzati ospite
+  messaggioBenvenuto String? @db.Text
+  messaggioChiusura  String? @db.Text
+
+  // Registration card HTML
+  regCardTerminiHtml    String? @db.Text
+  regCardPrivacyHtml    String? @db.Text
+  regCardSpaTerminiHtml String? @db.Text
+  regCardCampiExtra     Json? // [{ label, type, required }]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("host_branding_config")
 }
 
 /// @deprecated Modulo Eventi rimosso dal PMS (2026-04). Usa `Prenotazione.eventoEsterno`
@@ -742,6 +803,7 @@ model Fattura {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  @@index([hostId, dataEmissione])
   @@index([hostId])
   @@index([hostId, stato])
   @@index([anno])
@@ -813,9 +875,13 @@ model Struttura {
   wifiDevices            WifiDevice[]
   exportAlloggiati       ExportAlloggiati[]
   prenotazioniRistorante PrenotazioneRistorante[]
+  configRistorante       ConfigRistorante?
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
+
+  // Tassa di soggiorno (€ per persona per notte — bambini <14 esenti)
+  tassaSoggiornoPerNotte Float? @default(0)
 
   // Booking engine pubblico
   autoConferma        Boolean @default(false) // true = prenotazione diretta CONFERMATA (no revisione)
@@ -847,7 +913,9 @@ model Struttura {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
+  @@index([deletedAt])
   @@map("strutture")
 }
 
@@ -898,6 +966,7 @@ model Disponibilita {
   noteInterno      String?
 
   @@unique([unitaId, data])
+  @@index([unitaId, data])
   @@map("disponibilita")
 }
 
@@ -944,7 +1013,10 @@ model RegolaTariffa {
   giorniSettimana Int[] @default([]) // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
 
   // Durata soggiorno (solo per DURATA) — notti minime per attivare lo sconto
-  nottiMinime Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
+  nottiMinime  Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
+  // Anticipo prenotazione (EARLY_BIRD / LAST_MINUTE)
+  giorniMinimi  Int? // EARLY_BIRD: anticipo minimo in giorni per avere lo sconto
+  giorniMassimi Int? // LAST_MINUTE: anticipo massimo in giorni per avere lo sconto
 
   createdAt DateTime @default(now())
 
@@ -956,8 +1028,10 @@ model RegolaTariffa {
 enum TipoRegolaTariffa {
   WEEKEND // applica a giorni settimana selezionati
   STAGIONE // applica a range date annuale (si ripete ogni anno)
-  FESTIVO // applica a date specifiche (Natale, Capodanno, ecc.)
+  FESTIVO // applica a festivi italiani (Natale, Pasqua, ecc.)
   DURATA // sconto per soggiorni lunghi (es. 3+ notti -10%, 7+ notti -20%)
+  EARLY_BIRD // sconto per prenotazioni anticipate (giorni anticipo >= giorniMinimi)
+  LAST_MINUTE // sconto last-minute (giorni anticipo <= giorniMassimi)
 }
 
 enum TipoModificatore {
@@ -1050,6 +1124,10 @@ model Prenotazione {
   verificatoAt      DateTime?
   verificatoDa      String? // userId operatore reception
 
+  // CRM: collegamento diretto all'anagrafica ospite
+  ospiteCrmId            String?
+  ospiteCrm              OspiteCRM?               @relation(fields: [ospiteCrmId], references: [id], onDelete: SetNull)
+
   chat                   Chat?
   fattura                Fattura?                 @relation(fields: [fatturaId], references: [id])
   fatturaId              String?
@@ -1082,8 +1160,12 @@ model Prenotazione {
   @@index([hostId, dataArrivo]) // dashboard arrivi + calendario
   @@index([hostId, dataPartenza]) // dashboard partenze + retention 40gg
   @@index([hostId, statoCheckIn]) // check-in online da verificare
-  @@index([unitaId, dataArrivo]) // calendario per-camera + conflict detection booking
-  @@index([guestEmail])
+  @@index([hostId, strutturaId, dataArrivo]) // booking view per struttura
+  @@index([hostId, guestEmail]) // lookup ospite per email
+  @@index([unitaId, dataArrivo, dataPartenza]) // calendario per-camera + conflict detection
+  @@index([checkInToken]) // lookup self checkin
+  @@index([pin, hostId]) // lookup prenotazione via PIN
+  @@index([ospiteCrmId]) // lookup prenotazioni di un ospite CRM
   @@index([gruppoPrenotazioneId])
   @@index([deletedAt])
   @@map("prenotazioni")
@@ -1238,6 +1320,28 @@ model PrenotazioneRistorante {
   @@map("prenotazioni_ristorante")
 }
 
+model ConfigRistorante {
+  id          String    @id @default(cuid())
+  hostId      String
+  host        Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  strutturaId String    @unique
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nomeRistorante  String?
+  oraApertura     String  @default("12:00")
+  oraChiusura     String  @default("22:00")
+  intervalloSlot  Int     @default(30) // minuti tra slot
+  maxCopertiPerSlot Int   @default(30)
+  giorniChiusura  Int[]   @default([]) // 0=lunedì, 6=domenica
+  prenotazioneOnline Boolean @default(true)
+  confermaAutomatica Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("config_ristorante")
+}
+
 // ─── Magazzino (Inventory) ────────────────────────────────────────────────────
 
 model ArticoloMagazzino {
@@ -1265,8 +1369,10 @@ model ArticoloMagazzino {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([hostId, categoria])
+  @@index([deletedAt])
   @@map("articoli_magazzino")
 }
 
@@ -1500,8 +1606,10 @@ model CanaleEsterno {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([strutturaId])
+  @@index([deletedAt])
   @@map("canali_esterni")
 }
 
@@ -1521,6 +1629,7 @@ model PrenotazioneCanale {
   updatedAt DateTime @updatedAt
 
   @@unique([canaleId, uidEvento])
+  @@index([canaleId, uidEvento])
   @@index([canaleId])
   @@map("prenotazioni_canale")
 }
@@ -2150,13 +2259,17 @@ model OspiteCRM {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
-  // Collegamento prenotazioni via email (lookup dinamico)
+  // Relazioni
+  prenotazioni    Prenotazione[]
   appuntamentiSpa AppuntamentoSpa[]
   conversazioniWA ConversazioneWhatsApp[]
   membriFedelta   MembroFedelta[]
 
   @@unique([hostId, email])
+  @@index([hostId, numSoggiorni])
+  @@index([deletedAt])
   @@map("ospiti_crm")
 }
 
@@ -2208,6 +2321,7 @@ model SegnalazioneManutenzione {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, stato, priorita])
   @@index([hostId, stato]) // dashboard manutenzione + count aperte
   @@index([hostId, createdAt]) // lista cronologica
   @@index([unitaId]) // detail unità
@@ -2235,6 +2349,7 @@ model TaskHK {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([hostId, completato, dataScadenza])
   @@index([hostId, completato]) // dashboard HK + count task aperti
   @@index([hostId, dataScadenza]) // task in scadenza
   @@index([unitaId, completato]) // detail unità: task pendenti
@@ -2400,6 +2515,7 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([hostId, createdAt])
+  @@index([hostId, entita, entitaId])
   @@index([entita, entitaId])
   @@map("audit_log")
 }
@@ -2725,12 +2841,16 @@ model AppuntamentoSpa {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@index([hostId, dataOra]) // calendario SPA + availability check
   @@index([hostId, stato]) // dashboard conteggi SPA
+  @@index([hostId, terapistaId, dataOra]) // conflict detection terapista
+  @@index([hostId, cabinaId, dataOra]) // conflict detection cabina
   @@index([terapistaId, dataOra]) // conflict detection terapista
   @@index([cabinaId, dataOra]) // conflict detection cabina
   @@index([prenotazioneId]) // lookup appuntamenti di una prenotazione
+  @@index([deletedAt])
   @@map("appuntamenti_spa")
 }
 
@@ -2804,6 +2924,7 @@ model WaiverSpa {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([createdAt])
   @@map("waivers_spa")
 }
 
@@ -2905,6 +3026,7 @@ model MessaggioWhatsApp {
 
   createdAt DateTime @default(now())
 
+  @@index([conversazioneId, createdAt])
   @@index([conversazioneId])
   @@map("messaggi_whatsapp")
 }
@@ -3020,9 +3142,11 @@ model StaffMember {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
   @@unique([hostId, userId])
   @@index([hostId])
+  @@index([deletedAt])
   @@map("staff_members")
 }
 
@@ -3669,6 +3793,8 @@ model Incasso {
   riconciliato    Boolean            @default(false)
   createdAt       DateTime           @default(now())
 
+  @@index([hostId, createdAt])
+  @@index([prenotazioneId])
   @@index([hostId, data])
   @@index([hostId, metodo])
   @@index([hostId, riconciliato])

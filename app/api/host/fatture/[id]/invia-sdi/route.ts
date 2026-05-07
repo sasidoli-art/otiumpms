@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
 import { generateFatturaPA } from '@/lib/fattura-elettronica'
 import { getInvoiceProvider } from '@/lib/invoice-provider'
-import { revealSecret } from '@/lib/secrets'
+import { getBillingInfo } from '@/lib/host-config'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -22,7 +21,7 @@ export async function POST(
   if (isUnauthorized(auth)) return auth
   const { id } = await paramsPromise
 
-  // Load fattura with host data for XML generation
+  // Load fattura with host data for XML generation + billing satellite
   const fattura = await prisma.fattura.findFirst({
     where: { id, hostId: auth.user.hostId },
     include: {
@@ -30,11 +29,6 @@ export async function POST(
         select: {
           nomeAzienda: true, partitaIva: true, codiceFiscale: true,
           indirizzo: true, cap: true, citta: true, provincia: true,
-          regimeFiscale: true,
-          fattNomeAzienda: true, fattPartitaIva: true, fattIndirizzo: true,
-          fattCitta: true, fattCap: true, fattProvincia: true,
-          // SDI provider config (stored in host metadata if present)
-          sdiProvider: true, sdiApiKey: true, sdiUsername: true, sdiCompanyId: true,
         },
       },
     },
@@ -51,17 +45,19 @@ export async function POST(
     )
   }
 
+  const billing = await getBillingInfo(auth.user.hostId)
+
   // Build FatturaPA XML
   const h = fattura.host
   const emittente = {
-    denominazione: h.fattNomeAzienda || h.nomeAzienda,
-    partitaIva: h.fattPartitaIva || h.partitaIva || '',
+    denominazione: billing?.fattNomeAzienda || h.nomeAzienda,
+    partitaIva: billing?.fattPartitaIva || h.partitaIva || '',
     codiceFiscale: h.codiceFiscale || undefined,
-    regimeFiscale: h.regimeFiscale || 'RF01',
-    indirizzo: h.fattIndirizzo || h.indirizzo || '',
-    cap: h.fattCap || h.cap || '00000',
-    comune: h.fattCitta || h.citta || '',
-    provincia: h.fattProvincia || h.provincia || '',
+    regimeFiscale: billing?.regimeFiscale || 'RF01',
+    indirizzo: billing?.fattIndirizzo || h.indirizzo || '',
+    cap: billing?.fattCap || h.cap || '00000',
+    comune: billing?.fattCitta || h.citta || '',
+    provincia: billing?.fattProvincia || h.provincia || '',
   }
 
   const cliente = {
@@ -110,13 +106,12 @@ export async function POST(
     importoPagamento: fattura.totale,
   })
 
-  // Get invoice provider
-  const host = fattura.host as Record<string, unknown>
+  // Get invoice provider — billing.sdiApiKey is already decrypted by the facade
   const provider = getInvoiceProvider({
-    provider: (host.sdiProvider as string) || 'manuale',
-    apiKey: revealSecret(host.sdiApiKey as string | null | undefined) ?? undefined,
-    username: host.sdiUsername as string | undefined,
-    companyId: host.sdiCompanyId as string | undefined,
+    provider: billing?.sdiProvider || 'manuale',
+    apiKey: billing?.sdiApiKey ?? undefined,
+    username: billing?.sdiUsername ?? undefined,
+    companyId: billing?.sdiCompanyId ?? undefined,
   })
 
   try {

@@ -7,6 +7,7 @@ import { parseBody, prenotazioneHostSchema, isStatoPrenotazione } from '@/lib/va
 import { logger } from '@/lib/logger'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
 import { upsertOspiteFromBooking } from '@/lib/crm'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 // GET /api/host/prenotazioni
 export async function GET(req: NextRequest) {
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const prenotazioni = await prisma.prenotazione.findMany({
     where: {
       hostId: auth.user.hostId,
-      deletedAt: null,
+      ...notDeleted,
       ...(stato && isStatoPrenotazione(stato) ? { stato } : {}),
       ...(q
         ? {

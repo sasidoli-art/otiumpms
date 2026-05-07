@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { getBillingInfo } from '@/lib/host-config'
 
 /**
  * Generatore XML FatturaPA (Fattura Elettronica italiana)
@@ -267,9 +268,6 @@ export async function generaFatturaPA(fatturaId: string): Promise<string> {
         select: {
           nomeAzienda: true, partitaIva: true, codiceFiscale: true,
           indirizzo: true, citta: true, cap: true, provincia: true,
-          regimeFiscale: true,
-          fattNomeAzienda: true, fattPartitaIva: true, fattIndirizzo: true,
-          fattCitta: true, fattCap: true, fattProvincia: true, fattPaese: true,
         },
       },
       rigeRel: { orderBy: { ordine: 'asc' } },
@@ -278,21 +276,22 @@ export async function generaFatturaPA(fatturaId: string): Promise<string> {
 
   if (!fattura) throw new Error(`Fattura ${fatturaId} non trovata`)
 
+  const billing = await getBillingInfo(fattura.hostId)
   const h = fattura.host
-  const partitaIva = (h.fattPartitaIva || h.partitaIva || '').replace(/^IT/i, '')
+  const partitaIva = (billing?.fattPartitaIva || h.partitaIva || '').replace(/^IT/i, '')
   if (!partitaIva) {
     throw new Error('Partita IVA host mancante: impossibile generare XML FatturaPA')
   }
 
   const emittente: DatiEmittente = {
-    denominazione: h.fattNomeAzienda || h.nomeAzienda,
+    denominazione: billing?.fattNomeAzienda || h.nomeAzienda,
     partitaIva,
     codiceFiscale: h.codiceFiscale || undefined,
-    regimeFiscale: h.regimeFiscale || 'RF01',
-    indirizzo: h.fattIndirizzo || h.indirizzo || '',
-    cap: h.fattCap || h.cap || '00000',
-    comune: h.fattCitta || h.citta || '',
-    provincia: h.fattProvincia || h.provincia || '',
+    regimeFiscale: billing?.regimeFiscale || 'RF01',
+    indirizzo: billing?.fattIndirizzo || h.indirizzo || '',
+    cap: billing?.fattCap || h.cap || '00000',
+    comune: billing?.fattCitta || h.citta || '',
+    provincia: billing?.fattProvincia || h.provincia || '',
     nazione: 'IT',
   }
 

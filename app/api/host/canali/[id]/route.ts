@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { auditFromAuth } from '@/lib/audit'
 import { prisma } from '@/lib/db'
+import { softDelete } from '@/lib/prisma-helpers'
 
 export async function DELETE(
   _: NextRequest,
@@ -16,7 +17,7 @@ export async function DELETE(
   })
   if (!canale) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
 
-  await prisma.canaleEsterno.delete({ where: { id } })
+  await softDelete(prisma.canaleEsterno, id)
   return NextResponse.json({ ok: true })
 }
 

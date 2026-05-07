@@ -5,7 +5,7 @@ import { parseBody, prenotazionePublicSchema } from '@/lib/validations'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { upsertOspiteFromBooking } from '@/lib/crm'
 import { logger } from '@/lib/logger'
-import { calcolaPrezzo } from '@/lib/pricing'
+import { calcolaPrezzo, type RegolaTariffa } from '@/lib/pricing'
 import { calcolaTassaSuggerita } from '@/lib/comuni-tassa-soggiorno'
 import { randomUUID } from 'crypto'
 
@@ -113,7 +113,7 @@ export async function POST(
         regole: regole.map(r => ({
           id: r.id,
           nome: r.nome,
-          tipo: r.tipo as 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA',
+          tipo: r.tipo as RegolaTariffa['tipo'],
           attiva: r.attiva,
           priorita: r.priorita,
           modificatore: r.modificatore as 'PERCENTUALE' | 'FISSO',
@@ -124,6 +124,9 @@ export async function POST(
           meseFine: r.meseFine,
           giornoFine: r.giornoFine,
           giorniSettimana: r.giorniSettimana,
+          nottiMinime: r.nottiMinime ?? null,
+          giorniMinimi: r.giorniMinimi ?? null,
+          giorniMassimi: r.giorniMassimi ?? null,
         })),
       })
       prezzoTotaleCalcolato = calc.prezzoTotale > 0 ? calc.prezzoTotale : null

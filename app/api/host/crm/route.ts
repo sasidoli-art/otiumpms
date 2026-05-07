@@ -5,6 +5,7 @@ import { auditFromAuth } from '@/lib/audit'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { NextResponse } from 'next/server'
+import { notDeleted } from '@/lib/prisma-helpers'
 
 const createOspiteSchema = z.object({
   nome: z.string().min(1),
@@ -61,6 +62,7 @@ export async function GET(req: Request) {
 
   const where: Record<string, unknown> = {
     hostId: auth.user.hostId,
+    ...notDeleted,
     ...(vip === 'true' ? { vip: true } : {}),
     ...(blacklist === 'true' ? { blacklist: true } : {}),
     ...(ricorrenti === 'true' ? { numSoggiorni: { gte: 2 } } : {}),
@@ -91,12 +93,12 @@ export async function GET(req: Request) {
     prisma.$queryRaw<{ tag: string }[]>`
       SELECT DISTINCT unnest(tags) as tag
       FROM "OspiteCRM"
-      WHERE "hostId" = ${auth.user.hostId}
+      WHERE "hostId" = ${auth.user.hostId} AND "deletedAt" IS NULL
       ORDER BY tag
     `,
     // Distinct nationalities
     prisma.ospiteCRM.findMany({
-      where: { hostId: auth.user.hostId, nazionalita: { not: null } },
+      where: { hostId: auth.user.hostId, ...notDeleted, nazionalita: { not: null } },
       select: { nazionalita: true },
       distinct: ['nazionalita'],
       orderBy: { nazionalita: 'asc' },

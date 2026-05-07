@@ -6,7 +6,8 @@ import { combineDateTime, getSlotsDisponibilita } from '@/lib/book/ristorante'
 import { sendEmailGeneric } from '@/lib/email'
 import { logger } from '@/lib/logger'
 import { audit } from '@/lib/audit'
-import { getClientIp } from '@/lib/rate-limit'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { syncOspiteCRM } from '@/lib/crm-sync'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 15
@@ -28,6 +29,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ strutturaId: string }> },
 ) {
+  const blocked = checkRateLimit(req, 'public:booking')
+  if (blocked) return blocked
+
   const { strutturaId } = await params
 
   let raw: unknown
@@ -106,6 +110,17 @@ export async function POST(
 
   const ip = getClientIp(req)
   const userAgent = req.headers.get('user-agent')
+
+  // CRM sync
+  syncOspiteCRM({
+    hostId: struttura.hostId,
+    guestEmail: data.guestEmail,
+    guestNome: data.guestNome,
+    guestCognome: data.guestCognome,
+    guestTelefono: data.guestTelefono ?? null,
+    prenotazioneId: prenotazioneId ?? creata.id,
+    importo: null,
+  }).catch(() => { /* non blocca */ })
 
   await audit({
     hostId: struttura.hostId,

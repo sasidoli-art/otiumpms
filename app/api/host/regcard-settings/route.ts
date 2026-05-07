@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
-import { auditFromAuth } from '@/lib/audit'
-import { prisma } from '@/lib/db'
+import { getBrandingConfig, setBrandingConfig } from '@/lib/host-config'
 import { z } from 'zod'
 
 const campoExtraSchema = z.object({
@@ -30,14 +29,11 @@ export async function PUT(req: Request) {
 
   const d = parsed.data
 
-  await prisma.host.update({
-    where: { id: auth.user.hostId },
-    data: {
-      regCardTerminiHtml: d.regCardTerminiHtml,
-      regCardPrivacyHtml: d.regCardPrivacyHtml,
-      regCardSpaTerminiHtml: d.regCardSpaTerminiHtml,
-      regCardCampiExtra: d.regCardCampiExtra,
-    },
+  await setBrandingConfig(auth.user.hostId, {
+    regCardTerminiHtml: d.regCardTerminiHtml ?? null,
+    regCardPrivacyHtml: d.regCardPrivacyHtml ?? null,
+    regCardSpaTerminiHtml: d.regCardSpaTerminiHtml ?? null,
+    regCardCampiExtra: d.regCardCampiExtra,
   })
 
   return NextResponse.json({ ok: true })
@@ -47,15 +43,11 @@ export async function GET() {
   const auth = await requireHost()
   if (isUnauthorized(auth)) return auth
 
-  const host = await prisma.host.findUnique({
-    where: { id: auth.user.hostId },
-    select: {
-      regCardTerminiHtml: true,
-      regCardPrivacyHtml: true,
-      regCardSpaTerminiHtml: true,
-      regCardCampiExtra: true,
-    },
+  const cfg = await getBrandingConfig(auth.user.hostId)
+  return NextResponse.json({
+    regCardTerminiHtml: cfg?.regCardTerminiHtml ?? null,
+    regCardPrivacyHtml: cfg?.regCardPrivacyHtml ?? null,
+    regCardSpaTerminiHtml: cfg?.regCardSpaTerminiHtml ?? null,
+    regCardCampiExtra: cfg?.regCardCampiExtra ?? null,
   })
-
-  return NextResponse.json(host)
 }

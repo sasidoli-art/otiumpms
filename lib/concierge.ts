@@ -18,8 +18,8 @@ import { prisma } from '@/lib/db'
 import { PrioritaHK, PrioritaManutenzione, TipoAzioneConcierge } from '@prisma/client'
 import { createAIProvider, type AIMessage, type AIToolDefinition, type AIToolCall } from '@/lib/ai-provider'
 import { getPlatformSettings } from '@/lib/platform-settings'
+import { getConciergeConfig } from '@/lib/host-config'
 import { logger } from '@/lib/logger'
-import { revealSecret } from '@/lib/secrets'
 
 // ─── Tool Definitions ─────────────────────────────────────────────────────────
 
@@ -714,19 +714,14 @@ export async function processGuestMessage(params: {
 }): Promise<ConciergeResult> {
   const { hostId, telefono, nomeWhatsApp, testo, messageId } = params
 
-  // 1. Carica config host
-  const host = await prisma.host.findUnique({
-    where: { id: hostId },
-    select: {
-      nomeAzienda: true,
-      conciergeAttivo: true,
-      conciergeProvider: true,
-      conciergeApiKey: true,
-      conciergeModel: true,
-      conciergeBaseUrl: true,
-      conciergeSystemPrompt: true,
-    },
-  })
+  // 1. Carica host (nomeAzienda) + config concierge in parallelo
+  const [host, hostCfg] = await Promise.all([
+    prisma.host.findUnique({
+      where: { id: hostId },
+      select: { nomeAzienda: true },
+    }),
+    getConciergeConfig(hostId),
+  ])
   if (!host) throw new Error(`Host ${hostId} non trovato`)
 
   // 2. Identifica ospite
@@ -793,7 +788,7 @@ export async function processGuestMessage(params: {
 
   // ── PILOTA AUTOMATICO OFF: l'host vuole rispondere personalmente ────────
   // L'AI sta zitta, salviamo il messaggio, mandiamo auto-reply, notifichiamo host.
-  if (host.conciergeAttivo === false) {
+  if (hostCfg?.conciergeAttivo === false) {
     await prisma.messaggioWhatsApp.create({
       data: {
         conversazioneId: conversazione.id,
@@ -861,7 +856,13 @@ export async function processGuestMessage(params: {
   })
 
   // 6. Costruisci messaggi per l'AI
-  const systemPrompt = buildSystemPrompt(host, guest)
+  const systemPrompt = buildSystemPrompt(
+    {
+      nomeAzienda: host.nomeAzienda,
+      conciergeSystemPrompt: hostCfg?.conciergeSystemPrompt ?? null,
+    },
+    guest,
+  )
   const messages: AIMessage[] = [
     { role: 'system', content: systemPrompt },
     ...storiaDB.map(m => ({
@@ -873,20 +874,20 @@ export async function processGuestMessage(params: {
   // 7. Chiama AI provider
   //
   // Strategia Platform Key: leggi prima PlatformSettings (SuperAdmin),
-  // poi fallback su Host.conciergeApiKey se l'host ha una sua chiave
-  // (advanced BYO-Key opt-in, rimane come override opzionale).
+  // poi fallback su HostConciergeConfig.conciergeApiKey se l'host ha una sua
+  // chiave (advanced BYO-Key opt-in, rimane come override opzionale).
   const platformSettings = await getPlatformSettings()
-  const useBYO = !!host.conciergeApiKey
+  const useBYO = !!hostCfg?.conciergeApiKey
 
   const provider = createAIProvider({
     provider: (
       useBYO
-        ? host.conciergeProvider || 'ollama'
+        ? hostCfg!.conciergeProvider || 'ollama'
         : platformSettings.aiProvider || 'claude'
     ) as 'ollama' | 'claude' | 'openai',
-    apiKey: useBYO ? revealSecret(host.conciergeApiKey) : platformSettings.aiApiKey,
-    model: useBYO ? host.conciergeModel : platformSettings.aiModel,
-    baseUrl: useBYO ? host.conciergeBaseUrl : platformSettings.aiBaseUrl,
+    apiKey: useBYO ? hostCfg!.conciergeApiKey : platformSettings.aiApiKey,
+    model: useBYO ? hostCfg!.conciergeModel : platformSettings.aiModel,
+    baseUrl: useBYO ? hostCfg!.conciergeBaseUrl : platformSettings.aiBaseUrl,
   })
 
   let response = await provider.chat(messages, CONCIERGE_TOOLS)
