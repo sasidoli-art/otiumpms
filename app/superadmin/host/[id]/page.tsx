@@ -70,7 +70,7 @@ export default async function SuperAdminHostDetailPage({
     moduliAttivi: host.moduliAttivi,
     conciergeAttivo: host.conciergeAttivo,
     conciergeSystemPrompt: host.conciergeSystemPrompt,
-    user: host.user,
+    user: host.user ?? { id: '', email: '—', nome: '—', cognome: '', attivo: false },
     strutture: host.strutture.map(s => ({
       id: s.id,
       nome: s.nome,
