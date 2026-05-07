@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils'
 const LOCALE_LABELS: Record<string, { flag: string; short: string }> = {
   it: { flag: '🇮🇹', short: 'IT' },
   en: { flag: '🇬🇧', short: 'EN' },
+  de: { flag: '🇩🇪', short: 'DE' },
+  fr: { flag: '🇫🇷', short: 'FR' },
 }
 
 export function LanguageSwitcher({ className }: { className?: string }) {
