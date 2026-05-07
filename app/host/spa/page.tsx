@@ -68,7 +68,7 @@ export default async function SpaPage() {
         totaleTrattamenti,
         revenueMese: revenueMese._sum.prezzoTotale ?? 0,
       }}
-      prossimi5={prossimi5.map((a: any) => ({
+      prossimi5={prossimi5.map((a) => ({
         ...a,
         dataOra: a.dataOra.toISOString(),
         createdAt: a.createdAt.toISOString(),

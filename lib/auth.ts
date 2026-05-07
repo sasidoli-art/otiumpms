@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
         totpCode: { label: 'Codice 2FA', type: 'text' },
       },
-      async authorize(credentials, req): Promise<any> {
+      async authorize(credentials, req): Promise<{ id: string; email: string; name: string; role: 'SUPERADMIN' | 'ADMIN' | 'DIREZIONE' | 'HOST' | 'STAFF'; hostId: string | null; onboardingStep: number } | null> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email e password obbligatorie')
         }

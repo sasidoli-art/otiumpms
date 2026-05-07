@@ -4,9 +4,14 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Download, X } from 'lucide-react'
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+
 export function PwaProvider() {
   const t = useTranslations('pwa')
-  const [installPrompt, setInstallPrompt] = useState<Event | null>(null)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(false)
 
   useEffect(() => {
@@ -16,7 +21,7 @@ export function PwaProvider() {
 
     const handler = (e: Event) => {
       e.preventDefault()
-      setInstallPrompt(e)
+      setInstallPrompt(e as BeforeInstallPromptEvent)
       const dismissed = localStorage.getItem('pwa-dismissed')
       if (!dismissed || Date.now() - parseInt(dismissed) > 7 * 86400000) {
         setShowBanner(true)
@@ -28,8 +33,8 @@ export function PwaProvider() {
 
   async function install() {
     if (!installPrompt) return
-    ;(installPrompt as any).prompt()
-    const result = await (installPrompt as any).userChoice
+    await installPrompt.prompt()
+    const result = await installPrompt.userChoice
     if (result.outcome === 'accepted') {
       setShowBanner(false)
       setInstallPrompt(null)

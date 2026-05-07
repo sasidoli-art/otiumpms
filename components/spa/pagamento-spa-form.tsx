@@ -8,7 +8,7 @@ interface PagamentoSpaFormProps {
   appuntamentoId: string
   importo: number
   prenotazioneId?: string // se ospite della struttura
-  onSuccess?: (pagamento: any) => void
+  onSuccess?: (pagamento: Record<string, unknown>) => void
   onError?: (error: string) => void
 }
 
@@ -62,7 +62,7 @@ export function PagamentoSpaForm({
 }: PagamentoSpaFormProps) {
   const [metodoPagamento, setMetodoPagamento] = useState<string>('')
   const [unitaId, setUnitaId] = useState<string>('')
-  const [unitaeDisponibili, setUnitaeDisponibili] = useState<any[]>([])
+  const [unitaeDisponibili, setUnitaeDisponibili] = useState<{ id: string; nome: string }[]>([])
   const [cardData, setCardData] = useState({
     numero: '',
     scadenza: '',
@@ -74,7 +74,7 @@ export function PagamentoSpaForm({
   } | null>(null)
   const [verificando, setVerificando] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [savedPayment, setSavedPayment] = useState<any>(null)
+  const [savedPayment, setSavedPayment] = useState<Record<string, unknown> | null>(null)
 
   // Se ospite della struttura, carica le camere
   useEffect(() => {
@@ -90,7 +90,7 @@ export function PagamentoSpaForm({
       return
     }
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       appuntamentoId,
       importo,
       tipoImporto: 'TRATTAMENTO',
@@ -236,7 +236,7 @@ export function PagamentoSpaForm({
               className="w-full px-3 py-2 border rounded-lg"
             >
               <option value="">Seleziona...</option>
-              {unitaeDisponibili.map((u: any) => (
+              {unitaeDisponibili.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.nome}
                 </option>

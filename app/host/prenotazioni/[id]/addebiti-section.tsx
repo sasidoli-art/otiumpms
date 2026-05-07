@@ -56,7 +56,7 @@ export default function AddebitiSection({ prenotazioneId, guestNome, guestEmail 
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
-          setSpaAppuntamenti(data.filter((a: any) => a.stato === 'COMPLETATO').map((a: any) => ({
+          setSpaAppuntamenti(data.filter((a: { stato: string }) => a.stato === 'COMPLETATO').map((a: { id: string; trattamento?: { nome: string }; prezzoTotale?: number; dataOra: string; stato: string }) => ({
             id: a.id,
             trattamento: a.trattamento?.nome ?? 'Trattamento SPA',
             prezzo: a.prezzoTotale ?? 0,

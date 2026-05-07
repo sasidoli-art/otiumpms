@@ -130,7 +130,7 @@ export default function DocumentOCR({ onExtract }: DocumentOCRProps) {
         try {
           const imageData = e.target?.result as string
           const result = await Tesseract.recognize(imageData, 'ita+eng', {
-            logger: (m: any) => console.log('OCR:', m.progress),
+            logger: (m: { progress: number }) => console.log('OCR:', m.progress),
           })
 
           const text = result.data.text.toUpperCase()

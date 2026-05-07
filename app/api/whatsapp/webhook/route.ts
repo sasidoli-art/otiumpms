@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
-  let payload: any
+  let payload: Record<string, unknown>
 
   try {
     payload = JSON.parse(rawBody)
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   // Parse messaggi dal webhook
   const { parseWebhookMessages: parse } = await import('@/lib/whatsapp')
-  const messages = parse(payload)
+  const messages = parse(payload as unknown as import('@/lib/whatsapp').WhatsAppWebhookPayload)
 
   for (const msg of messages) {
     try {

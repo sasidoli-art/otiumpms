@@ -14,6 +14,7 @@ type Messaggio = {
 type ChatEvent = {
   type: 'connected' | 'message' | 'typing' | 'read' | 'presence'
   chatId: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 }
 

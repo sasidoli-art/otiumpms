@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest) {
   for (const k of allowedFields) {
     if (body[k] === undefined) continue
     if ((PAYMENT_SECRET_FIELDS as readonly string[]).includes(k)) {
-      data[k] = applySecretUpdate(body[k], (existing as any)?.[k] ?? null)
+      data[k] = applySecretUpdate(body[k], (existing as unknown as Record<string, string | null>)?.[k] ?? null)
     } else {
       data[k] = body[k]
     }

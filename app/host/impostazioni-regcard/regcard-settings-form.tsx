@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { DEFAULT_REGCARD_IT, DEFAULT_REGCARD_EN, CLAUSOLE_OBBLIGATORIE_IT } from '@/lib/regcard-defaults'
 
-type CampoExtra = {
+export type CampoExtra = {
   label: string
   tipo: 'testo' | 'checkbox' | 'select'
   obbligatorio: boolean

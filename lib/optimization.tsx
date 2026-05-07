@@ -59,12 +59,12 @@ export const PagamentoForm = dynamic(
 /**
  * Debounce per ridurre chiamate frequenti (es. ricerca, resize)
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
+export function debounce<A extends unknown[], R>(
+  func: (...args: A) => R,
   wait: number
-): (...args: Parameters<T>) => void {
+): (...args: A) => void {
   let timeout: NodeJS.Timeout | null = null
-  return (...args: Parameters<T>) => {
+  return (...args: A) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
   }
@@ -73,12 +73,12 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle per limitare frequenza chiamate (es. scroll, mousemove)
  */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
+export function throttle<A extends unknown[], R>(
+  func: (...args: A) => R,
   limit: number
-): (...args: Parameters<T>) => void {
+): (...args: A) => void {
   let inThrottle: boolean
-  return (...args: Parameters<T>) => {
+  return (...args: A) => {
     if (!inThrottle) {
       func(...args)
       inThrottle = true

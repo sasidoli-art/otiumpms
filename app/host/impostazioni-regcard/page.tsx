@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
-import { RegCardSettingsForm } from './regcard-settings-form'
+import { RegCardSettingsForm, type CampoExtra } from './regcard-settings-form'
 import { isHostAuthorized } from '@/lib/permissions'
 
 export default async function RegCardSettingsPage() {
@@ -37,7 +37,7 @@ export default async function RegCardSettingsPage() {
       terminiHtml={host.regCardTerminiHtml ?? ''}
       privacyHtml={host.regCardPrivacyHtml ?? ''}
       spaTerminiHtml={host.regCardSpaTerminiHtml ?? ''}
-      campiExtra={(host.regCardCampiExtra as any[]) ?? []}
+      campiExtra={(host.regCardCampiExtra as unknown as CampoExtra[]) ?? []}
     />
   )
 }

@@ -123,7 +123,7 @@ export function SpaWaiverDashboard() {
         {['appuntamenti', 'dichiarazioni', 'pagamenti'].map(t => (
           <button
             key={t}
-            onClick={() => { setTab(t as any); setFiltro('tutti') }}
+            onClick={() => { setTab(t as 'appuntamenti' | 'dichiarazioni' | 'pagamenti'); setFiltro('tutti') }}
             className={`px-4 py-3 font-medium transition ${
               tab === t
                 ? 'text-blue-600 border-b-2 border-blue-600'
@@ -145,7 +145,7 @@ export function SpaWaiverDashboard() {
             {['tutti', 'mancanti', 'completati'].map(f => (
               <button
                 key={f}
-                onClick={() => setFiltro(f as any)}
+                onClick={() => setFiltro(f as 'tutti' | 'mancanti' | 'completati')}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
                   filtro === f
                     ? 'bg-blue-600 text-white'

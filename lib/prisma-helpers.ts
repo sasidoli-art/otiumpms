@@ -12,10 +12,9 @@ export const notDeleted = { deletedAt: null } as const
  *   model: il Prisma model (prisma.host, prisma.prenotazione, ecc.)
  *   id: ID del record da eliminare
  */
-export async function softDelete(
-  model: any,
-  id: string,
-): Promise<any> {
+type PrismaModel = { update(args: { where: { id: string }; data: object }): Promise<unknown> }
+
+export async function softDelete(model: PrismaModel, id: string): Promise<unknown> {
   return model.update({
     where: { id },
     data: { deletedAt: new Date() },
@@ -28,7 +27,7 @@ export async function softDelete(
  *   model: il Prisma model
  *   id: ID del record da ripristinare
  */
-export async function restore(model: any, id: string): Promise<any> {
+export async function restore(model: PrismaModel, id: string): Promise<unknown> {
   return model.update({
     where: { id },
     data: { deletedAt: null },
@@ -39,7 +38,7 @@ export async function restore(model: any, id: string): Promise<any> {
  * Helper: combina filtri hostId + notDeleted + custom where.
  * Uso: `prisma.prenotazione.findMany({ where: withHost(hostId, { stato: 'CONFERMATA' }) })`
  */
-export function withHost(hostId: string, where?: Record<string, any>) {
+export function withHost(hostId: string, where?: Record<string, unknown>) {
   return { ...where, hostId, ...notDeleted }
 }
 
@@ -62,7 +61,7 @@ export function withHostAndPaginate(
   hostId: string,
   page: number,
   pageSize: number,
-  where?: Record<string, any>,
+  where?: Record<string, unknown>,
 ) {
   return {
     where: withHost(hostId, where),

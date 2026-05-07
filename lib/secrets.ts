@@ -56,18 +56,18 @@ export const PAYMENT_SECRET_FIELDS = [
   'sumupApiKey',
 ] as const;
 
-export function maskHostSecrets<T extends Record<string, any>>(host: T): T {
-  const masked: any = { ...host };
+export function maskHostSecrets<T extends Record<string, unknown>>(host: T): T {
+  const masked = { ...host } as T;
   for (const f of HOST_SECRET_FIELDS) {
-    if (host[f]) masked[f] = SECRET_MASK;
+    if (host[f]) (masked as Record<string, unknown>)[f] = SECRET_MASK;
   }
   return masked;
 }
 
-export function maskPaymentSecrets<T extends Record<string, any>>(cfg: T): T {
-  const masked: any = { ...cfg };
+export function maskPaymentSecrets<T extends Record<string, unknown>>(cfg: T): T {
+  const masked = { ...cfg } as T;
   for (const f of PAYMENT_SECRET_FIELDS) {
-    if (cfg[f]) masked[f] = SECRET_MASK;
+    if (cfg[f]) (masked as Record<string, unknown>)[f] = SECRET_MASK;
   }
   return masked;
 }

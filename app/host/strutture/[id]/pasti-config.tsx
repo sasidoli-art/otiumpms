@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Coffee, Sun, Moon, Loader2, Check } from 'lucide-react'
+import { Coffee, Sun, Moon, Loader2, Check, type LucideIcon } from 'lucide-react'
 
 type ConfigPasto = { id: string; tipoPasto: string; disponibile: boolean; orarioInizio: string | null; orarioFine: string | null; prezzo: number; prezzoRidotto: number | null; luogo: string | null; note: string | null }
 
@@ -70,7 +70,7 @@ export default function PastiConfig({ strutturaId }: { strutturaId: string }) {
 }
 
 function PastoRow({ tipo, label, Icon, color, conf, saving, successo, onSave }: {
-  tipo: string; label: string; Icon: any; color: string; conf: Partial<ConfigPasto>
+  tipo: string; label: string; Icon: LucideIcon; color: string; conf: Partial<ConfigPasto>
   saving: boolean; successo: boolean; onSave: (data: Record<string, unknown>) => void
 }) {
   const [disponibile, setDisponibile] = useState(conf.disponibile ?? false)

@@ -28,7 +28,7 @@ const STATO_LABEL: Record<string, string> = {
 interface Appt {
   id: string
   guestNome: string
-  guestCognome: string
+  guestCognome: string | null
   dataOra: string
   durata: number
   stato: string
