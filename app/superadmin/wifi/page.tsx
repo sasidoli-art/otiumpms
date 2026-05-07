@@ -146,7 +146,9 @@ export default async function WifiPage({
                       <div className="flex items-center gap-2">
                         <Router className="w-4 h-4 text-gray-400 shrink-0" />
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-slate-100">{d.alias}</p>
+                          <Link href={`/superadmin/wifi/${d.id}`} className="font-medium text-gray-900 dark:text-slate-100 hover:text-brand-600">
+                            {d.alias}
+                          </Link>
                           {d.modello && (
                             <p className="text-[11px] text-gray-400">{d.modello}{d.firmware ? ` · ${d.firmware}` : ''}</p>
                           )}
