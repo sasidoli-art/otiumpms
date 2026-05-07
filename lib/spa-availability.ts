@@ -200,7 +200,7 @@ export async function calcolaSlotSpa(opts: {
     prisma.appuntamentoSpa.findMany({
       where: {
         hostId,
-        stato: { in: ['CONFERMATO', 'PENDENTE'] },
+        stato: { in: ['CONFERMATO', 'PRENOTATO'] },
         dataOra: { gte: dataInizio, lt: dataFine },
       },
       select: { terapistaId: true, cabinaId: true, dataOra: true, durata: true },
@@ -301,7 +301,7 @@ export async function assegnaCabina(opts: {
     prisma.appuntamentoSpa.findMany({
       where: {
         hostId,
-        stato: { in: ['CONFERMATO', 'PENDENTE'] },
+        stato: { in: ['CONFERMATO', 'PRENOTATO'] },
         dataOra: { gte: dataInizio, lt: dataFine },
       },
       select: { cabinaId: true, dataOra: true, durata: true },
