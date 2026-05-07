@@ -1116,6 +1116,10 @@ model Prenotazione {
   verificatoAt      DateTime?
   verificatoDa      String? // userId operatore reception
 
+  // CRM: collegamento diretto all'anagrafica ospite
+  ospiteCrmId            String?
+  ospiteCrm              OspiteCRM?               @relation(fields: [ospiteCrmId], references: [id], onDelete: SetNull)
+
   chat                   Chat?
   fattura                Fattura?                 @relation(fields: [fatturaId], references: [id])
   fatturaId              String?
@@ -1153,6 +1157,7 @@ model Prenotazione {
   @@index([unitaId, dataArrivo, dataPartenza]) // calendario per-camera + conflict detection
   @@index([checkInToken]) // lookup self checkin
   @@index([pin, hostId]) // lookup prenotazione via PIN
+  @@index([ospiteCrmId]) // lookup prenotazioni di un ospite CRM
   @@index([gruppoPrenotazioneId])
   @@index([deletedAt])
   @@map("prenotazioni")
@@ -2248,7 +2253,8 @@ model OspiteCRM {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
-  // Collegamento prenotazioni via email (lookup dinamico)
+  // Relazioni
+  prenotazioni    Prenotazione[]
   appuntamentiSpa AppuntamentoSpa[]
   conversazioniWA ConversazioneWhatsApp[]
   membriFedelta   MembroFedelta[]
