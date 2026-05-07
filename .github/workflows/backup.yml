@@ -1,0 +1,67 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # every day at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install pg_dump
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          FILENAME="otium_backup_${TIMESTAMP}.sql.gz"
+          pg_dump "$DATABASE_URL" | gzip > "$FILENAME"
+          echo "FILENAME=$FILENAME" >> $GITHUB_ENV
+
+      - name: Upload to R2/S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET }}
+          AWS_DEFAULT_REGION: auto
+          S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          aws s3 cp "$FILENAME" "s3://${S3_BUCKET}/${FILENAME}" \
+            --endpoint-url "$S3_ENDPOINT" \
+            --no-progress
+          echo "Backup uploaded: $FILENAME"
+
+      - name: Cleanup old backups (keep 30 days)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET }}
+          AWS_DEFAULT_REGION: auto
+          S3_ENDPOINT: ${{ secrets.BACKUP_S3_ENDPOINT }}
+          S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          CUTOFF=$(date -d '30 days ago' +%Y%m%d)
+          aws s3 ls "s3://${S3_BUCKET}/" --endpoint-url "$S3_ENDPOINT" \
+            | awk '{print $4}' \
+            | grep '^otium_backup_' \
+            | while read key; do
+                FILEDATE=$(echo "$key" | grep -oP '\d{8}')
+                if [ "$FILEDATE" \< "$CUTOFF" ]; then
+                  aws s3 rm "s3://${S3_BUCKET}/${key}" --endpoint-url "$S3_ENDPOINT" --quiet
+                  echo "Deleted old backup: $key"
+                fi
+              done
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            -d '{"text": "⚠️ *Otium PMS* — Database backup FALLITO. Controllare GitHub Actions."}'
