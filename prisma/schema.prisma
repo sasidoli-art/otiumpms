@@ -880,6 +880,9 @@ model Struttura {
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
 
+  // Tassa di soggiorno (€ per persona per notte — bambini <14 esenti)
+  tassaSoggiornoPerNotte Float? @default(0)
+
   // Booking engine pubblico
   autoConferma        Boolean @default(false) // true = prenotazione diretta CONFERMATA (no revisione)
   cancellazionePolicy String? // testo libero visibile in fase di conferma. Se null: default standard
@@ -1010,7 +1013,10 @@ model RegolaTariffa {
   giorniSettimana Int[] @default([]) // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
 
   // Durata soggiorno (solo per DURATA) — notti minime per attivare lo sconto
-  nottiMinime Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
+  nottiMinime  Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
+  // Anticipo prenotazione (EARLY_BIRD / LAST_MINUTE)
+  giorniMinimi  Int? // EARLY_BIRD: anticipo minimo in giorni per avere lo sconto
+  giorniMassimi Int? // LAST_MINUTE: anticipo massimo in giorni per avere lo sconto
 
   createdAt DateTime @default(now())
 
@@ -1022,8 +1028,10 @@ model RegolaTariffa {
 enum TipoRegolaTariffa {
   WEEKEND // applica a giorni settimana selezionati
   STAGIONE // applica a range date annuale (si ripete ogni anno)
-  FESTIVO // applica a date specifiche (Natale, Capodanno, ecc.)
+  FESTIVO // applica a festivi italiani (Natale, Pasqua, ecc.)
   DURATA // sconto per soggiorni lunghi (es. 3+ notti -10%, 7+ notti -20%)
+  EARLY_BIRD // sconto per prenotazioni anticipate (giorni anticipo >= giorniMinimi)
+  LAST_MINUTE // sconto last-minute (giorni anticipo <= giorniMassimi)
 }
 
 enum TipoModificatore {

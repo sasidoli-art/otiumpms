@@ -1,16 +1,18 @@
-import { eachDayOfInterval, subDays } from 'date-fns'
+import { differenceInCalendarDays, eachDayOfInterval, subDays } from 'date-fns'
 
 /**
  * Calcolo prezzo dinamico per soggiorno.
  *
  * Priorita:
  *   1. TariffaPeriodo (manuale) — se un giorno cade in un periodo tariffa, usa quel prezzo
- *   2. RegolaTariffa (automatica) — se nessuna tariffa periodo, applica regole (weekend/stagione/festivo)
- *   3. prezzoBase dell'unita — fallback
+ *   2. RegolaTariffa per-notte (WEEKEND / STAGIONE / FESTIVO) — applicate in `calcolaPrezzo`
+ *   3. RegolaTariffa stay-level (DURATA / EARLY_BIRD / LAST_MINUTE) — applicate in `calcolaPrezzoBreakdown`
+ *   4. prezzoBase dell'unita — fallback
  *
- * Le regole si sommano: se weekend +20% E stagione +€30, entrambe si applicano.
- * Se piu regole dello stesso tipo si sovrappongono, vince quella con priorita piu alta.
+ * Le regole per-notte di tipi diversi si sommano; dello stesso tipo vince la priorità più alta.
  */
+
+// ─── Types ─────────────────────────────────────────────────────────────────
 
 export type TariffaPeriodo = {
   nome: string
@@ -23,7 +25,7 @@ export type TariffaPeriodo = {
 export type RegolaTariffa = {
   id: string
   nome: string
-  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA'
+  tipo: 'WEEKEND' | 'STAGIONE' | 'FESTIVO' | 'DURATA' | 'EARLY_BIRD' | 'LAST_MINUTE'
   attiva: boolean
   priorita: number
   modificatore: 'PERCENTUALE' | 'FISSO'
@@ -34,6 +36,9 @@ export type RegolaTariffa = {
   meseFine: number | null
   giornoFine: number | null
   giorniSettimana: number[]
+  nottiMinime: number | null
+  giorniMinimi: number | null
+  giorniMassimi: number | null
 }
 
 export type PrezzoNotte = {
@@ -52,9 +57,115 @@ export type CalcoloPrezzoResult = {
   haRegoleDinamiche: boolean
 }
 
+export type PriceBreakdown = {
+  notti: number
+  prezzoBaseNotte: number
+  subtotaleAlloggio: number
+  regoleApplicate: { nome: string; tipo: string; importo: number }[]
+  supplementi: { descrizione: string; importo: number }[]
+  subtotaleSconti: number
+  subtotaleSupplementi: number
+  tassaSoggiorno: { importoNotte: number; persone: number; notti: number; totale: number }
+  totale: number
+  valuta: 'EUR'
+  dettaglioNotti: PrezzoNotte[]
+}
+
+export type PrezzoBreakdownInput = {
+  dataArrivo: Date
+  dataPartenza: Date
+  dataPrenotazione?: Date
+  adulti: number
+  bambini: number
+  lettoExtra: number
+  prezzoBase: number
+  prezzoLettoExtra: number | null
+  unitaId: string
+  tariffePeriodo: TariffaPeriodo[]
+  regole: RegolaTariffa[]
+  tassaSoggiornoPerNotte: number
+}
+
+// ─── Pure helpers ──────────────────────────────────────────────────────────
+
+/** Gauss algorithm for Easter Sunday (Gregorian calendar). */
+export function calcolaEtaPasqua(anno: number): Date {
+  const a = anno % 19
+  const b = Math.floor(anno / 100)
+  const c = anno % 100
+  const d = Math.floor(b / 4)
+  const e = b % 4
+  const f = Math.floor((b + 8) / 25)
+  const g = Math.floor((b - f + 1) / 3)
+  const h = (19 * a + b - d - g + 15) % 30
+  const i = Math.floor(c / 4)
+  const k = c % 4
+  const l = (32 + 2 * e + 2 * i - h - k) % 7
+  const m = Math.floor((a + 11 * h + 22 * l) / 451)
+  const mese = Math.floor((h + l - 7 * m + 114) / 31)
+  const giorno = ((h + l - 7 * m + 114) % 31) + 1
+  return new Date(anno, mese - 1, giorno)
+}
+
+const FESTIVI_FISSI: [number, number][] = [
+  [1, 1],   // Capodanno
+  [1, 6],   // Epifania
+  [4, 25],  // Liberazione
+  [5, 1],   // Festa del Lavoro
+  [6, 2],   // Festa della Repubblica
+  [8, 15],  // Ferragosto
+  [11, 1],  // Ognissanti
+  [12, 8],  // Immacolata Concezione
+  [12, 25], // Natale
+  [12, 26], // S. Stefano
+]
+
+/** Returns true if the date is an Italian national public holiday. */
+export function eFestivoItaliano(giorno: Date): boolean {
+  const mese = giorno.getMonth() + 1
+  const gg = giorno.getDate()
+  const anno = giorno.getFullYear()
+
+  if (FESTIVI_FISSI.some(([m, g]) => m === mese && g === gg)) return true
+
+  const pasqua = calcolaEtaPasqua(anno)
+  if (pasqua.getMonth() + 1 === mese && pasqua.getDate() === gg) return true
+
+  // Pasquetta = Pasqua + 1
+  const pasquetta = new Date(pasqua)
+  pasquetta.setDate(pasquetta.getDate() + 1)
+  if (pasquetta.getMonth() + 1 === mese && pasquetta.getDate() === gg) return true
+
+  return false
+}
+
+/**
+ * Counts nights in [arrivo, partenza) that fall on Friday or Saturday
+ * (convention: 0=Lun … 6=Dom).
+ */
+export function contaNottiWeekend(arrivo: Date, partenza: Date): number {
+  const lastNight = subDays(partenza, 1)
+  if (lastNight < arrivo) return 0
+  return eachDayOfInterval({ start: arrivo, end: lastNight }).filter(d => {
+    const jsDay = d.getDay()               // 0=Dom … 6=Sab
+    const g = jsDay === 0 ? 6 : jsDay - 1  // 0=Lun … 6=Dom
+    return g === 4 || g === 5              // Venerdì o Sabato
+  }).length
+}
+
+/** Counts nights in [arrivo, partenza) that are Italian public holidays. */
+export function contaGiorniFestivi(arrivo: Date, partenza: Date): number {
+  const lastNight = subDays(partenza, 1)
+  if (lastNight < arrivo) return 0
+  return eachDayOfInterval({ start: arrivo, end: lastNight }).filter(eFestivoItaliano).length
+}
+
+// ─── calcolaPrezzo (per-night breakdown — backward compat) ─────────────────
+
 /**
  * Calcola il prezzo per ogni notte nel range [arrivo, partenza).
- * La notte di partenza non si conta (checkout).
+ * Gestisce WEEKEND, STAGIONE, FESTIVO per notte.
+ * DURATA / EARLY_BIRD / LAST_MINUTE sono stay-level e gestiti da calcolaPrezzoBreakdown.
  */
 export function calcolaPrezzo(opts: {
   arrivo: Date
@@ -66,28 +177,27 @@ export function calcolaPrezzo(opts: {
 }): CalcoloPrezzoResult {
   const { arrivo, partenza, prezzoBase, unitaId, tariffePeriodo, regole } = opts
 
-  // Generate each night (arrivo inclusive, partenza exclusive)
   const lastNight = subDays(partenza, 1)
   if (lastNight < arrivo) {
     return { notti: 0, prezzoTotale: 0, prezzoMedioNotte: 0, dettaglioNotti: [], haRegoleDinamiche: false }
   }
 
   const notti = eachDayOfInterval({ start: arrivo, end: lastNight })
-  const regoleAttive = regole.filter(r => r.attiva && (r.unitaId === null || r.unitaId === unitaId))
+  const regoleAttive = regole.filter(
+    r => r.attiva && (r.unitaId === null || r.unitaId === unitaId)
+  )
   let haRegoleDinamiche = false
 
   const dettaglioNotti: PrezzoNotte[] = notti.map(giorno => {
     const ymd = formatYMD(giorno)
 
-    // 1. Check TariffaPeriodo
+    // 1. TariffaPeriodo sovrascrive tutto
     const tariffa = tariffePeriodo.find(t => {
       const ini = formatYMD(new Date(t.dataInizio))
       const fin = formatYMD(new Date(t.dataFine))
       return ymd >= ini && ymd <= fin
     })
-
     if (tariffa) {
-      // Tariffa periodo sovrascrive tutto
       return {
         data: ymd,
         prezzoBase,
@@ -97,28 +207,22 @@ export function calcolaPrezzo(opts: {
       }
     }
 
-    // 2. Apply RegolaTariffa
+    // 2. RegolaTariffa per-notte (WEEKEND / STAGIONE / FESTIVO only)
     let prezzoFinale = prezzoBase
     const regoleApplicate: { nome: string; tipo: string; delta: number }[] = []
 
-    // Group rules by type and pick highest priority per type
     const perTipo = new Map<string, RegolaTariffa>()
     for (const r of regoleAttive) {
+      if (!['WEEKEND', 'STAGIONE', 'FESTIVO'].includes(r.tipo)) continue
       if (!regolaApplicabile(r, giorno)) continue
       const existing = perTipo.get(r.tipo)
-      if (!existing || r.priorita > existing.priorita) {
-        perTipo.set(r.tipo, r)
-      }
+      if (!existing || r.priorita > existing.priorita) perTipo.set(r.tipo, r)
     }
 
-    // Apply all winning rules (one per type, they stack)
     for (const r of perTipo.values()) {
-      let delta: number
-      if (r.modificatore === 'PERCENTUALE') {
-        delta = Math.round((prezzoBase * r.valore) / 100 * 100) / 100
-      } else {
-        delta = r.valore
-      }
+      const delta = r.modificatore === 'PERCENTUALE'
+        ? Math.round((prezzoBase * r.valore) / 100 * 100) / 100
+        : r.valore
       prezzoFinale += delta
       regoleApplicate.push({ nome: r.nome, tipo: r.tipo, delta })
       haRegoleDinamiche = true
@@ -136,16 +240,149 @@ export function calcolaPrezzo(opts: {
   const prezzoTotale = Math.round(dettaglioNotti.reduce((s, n) => s + n.prezzoFinale, 0) * 100) / 100
   const prezzoMedioNotte = notti.length > 0 ? Math.round((prezzoTotale / notti.length) * 100) / 100 : 0
 
+  return { notti: notti.length, prezzoTotale, prezzoMedioNotte, dettaglioNotti, haRegoleDinamiche }
+}
+
+// ─── calcolaPrezzoBreakdown (stay-level, pure) ─────────────────────────────
+
+/**
+ * Calcola il breakdown completo del prezzo per un soggiorno.
+ * Chiama calcolaPrezzo per le notti, poi applica regole stay-level,
+ * supplementi e tassa di soggiorno.
+ */
+export function calcolaPrezzoBreakdown(input: PrezzoBreakdownInput): PriceBreakdown {
+  const {
+    dataArrivo, dataPartenza, adulti, lettoExtra,
+    prezzoBase, prezzoLettoExtra, unitaId,
+    tariffePeriodo, regole, tassaSoggiornoPerNotte,
+  } = input
+  const oggi = input.dataPrenotazione ?? new Date()
+
+  // 1. Night-by-night base (WEEKEND / STAGIONE / FESTIVO)
+  const baseResult = calcolaPrezzo({
+    arrivo: dataArrivo,
+    partenza: dataPartenza,
+    prezzoBase,
+    unitaId,
+    tariffePeriodo,
+    regole,
+  })
+
+  const notti = baseResult.notti
+  const subtotaleAlloggio = baseResult.prezzoTotale
+
+  // 2. Stay-level rules: DURATA, EARLY_BIRD, LAST_MINUTE
+  const giorniAnticipo = differenceInCalendarDays(dataArrivo, oggi)
+  const regoleApplicate: { nome: string; tipo: string; importo: number }[] = []
+
+  const stayRules = regole.filter(
+    r => r.attiva && (r.unitaId === null || r.unitaId === unitaId)
+  )
+
+  for (const r of stayRules) {
+    let sconto = 0
+
+    if (r.tipo === 'DURATA' && r.nottiMinime != null && notti >= r.nottiMinime) {
+      sconto = r.modificatore === 'PERCENTUALE'
+        ? -(subtotaleAlloggio * r.valore / 100)
+        : -(r.valore * notti)
+    } else if (r.tipo === 'EARLY_BIRD' && r.giorniMinimi != null && giorniAnticipo >= r.giorniMinimi) {
+      sconto = r.modificatore === 'PERCENTUALE'
+        ? -(subtotaleAlloggio * r.valore / 100)
+        : -(r.valore * notti)
+    } else if (r.tipo === 'LAST_MINUTE' && r.giorniMassimi != null && giorniAnticipo >= 0 && giorniAnticipo <= r.giorniMassimi) {
+      sconto = r.modificatore === 'PERCENTUALE'
+        ? -(subtotaleAlloggio * r.valore / 100)
+        : -(r.valore * notti)
+    }
+
+    if (sconto !== 0) {
+      regoleApplicate.push({ nome: r.nome, tipo: r.tipo, importo: Math.round(sconto * 100) / 100 })
+    }
+  }
+
+  // 3. Supplementi
+  const supplementi: { descrizione: string; importo: number }[] = []
+  if (lettoExtra > 0 && prezzoLettoExtra != null && prezzoLettoExtra > 0) {
+    const importo = Math.round(prezzoLettoExtra * lettoExtra * notti * 100) / 100
+    supplementi.push({ descrizione: `Letto extra ×${lettoExtra} ×${notti} notti`, importo })
+  }
+
+  // 4. Tassa soggiorno (bambini esenti — conteggiati solo adulti)
+  const totaleTassa = Math.round(tassaSoggiornoPerNotte * adulti * notti * 100) / 100
+  const tassaSoggiorno = { importoNotte: tassaSoggiornoPerNotte, persone: adulti, notti, totale: totaleTassa }
+
+  const subtotaleSconti = Math.round(
+    regoleApplicate.filter(r => r.importo < 0).reduce((s, r) => s + r.importo, 0) * 100
+  ) / 100
+  const subtotaleSupplementi = Math.round(
+    supplementi.reduce((s, r) => s + r.importo, 0) * 100
+  ) / 100
+
+  const totale = Math.round(
+    (subtotaleAlloggio + subtotaleSconti + subtotaleSupplementi + totaleTassa) * 100
+  ) / 100
+
   return {
-    notti: notti.length,
-    prezzoTotale,
-    prezzoMedioNotte,
-    dettaglioNotti,
-    haRegoleDinamiche,
+    notti,
+    prezzoBaseNotte: prezzoBase,
+    subtotaleAlloggio,
+    regoleApplicate,
+    supplementi,
+    subtotaleSconti,
+    subtotaleSupplementi,
+    tassaSoggiorno,
+    totale,
+    valuta: 'EUR',
+    dettaglioNotti: baseResult.dettaglioNotti,
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────
+// ─── calcolaPrezzoPrenotazione (async, DB-loading) ─────────────────────────
+
+export async function calcolaPrezzoPrenotazione(opts: {
+  unitaId: string
+  strutturaId: string
+  dataArrivo: Date
+  dataPartenza: Date
+  adulti: number
+  bambini: number
+  lettoExtra: number
+  dataPrenotazione?: Date
+}): Promise<PriceBreakdown> {
+  const { prisma } = await import('@/lib/db')
+
+  const [unita, regole, struttura] = await Promise.all([
+    prisma.unitaPrenotabile.findUniqueOrThrow({
+      where: { id: opts.unitaId },
+      include: { tariffe: true },
+    }),
+    prisma.regolaTariffa.findMany({
+      where: { strutturaId: opts.strutturaId, attiva: true },
+    }),
+    prisma.struttura.findUniqueOrThrow({
+      where: { id: opts.strutturaId },
+      select: { tassaSoggiornoPerNotte: true },
+    }),
+  ])
+
+  return calcolaPrezzoBreakdown({
+    dataArrivo: opts.dataArrivo,
+    dataPartenza: opts.dataPartenza,
+    dataPrenotazione: opts.dataPrenotazione,
+    adulti: opts.adulti,
+    bambini: opts.bambini,
+    lettoExtra: opts.lettoExtra,
+    prezzoBase: unita.prezzoBase,
+    prezzoLettoExtra: unita.prezzoLettoExtra ?? null,
+    unitaId: opts.unitaId,
+    tariffePeriodo: unita.tariffe,
+    regole,
+    tassaSoggiornoPerNotte: struttura.tassaSoggiornoPerNotte ?? 0,
+  })
+}
+
+// ─── Private helpers ───────────────────────────────────────────────────────
 
 function formatYMD(d: Date): string {
   const y = d.getFullYear()
@@ -154,45 +391,24 @@ function formatYMD(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-/** Check if a rule applies to a specific day */
 function regolaApplicabile(r: RegolaTariffa, giorno: Date): boolean {
   switch (r.tipo) {
     case 'WEEKEND': {
-      // giorniSettimana: 0=Lun, 6=Dom (our convention)
-      const giornoJs = giorno.getDay() // 0=Dom
-      const g = giornoJs === 0 ? 6 : giornoJs - 1 // 0=Lun..6=Dom
+      const jsDay = giorno.getDay()
+      const g = jsDay === 0 ? 6 : jsDay - 1
       return r.giorniSettimana.includes(g)
     }
     case 'STAGIONE': {
-      if (r.meseInizio == null || r.meseFine == null) return false
-      const mese = giorno.getMonth() + 1 // 1-12
-      const gg = giorno.getDate()
-      const ini = r.meseInizio * 100 + (r.giornoInizio ?? 1)
-      const fin = r.meseFine * 100 + (r.giornoFine ?? 31)
-      const current = mese * 100 + gg
-
-      // Handle wrap-around (e.g., Nov-Feb)
-      if (ini <= fin) {
-        return current >= ini && current <= fin
-      } else {
-        return current >= ini || current <= fin
-      }
-    }
-    case 'FESTIVO': {
-      // Festivo uses giorniSettimana as empty, applies to all days in season range
-      // or could be extended to specific dates — for now treat like STAGIONE
       if (r.meseInizio == null || r.meseFine == null) return false
       const mese = giorno.getMonth() + 1
       const gg = giorno.getDate()
       const ini = r.meseInizio * 100 + (r.giornoInizio ?? 1)
       const fin = r.meseFine * 100 + (r.giornoFine ?? 31)
       const current = mese * 100 + gg
-      if (ini <= fin) {
-        return current >= ini && current <= fin
-      } else {
-        return current >= ini || current <= fin
-      }
+      return ini <= fin ? current >= ini && current <= fin : current >= ini || current <= fin
     }
+    case 'FESTIVO':
+      return eFestivoItaliano(giorno)
     default:
       return false
   }
