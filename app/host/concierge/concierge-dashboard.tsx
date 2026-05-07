@@ -21,7 +21,7 @@ const STATO_BADGE: Record<string, { label: string; color: string }> = {
 
 export default function ConciergeDashboard() {
   const t = useTranslations('host.concierge')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [conversazioni, setConversazioni] = useState<Conv[]>([])
   const [kpi, setKpi] = useState({ attive: 0, escalate: 0, totali: 0 })
   const [loading, setLoading] = useState(true)

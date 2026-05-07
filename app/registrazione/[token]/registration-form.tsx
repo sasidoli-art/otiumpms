@@ -26,7 +26,7 @@ interface RegistrationFormProps {
 }
 
 export function RegistrationForm({ token, nome, cognome, email, ruolo, hostName }: RegistrationFormProps) {
-  const router = useRouter()
+  const _router = useRouter()
   const [password, setPassword] = useState('')
   const [confermaPassword, setConfermaPassword] = useState('')
   const [mostraPassword, setMostraPassword] = useState(false)

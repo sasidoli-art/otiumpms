@@ -47,7 +47,7 @@ const FASCE_LABEL: Record<string, string> = {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function WaitingListBoard() {
-  const router = useRouter()
+  const _router = useRouter()
   const [loading, setLoading] = useState(true)
   const [entries, setEntries] = useState<WaitingEntry[]>([])
   const [filtroStato, setFiltroStato] = useState<StatoFilter>('TUTTI')

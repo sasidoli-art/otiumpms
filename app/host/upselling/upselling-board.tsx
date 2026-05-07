@@ -34,7 +34,7 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:bo
 
 export default function UpsellingBoard() {
   const t = useTranslations('host.upselling')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [tab, setTab] = useState<'report' | 'regole'>('report')
   const [regole, setRegole] = useState<Regola[]>([])
   const [report, setReport] = useState<Report | null>(null)

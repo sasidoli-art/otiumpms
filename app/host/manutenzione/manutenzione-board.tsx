@@ -69,7 +69,7 @@ export default function ManutenzioneBoard({
   segnalazioniIniziali: Segnalazione[]
 }) {
   const t = useTranslations('host.maintenance')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [segnalazioni, setSegnalazioni] = useState<Segnalazione[]>(segnalazioniIniziali)
   const [filtroStato, setFiltroStato] = useState('all')
   const [filtroStruttura, setFiltroStruttura] = useState('all')

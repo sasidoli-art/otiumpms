@@ -33,7 +33,7 @@ const inp = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:bo
 
 export default function ServiziBoard() {
   const t = useTranslations('host.services')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [tab, setTab] = useState<'servizi' | 'pacchetti'>('servizi')
   const [servizi, setServizi] = useState<Servizio[]>([])
   const [pacchetti, setPacchetti] = useState<Pacchetto[]>([])

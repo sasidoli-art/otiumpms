@@ -21,7 +21,7 @@ export async function GET() {
   })
 
   let generati = 0
-  let inviati = 0
+  const inviati = 0
   let errori = 0
 
   for (const host of hosts) {

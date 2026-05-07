@@ -53,7 +53,7 @@ export default function TicketDettaglio({
   id: string
   ruolo: 'admin' | 'host'
 }) {
-  const router = useRouter()
+  const _router = useRouter()
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

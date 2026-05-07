@@ -234,7 +234,7 @@ export default function SceltaPastiForm({
       setError('Impossibile caricare i menu. Riprova.')
     }
     setLoading(false)
-  }, [prenotazioneId, dataArrivo, dataPartenza, pastiInclusi]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [prenotazioneId, dataArrivo, dataPartenza, pastiInclusi])  
 
   useEffect(() => { caricaMenu() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

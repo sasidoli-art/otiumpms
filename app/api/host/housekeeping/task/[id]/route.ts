@@ -9,7 +9,6 @@ export async function PATCH(
 ) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
   const params = await paramsPromise
   const body = await req.json()
 
@@ -42,7 +41,6 @@ export async function DELETE(
 ) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
   const params = await paramsPromise
 
   const task = await prisma.taskHK.findFirst({

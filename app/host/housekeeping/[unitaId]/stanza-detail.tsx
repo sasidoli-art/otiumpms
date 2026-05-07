@@ -97,7 +97,7 @@ export default function StanzaDetail({ unita: iniziale }: { unita: Unita }) {
   const [savingTask, setSavingTask] = useState(false)
   // Deleteing
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const router = useRouter()
+  const _router = useRouter()
 
   const stato = STATI_HK[unita.statoHK] ?? STATI_HK.PULITA
   const taskAperti = tasks.filter(t => !t.completato)

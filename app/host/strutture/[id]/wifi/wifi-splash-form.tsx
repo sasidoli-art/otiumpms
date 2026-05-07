@@ -155,7 +155,7 @@ export default function WifiSplashForm({ deviceMac, initialConfig, strutturaDefa
             }}
           >
             {strutturaDefaults.logoUrl && (
-              /* eslint-disable-next-line @next/next/no-img-element */
+               
               <img src={strutturaDefaults.logoUrl} alt="" className="h-16 drop-shadow" />
             )}
           </div>

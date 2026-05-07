@@ -31,7 +31,6 @@ export async function PATCH(req: NextRequest, { params: paramsPromise }: { param
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const existing = await prisma.struttura.findFirst({ where: { id: params.id, hostId: auth.user.hostId } })
   if (!existing) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
@@ -61,7 +60,6 @@ export async function DELETE(_: NextRequest, { params: paramsPromise }: { params
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const existing = await prisma.struttura.findFirst({ where: { id: params.id, hostId: auth.user.hostId } })
   if (!existing) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })

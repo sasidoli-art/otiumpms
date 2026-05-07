@@ -119,7 +119,7 @@ export default function HousekeepingBoard({
   unitaIniziali: Unita[]
 }) {
   const t = useTranslations('host.housekeeping')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [unita, setUnita] = useState<Unita[]>(unitaIniziali)
   const [filtroStruttura, setFiltroStruttura] = useState('all')
   const [filtroStato, setFiltroStato] = useState('all')

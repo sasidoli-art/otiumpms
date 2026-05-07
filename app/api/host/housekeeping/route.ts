@@ -7,7 +7,6 @@ import { NextResponse } from 'next/server'
 export async function GET(req: Request) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const { searchParams } = new URL(req.url)
   const strutturaId = searchParams.get('strutturaId')

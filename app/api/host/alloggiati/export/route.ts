@@ -79,8 +79,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Conta incompleti (non bloccanti se non hanno dati minimi)
-  let validi = prenotazioni.filter((p) => validaPrenotazioneAlloggiati(p).valido)
-  let incompleti = prenotazioni.length - validi.length
+  const validi = prenotazioni.filter((p) => validaPrenotazioneAlloggiati(p).valido)
+  const incompleti = prenotazioni.length - validi.length
 
   // Blocca se ci sono ospiti con dati minimi mancanti
   const mancantiDatiMinimi = prenotazioni.filter((p) =>

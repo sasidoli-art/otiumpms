@@ -116,7 +116,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const raw = await req.json()
   const parsed = createOspiteSchema.safeParse(raw)

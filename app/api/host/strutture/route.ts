@@ -19,7 +19,6 @@ const createStrutturaSchema = z.object({
 export async function GET() {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const strutture = await prisma.struttura.findMany({
     where: { hostId: auth.user.hostId, ...notDeleted },
@@ -37,7 +36,6 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const raw = await req.json()
   const parsed = createStrutturaSchema.safeParse(raw)

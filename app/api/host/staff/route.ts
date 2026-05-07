@@ -17,7 +17,6 @@ const createComunicazioneSchema = z.object({
 export async function GET(req: Request) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const { searchParams } = new URL(req.url)
   const archiviato = searchParams.get('archiviato') === 'true'
@@ -34,7 +33,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const raw = await req.json()
   const parsed = createComunicazioneSchema.safeParse(raw)

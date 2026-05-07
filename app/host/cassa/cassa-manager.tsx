@@ -119,7 +119,7 @@ const tipoCartaLabel = (tipo: TipoCarta) => TIPI_CARTA.find(t => t.value === tip
 
 // ── Component ──────────────────────────────────────────────────
 export default function CassaManager({ nomeOperatore }: { nomeOperatore: string }) {
-  const router = useRouter()
+  const _router = useRouter()
   const [tab, setTab] = useState<'incassi' | 'chiusura' | 'report'>('incassi')
 
   // ── Tab 1: Incassi state ──

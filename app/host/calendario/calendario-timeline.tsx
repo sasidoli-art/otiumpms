@@ -66,7 +66,7 @@ const DAYS_VISIBLE = [42, 31, 21] // days shown per zoom level
 
 export default function CalendarioTimeline({ strutture }: { strutture: Struttura[] }) {
   const t = useTranslations('host.calendar')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const router = useRouter()
   const [startDate, setStartDate] = useState(() => subDays(startOfDay(new Date()), 2))
   const [zoom, setZoom] = useState(1) // 0=compact, 1=normal, 2=wide

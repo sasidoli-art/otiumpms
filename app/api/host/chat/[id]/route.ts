@@ -11,7 +11,6 @@ export async function GET(_: NextRequest, { params: paramsPromise }: { params: P
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const chat = await prisma.chat.findFirst({
     where: { id: params.id, hostId: auth.user.hostId },
@@ -41,7 +40,6 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const chat = await prisma.chat.findFirst({
     where: { id: params.id, hostId: auth.user.hostId },

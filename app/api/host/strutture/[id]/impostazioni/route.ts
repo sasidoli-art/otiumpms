@@ -7,7 +7,6 @@ export async function PATCH(req: NextRequest, { params: paramsPromise }: { param
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const existing = await prisma.struttura.findFirst({
     where: { id: params.id, hostId: auth.user.hostId },

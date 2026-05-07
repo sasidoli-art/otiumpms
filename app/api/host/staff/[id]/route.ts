@@ -9,7 +9,6 @@ export async function PATCH(
 ) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
   const params = await paramsPromise
 
   const com = await prisma.comunicazioneStaff.findFirst({
@@ -40,7 +39,6 @@ export async function DELETE(
 ) {
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
   const params = await paramsPromise
 
   const com = await prisma.comunicazioneStaff.findFirst({

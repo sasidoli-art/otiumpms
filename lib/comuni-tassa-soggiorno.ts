@@ -154,7 +154,7 @@ export function calcolaTassaSuggerita(
     let notesAlta = 0
     let notesTotali = 0
 
-    let data = new Date(dataArrivo)
+    const data = new Date(dataArrivo)
     while (data < dataPartenza) {
       notesTotali++
       if (isAltaStagione(data, tipo)) {

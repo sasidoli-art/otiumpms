@@ -45,7 +45,7 @@ export default function StaffBoard({
   totaleArchiviate: number
 }) {
   const t = useTranslations('host.staff')
-  const tc = useTranslations('common')
+  const _tc = useTranslations('common')
   const [comunicazioni, setComunicazioni] = useState<Comunicazione[]>(comunicazioniIniziali)
   const [archiviate, setArchiviate] = useState<Comunicazione[]>([])
   const [mostraArchivio, setMostraArchivio] = useState(false)

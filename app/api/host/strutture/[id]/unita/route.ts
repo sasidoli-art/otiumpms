@@ -7,7 +7,6 @@ export async function GET(_: NextRequest, { params: paramsPromise }: { params: P
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const struttura = await prisma.struttura.findFirst({ where: { id: params.id, hostId: auth.user.hostId } })
   if (!struttura) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
@@ -25,7 +24,6 @@ export async function POST(req: NextRequest, { params: paramsPromise }: { params
   const params = await paramsPromise
   const auth = await requireHostOrAdmin()
   if (isUnauthorized(auth)) return auth
-  const session = auth
 
   const struttura = await prisma.struttura.findFirst({ where: { id: params.id, hostId: auth.user.hostId } })
   if (!struttura) return NextResponse.json({ error: 'Non trovato' }, { status: 404 })
