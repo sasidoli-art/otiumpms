@@ -86,7 +86,7 @@ export default function HostDetailClient({ initial }: { initial: HostData }) {
         ...prev,
         ...data,
         strutture: data.strutture,
-        user: data.user ?? { id: '', email: '—', nome: '—', cognome: '', attivo: false },
+        user: data.user,
       }))
     }
   }

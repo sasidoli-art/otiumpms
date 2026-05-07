@@ -46,6 +46,7 @@ export default async function SuperAdminHostDetailPage({
 
   if (!host) notFound()
 
+  // Serializza a oggetti semplici per il client component (no Date, no Decimal)
   const serialized = {
     id: host.id,
     nomeAzienda: host.nomeAzienda,
@@ -69,7 +70,7 @@ export default async function SuperAdminHostDetailPage({
     moduliAttivi: host.moduliAttivi,
     conciergeAttivo: host.conciergeAttivo,
     conciergeSystemPrompt: host.conciergeSystemPrompt,
-    user: host.user ?? { id: '', email: '—', nome: '—', cognome: '', attivo: false },
+    user: host.user,
     strutture: host.strutture.map(s => ({
       id: s.id,
       nome: s.nome,
