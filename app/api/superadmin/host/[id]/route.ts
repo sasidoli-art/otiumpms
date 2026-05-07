@@ -48,7 +48,10 @@ export async function GET(
 
   if (!host) return NextResponse.json({ error: 'Host non trovato' }, { status: 404 })
 
-  return NextResponse.json(host)
+  return NextResponse.json({
+    ...host,
+    user: host.user ?? { id: '', email: '—', nome: '—', cognome: '', attivo: false },
+  })
 }
 
 /**
