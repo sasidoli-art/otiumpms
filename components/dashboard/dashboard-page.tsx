@@ -16,6 +16,28 @@ import { SezioneAttivita } from './sezione-attivita'
 import { OnboardingChecklistBanner } from '@/components/onboarding/onboarding-checklist'
 import type { OnboardingChecklist } from '@/lib/onboarding'
 
+// ─── Motion variants ────────────────────────────────────────────────────────
+
+const pageContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+} as const
+
+const fadeUp26 = {
+  hidden: { opacity: 0, y: -8 },
+  show:   { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 280, damping: 26 } },
+}
+
+const fadeUp24 = {
+  hidden: { opacity: 0, y: 10 },
+  show:   { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 260, damping: 24 } },
+}
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  show:   { opacity: 1 },
+}
+
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -127,45 +149,45 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
       className="relative space-y-5"
       initial="hidden"
       animate="show"
-      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+      variants={pageContainer}
     >
       {/* 1. Header */}
-      <motion.div variants={{ hidden: { opacity: 0, y: -8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
+      <motion.div variants={fadeUp26}>
         <DashboardHeader greeting={greeting} firstName={firstName} />
       </motion.div>
 
       {/* Onboarding checklist */}
       {checklist && hostId && checklist.percentualeCompletamento < 100 && (
-        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}>
+        <motion.div variants={fadeIn}>
           <OnboardingChecklistBanner checklist={checklist} hostId={hostId} />
         </motion.div>
       )}
 
       {/* 2. Quick actions */}
-      <motion.section aria-label="Azioni rapide" variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
+      <motion.section aria-label="Azioni rapide" variants={fadeUp26}>
         <SezioneQuickActions spaAttivo={spaAttivo} />
       </motion.section>
 
       {/* 3. Azioni richieste */}
-      <motion.section aria-label="Azioni richieste" variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
+      <motion.section aria-label="Azioni richieste" variants={fadeUp26}>
         <SezioneAzioni azioni={data.azioni} />
       </motion.section>
 
       {/* 4. KPI strip */}
       {data.kpi && (
-        <motion.section aria-label="KPI mensili" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
+        <motion.section aria-label="KPI mensili" variants={fadeUp24}>
           <SezioneKpi kpi={data.kpi} />
         </motion.section>
       )}
 
       {/* 5. Bento oggi */}
-      <motion.section aria-label="Situazione odierna" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
+      <motion.section aria-label="Situazione odierna" variants={fadeUp24}>
         <SezioneOggi oggi={data.oggi} occupazione={data.occupazione} />
       </motion.section>
 
       {/* 6. SPA + Attività */}
       <LazySection>
-        <motion.section aria-label="Dettagli aggiuntivi" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
+        <motion.section aria-label="Dettagli aggiuntivi" variants={fadeUp24}>
           <div className={spaAttivo && data.spaOggi ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
             {spaAttivo && data.spaOggi && <SezioneSpaOggi spaOggi={data.spaOggi} />}
             <SezioneAttivita attivita={data.attivitaRecente} />
