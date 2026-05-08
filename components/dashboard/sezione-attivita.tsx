@@ -47,9 +47,9 @@ export function SezioneAttivita({ attivita }: Props) {
   const items = attivita.slice(0, MAX_VISIBLE)
 
   return (
-    <section className="bg-white rounded-lg border border-neutral-150">
+    <section className="bg-white/55 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(0,0,0,0.03)]">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
+      <header className="flex items-center justify-between px-5 py-3 border-b border-white/50">
         <h3 className="text-[14px] font-semibold text-neutral-900">
           Attività recente
         </h3>
@@ -111,7 +111,7 @@ function TimelineRow({ item }: { item: DashboardData['attivitaRecente'][number] 
     return (
       <Link
         href={item.linkUrl}
-        className={cn(baseClass, 'hover:bg-neutral-50 transition-colors')}
+        className={cn(baseClass, 'hover:bg-white/40 transition-colors')}
       >
         {content}
       </Link>

@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 
 export function SezioneKpi({ kpi }: { kpi: DashboardData['kpi'] }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] overflow-hidden">
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
+    <div className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(0,0,0,0.03)] overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/40">
         <KpiCell
           label="Ricavi del mese"
           value={formatValuta(kpi.ricaviMese)}
@@ -62,7 +62,7 @@ function KpiCell({
 }) {
   const a = ACCENT[accent] ?? ACCENT.slate
   return (
-    <div className="group relative px-6 py-5 transition-colors hover:bg-slate-50/60">
+    <div className="group relative px-6 py-5 transition-colors hover:bg-white/40">
       {/* top accent line */}
       <div className={cn('absolute top-0 left-6 right-6 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity', a.dot)} />
 

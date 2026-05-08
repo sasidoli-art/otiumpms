@@ -151,6 +151,15 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
       animate="show"
       variants={pageContainer}
     >
+      {/* Ambient blobs — fixed, pointer-events-none, pseudo-layer per glass effect */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -right-32 w-[600px] h-[600px] rounded-full blur-3xl opacity-40"
+          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,0.18), transparent)' }} />
+        <div className="absolute top-[30%] -left-40 w-[500px] h-[500px] rounded-full blur-3xl opacity-30"
+          style={{ background: 'radial-gradient(closest-side, rgba(16,185,129,0.14), transparent)' }} />
+        <div className="absolute bottom-0 right-[20%] w-[400px] h-[400px] rounded-full blur-3xl opacity-25"
+          style={{ background: 'radial-gradient(closest-side, rgba(59,130,246,0.12), transparent)' }} />
+      </div>
       {/* 1. Header */}
       <motion.div variants={fadeUp26}>
         <DashboardHeader greeting={greeting} firstName={firstName} />

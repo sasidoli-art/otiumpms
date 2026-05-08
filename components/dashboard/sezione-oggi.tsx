@@ -56,7 +56,7 @@ export function SezioneOggi({ oggi, occupazione }: Props) {
             </h2>
           </div>
         </div>
-        <div className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-slate-100 text-slate-600 text-[12px] font-semibold">
+        <div className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-white/50 backdrop-blur-md border border-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] text-slate-600 text-[12px] font-semibold">
           <Users size={12} className="text-slate-400" />
           {oggi.inHouse} in struttura
         </div>
@@ -177,9 +177,9 @@ function BentoCard({
 }) {
   const a = ACCENT_CFG[accent] ?? ACCENT_CFG.blue
   return (
-    <div className="h-full bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+    <div className="h-full bg-white/55 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(0,0,0,0.03)] overflow-hidden flex flex-col">
       {/* header */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/50">
         <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', a.iconBg)}>
           <span className={a.iconColor}>{icon}</span>
         </div>
@@ -196,7 +196,7 @@ function BentoCard({
           </Link>
         )}
       </div>
-      {badges && <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-slate-100/70">{badges}</div>}
+      {badges && <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-white/40">{badges}</div>}
       <div className="flex-1 min-h-0">{children}</div>
     </div>
   )
@@ -215,9 +215,9 @@ function BentoOccupazione({ occupazione }: { occupazione: DashboardData['occupaz
   const maxOcc = Math.max(...settimana.map((d) => d.occupate), 1)
 
   return (
-    <div className="h-full bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+    <div className="h-full bg-white/55 backdrop-blur-xl rounded-2xl border border-white/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(0,0,0,0.03)] overflow-hidden flex flex-col">
       {/* header */}
-      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100">
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/50">
         <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
           <TrendingUp size={14} className="text-slate-500" strokeWidth={2.2} />
         </div>
@@ -309,7 +309,7 @@ function GuestRow({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors group"
+      className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/40 transition-colors group"
     >
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold text-slate-800 truncate">{name}</p>
