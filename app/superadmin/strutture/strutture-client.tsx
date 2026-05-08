@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import type { BadgeVariant } from '@/components/ui/badge'
-import { Building2, ExternalLink, Plus, X, Loader2 } from 'lucide-react'
+import { Building2, ExternalLink, Plus, X, Loader2, Trash2, PowerOff, Power } from 'lucide-react'
 
 type Struttura = {
   id: string
@@ -44,8 +44,11 @@ export default function StruttureClient({
   filtroAttiva: string
   filtroHost: string
 }) {
+  const [list, setList] = useState(strutture)
   const [showNew, setShowNew] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [toggling, setToggling] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
     hostId: hosts[0]?.id ?? '',
@@ -60,6 +63,39 @@ export default function StruttureClient({
     numeroUnita: '0',
     prefissoUnita: 'Camera',
   })
+
+  async function toggleAttiva(id: string, nome: string, attiva: boolean) {
+    const azione = attiva ? 'disattivare' : 'attivare'
+    if (!confirm(`Vuoi ${azione} la struttura "${nome}"?`)) return
+    setToggling(id)
+    const res = await fetch(`/api/superadmin/strutture/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attiva: !attiva }),
+    })
+    if (res.ok) {
+      setList(prev => prev.map(s => s.id === id ? { ...s, attiva: !attiva } : s))
+    }
+    setToggling(null)
+  }
+
+  async function deleteStruttura(id: string, nome: string) {
+    const conferma = prompt(
+      `ATTENZIONE: stai per ELIMINARE la struttura "${nome}" e TUTTE le sue unità e prenotazioni.\nQuesta operazione è IRREVERSIBILE.\n\nScrivi esattamente il nome per confermare:`
+    )
+    if (conferma !== nome) {
+      if (conferma !== null) alert('Nome non corrisponde, operazione annullata.')
+      return
+    }
+    setDeleting(id)
+    const res = await fetch(`/api/superadmin/strutture/${id}?confirm=${encodeURIComponent(nome)}`, { method: 'DELETE' })
+    setDeleting(null)
+    if (res.ok) {
+      setList(prev => prev.filter(s => s.id !== id))
+    } else {
+      alert('Errore durante l\'eliminazione.')
+    }
+  }
 
   async function salva(e: React.FormEvent) {
     e.preventDefault()
@@ -400,7 +436,7 @@ export default function StruttureClient({
               </tr>
             </thead>
             <tbody>
-              {strutture.map(s => (
+              {list.map(s => (
                 <tr
                   key={s.id}
                   className="border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50"
@@ -422,19 +458,37 @@ export default function StruttureClient({
                   <td className="table-td text-right">{s._count.unita}</td>
                   <td className="table-td text-right font-medium">{s._count.prenotazioni}</td>
                   <td className="table-td">
-                    <Link
-                      href={`/superadmin/moduli?host=${s.hostId}`}
-                      className="text-brand-600 hover:underline text-xs flex items-center gap-1"
-                      title="Attiva/disattiva moduli per questo host"
-                    >
-                      Gestisci moduli <ExternalLink className="w-3 h-3" />
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleAttiva(s.id, s.nome, s.attiva)}
+                        disabled={toggling === s.id}
+                        title={s.attiva ? 'Disattiva' : 'Attiva'}
+                        className={`p-1.5 rounded transition-colors ${s.attiva ? 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20' : 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'}`}
+                      >
+                        {toggling === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : s.attiva ? <PowerOff className="w-3.5 h-3.5" /> : <Power className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        onClick={() => deleteStruttura(s.id, s.nome)}
+                        disabled={deleting === s.id}
+                        title="Elimina struttura"
+                        className="p-1.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        {deleting === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      </button>
+                      <Link
+                        href={`/superadmin/moduli?host=${s.hostId}`}
+                        className="text-brand-600 hover:underline text-xs flex items-center gap-1 ml-1"
+                        title="Attiva/disattiva moduli per questo host"
+                      >
+                        Moduli <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
-              {strutture.length === 0 && (
+              {list.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="table-td text-center text-gray-400 py-8">
+                  <td colSpan={9} className="table-td text-center text-gray-400 py-8">
                     Nessuna struttura trovata
                   </td>
                 </tr>

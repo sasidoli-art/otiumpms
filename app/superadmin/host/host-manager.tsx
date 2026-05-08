@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { it } from 'date-fns/locale'
 import Link from 'next/link'
 import {
-  Building2, ExternalLink, Bot, UserCheck, Power, Loader2, Plus,
+  Building2, ExternalLink, Bot, UserCheck, Power, Loader2, Plus, Trash2, PauseCircle, PlayCircle,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import NuovoHostForm from './nuovo-host-form'
@@ -42,6 +42,8 @@ const PIANI = ['LIGHT', 'EVENTO_SINGOLO', 'VISIBILITA_MENSILE', 'PARTNER_PREMIUM
 export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }) {
   const [hosts, setHosts] = useState(hostsIniziali)
   const [saving, setSaving] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [toggling, setToggling] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const tc = useTranslations('common')
 
@@ -56,6 +58,40 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
     if (!moduli.upselling) return 'off'
     if (h.conciergeAttivo && moduli.concierge) return 'ai'
     return 'manual'
+  }
+
+  async function toggleSospeso(hostId: string, statoCorrente: string) {
+    const nuovoStato = statoCorrente === 'SOSPESO' ? 'ATTIVO' : 'SOSPESO'
+    const azione = nuovoStato === 'SOSPESO' ? 'sospendere' : 'riattivare'
+    if (!confirm(`Vuoi ${azione} questo host?`)) return
+    setToggling(hostId)
+    const res = await fetch(`/api/superadmin/host/${hostId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statoAbbonamento: nuovoStato }),
+    })
+    if (res.ok) {
+      setHosts(prev => prev.map(h => h.id === hostId ? { ...h, statoAbbonamento: nuovoStato } : h))
+    }
+    setToggling(null)
+  }
+
+  async function deleteHost(hostId: string, nomeAzienda: string) {
+    const conferma = prompt(
+      `ATTENZIONE: stai per ELIMINARE l'host "${nomeAzienda}" e TUTTI i suoi dati.\nQuesta operazione è IRREVERSIBILE.\n\nScrivi esattamente il nome azienda per confermare:`
+    )
+    if (conferma !== nomeAzienda) {
+      if (conferma !== null) alert('Nome non corrisponde, operazione annullata.')
+      return
+    }
+    setDeleting(hostId)
+    const res = await fetch(`/api/superadmin/host/${hostId}?confirm=${encodeURIComponent(nomeAzienda)}`, { method: 'DELETE' })
+    setDeleting(null)
+    if (res.ok) {
+      setHosts(prev => prev.filter(h => h.id !== hostId))
+    } else {
+      alert('Errore durante l\'eliminazione.')
+    }
   }
 
   async function setUpsellMode(hostId: string, mode: string) {
@@ -167,9 +203,27 @@ export default function HostManager({ hostsIniziali }: { hostsIniziali: Host[] }
                     </td>
                     <td className="table-td text-xs text-gray-400">{format(new Date(h.createdAt), 'd MMM yy', { locale: it })}</td>
                     <td className="table-td">
-                      <Link href={`/superadmin/host/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1">
-                        {tc('manage')} <ExternalLink className="w-3 h-3" />
-                      </Link>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => toggleSospeso(h.id, h.statoAbbonamento)}
+                          disabled={toggling === h.id}
+                          title={h.statoAbbonamento === 'SOSPESO' ? 'Riattiva' : 'Sospendi'}
+                          className={`p-1.5 rounded transition-colors ${h.statoAbbonamento === 'SOSPESO' ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20'}`}
+                        >
+                          {toggling === h.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : h.statoAbbonamento === 'SOSPESO' ? <PlayCircle className="w-3.5 h-3.5" /> : <PauseCircle className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => deleteHost(h.id, h.nomeAzienda)}
+                          disabled={deleting === h.id}
+                          title="Elimina host"
+                          className="p-1.5 rounded text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        >
+                          {deleting === h.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                        </button>
+                        <Link href={`/superadmin/host/${h.id}`} className="text-brand-600 hover:underline text-xs flex items-center gap-1 ml-1">
+                          {tc('manage')} <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 )
