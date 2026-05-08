@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, type ReactNode } from 'react'
 import { Loader2, AlertCircle, RotateCcw, Rocket, ChevronDown, Check } from 'lucide-react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { useDashboard } from '@/hooks/use-dashboard'
 import { useStruttura } from '@/components/layout/host-layout'
 import { cn } from '@/lib/utils'
@@ -122,76 +123,63 @@ export function DashboardPage({ nomeUtente, moduliAttivi, checklist, hostId }: P
   if (!data) return null
 
   return (
-    <div className="relative space-y-6">
-      {/* Ambient gradient sottilissimi sullo sfondo (P4.2 design system).
-          Posizione: indigo top-right + viola bottom-left. Pointer-events:none
-          per non interferire con i click. z-0 sotto i contenuti, contenuto a z-1. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-      >
-        <div
-          className="absolute -top-32 -right-40 w-[480px] h-[480px] rounded-full opacity-60 blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, rgba(99,102,241,0.06), transparent)' }}
-        />
-        <div
-          className="absolute -bottom-40 -left-32 w-[420px] h-[420px] rounded-full opacity-60 blur-3xl"
-          style={{ background: 'radial-gradient(closest-side, rgba(139,92,246,0.04), transparent)' }}
-        />
-      </div>
-
+    <motion.div
+      className="relative space-y-5"
+      initial="hidden"
+      animate="show"
+      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.07 } } }}
+    >
       {/* 1. Header */}
-      <DashboardHeader greeting={greeting} firstName={firstName} />
+      <motion.div variants={{ hidden: { opacity: 0, y: -8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
+        <DashboardHeader greeting={greeting} firstName={firstName} />
+      </motion.div>
 
-      {/* Onboarding checklist (only if not 100% and not dismissed) */}
+      {/* Onboarding checklist */}
       {checklist && hostId && checklist.percentualeCompletamento < 100 && (
-        <OnboardingChecklistBanner checklist={checklist} hostId={hostId} />
+        <motion.div variants={{ hidden: { opacity: 0 }, show: { opacity: 1 } }}>
+          <OnboardingChecklistBanner checklist={checklist} hostId={hostId} />
+        </motion.div>
       )}
 
       {/* 2. Quick actions */}
-      <section aria-label="Azioni rapide">
+      <motion.section aria-label="Azioni rapide" variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
         <SezioneQuickActions spaAttivo={spaAttivo} />
-      </section>
+      </motion.section>
 
       {/* 3. Azioni richieste */}
-      <section aria-label="Azioni richieste">
+      <motion.section aria-label="Azioni richieste" variants={{ hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 280, damping: 26 } } }}>
         <SezioneAzioni azioni={data.azioni} />
-      </section>
+      </motion.section>
 
-      {/* 4. KPI mensili (ricavi + delta vs mese scorso) */}
+      {/* 4. KPI strip */}
       {data.kpi && (
-        <section aria-label="KPI mensili">
+        <motion.section aria-label="KPI mensili" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
           <SezioneKpi kpi={data.kpi} />
-        </section>
+        </motion.section>
       )}
 
-      {/* 5. Oggi */}
-      <section aria-label="Situazione odierna">
+      {/* 5. Bento oggi */}
+      <motion.section aria-label="Situazione odierna" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
         <SezioneOggi oggi={data.oggi} occupazione={data.occupazione} />
-      </section>
+      </motion.section>
 
-      {/* 5. Secondary row: SPA + Attività */}
+      {/* 6. SPA + Attività */}
       <LazySection>
-        <section aria-label="Dettagli aggiuntivi">
-          <div className={spaAttivo && data.spaOggi
-            ? 'grid grid-cols-1 lg:grid-cols-2 gap-4'
-            : ''
-          }>
-            {spaAttivo && data.spaOggi && (
-              <SezioneSpaOggi spaOggi={data.spaOggi} />
-            )}
+        <motion.section aria-label="Dettagli aggiuntivi" variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } } }}>
+          <div className={spaAttivo && data.spaOggi ? 'grid grid-cols-1 lg:grid-cols-2 gap-4' : ''}>
+            {spaAttivo && data.spaOggi && <SezioneSpaOggi spaOggi={data.spaOggi} />}
             <SezioneAttivita attivita={data.attivitaRecente} />
           </div>
-        </section>
+        </motion.section>
       </LazySection>
 
-      {/* Polling indicator — subtle dot in bottom right when refreshing */}
+      {/* Polling dot */}
       {isLoading && data && (
         <div className="fixed bottom-4 right-4 z-10">
-          <Loader2 size={14} className="animate-spin text-slate-300 dark:text-slate-600" />
+          <Loader2 size={14} className="animate-spin text-slate-300" />
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }
 
@@ -209,12 +197,12 @@ function DashboardHeader({ greeting, firstName }: { greeting: string; firstName:
   })
 
   return (
-    <div className="flex items-start justify-between gap-4 flex-wrap">
-      <div className="min-w-0 flex-1">
-        <h1 className="text-[22px] font-semibold text-neutral-900 tracking-[-0.02em] leading-tight">
-          {greeting}, {firstName}
+    <div className="flex items-end justify-between gap-4 flex-wrap">
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-1 capitalize">{oggi}</p>
+        <h1 className="text-[28px] font-bold text-slate-900 tracking-[-0.03em] leading-none">
+          {greeting}, <span className="text-slate-600">{firstName}</span>
         </h1>
-        <p className="mt-1 text-[13px] text-neutral-500 capitalize">{oggi}</p>
       </div>
 
       {strutture.length >= 2 && strutturaCorrente && (
@@ -223,21 +211,23 @@ function DashboardHeader({ greeting, firstName }: { greeting: string; firstName:
             type="button"
             onClick={() => setOpen(v => !v)}
             className={cn(
-              'inline-flex items-center gap-1.5 h-9 px-3 text-[13px] font-medium',
-              'bg-white text-neutral-700 border border-neutral-200 rounded-md',
-              'hover:bg-neutral-50 hover:border-neutral-300 transition-colors',
+              'inline-flex items-center gap-1.5 h-9 px-3 text-[13px] font-semibold',
+              'bg-white text-slate-700 border border-slate-200 rounded-xl',
+              'hover:bg-slate-50 hover:border-slate-300',
+              'transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              'shadow-[0_1px_3px_rgba(0,0,0,0.06)]',
             )}
           >
             <span className="truncate max-w-[180px]">{strutturaCorrente.nome}</span>
-            <ChevronDown size={14} className="text-neutral-400 shrink-0" />
+            <ChevronDown size={13} className="text-slate-400 shrink-0" />
           </button>
 
           {open && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] bg-white border border-neutral-200 rounded-md shadow-lg py-1">
-                <div className="px-3 py-1.5 border-b border-neutral-100">
-                  <p className="text-[10px] uppercase tracking-[0.02em] text-neutral-400 font-semibold">
+              <div className="absolute right-0 top-full mt-2 z-50 min-w-[220px] bg-white border border-slate-200 rounded-2xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.12)] py-1.5 overflow-hidden">
+                <div className="px-3 pb-1.5 pt-1 border-b border-slate-100 mb-0.5">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-slate-400">
                     Cambia struttura
                   </p>
                 </div>
@@ -245,10 +235,10 @@ function DashboardHeader({ greeting, firstName }: { greeting: string; firstName:
                   <button
                     key={s.id}
                     onClick={() => { setStruttura(s.id); setOpen(false) }}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] text-neutral-700 hover:bg-neutral-100 transition-colors"
+                    className="w-full flex items-center justify-between gap-2 px-3 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                   >
                     <span className="truncate">{s.nome}</span>
-                    {s.id === strutturaCorrente.id && <Check size={14} className="text-primary-600 shrink-0" />}
+                    {s.id === strutturaCorrente.id && <Check size={13} className="text-emerald-600 shrink-0" />}
                   </button>
                 ))}
               </div>

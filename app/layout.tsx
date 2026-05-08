@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, DM_Serif_Display } from 'next/font/google'
+import { Outfit, DM_Serif_Display } from 'next/font/google'
 import './globals.css'
 
-// Sans-serif: UI, body, dashboard. Unica famiglia per la dashboard host.
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
+// Sans-serif: UI, body, dashboard. Outfit > Inter per dashboard premium.
+const inter = Outfit({
+  subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
+  weight: ['400', '500', '600', '700'],
 })
 
 // Serif: SOLO per pagine pubbliche (booking/check-in/landing) + heading email.

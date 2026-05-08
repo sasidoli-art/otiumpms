@@ -1,15 +1,3 @@
-/**
- * SezioneKpi — strip 4 KPI mensili con delta vs mese scorso.
- *
- *   <SezioneKpi kpi={data.kpi} />
- *
- * Spec design (rif. /host/booking-engine task):
- *   - Icona 28px in cerchio 40px bg colorato tenue (sinistra)
- *   - Valore text-stat (32px/700/tabular-nums)
- *   - Label text-body-sm (13px/neutral-500)
- *   - Delta badge a destra: ↑ +12% (success) / ↓ -3% (error) / → 0% (neutral)
- *   - 4 in riga desktop, 2×2 tablet, 1 col mobile
- */
 import {
   Euro, BookOpen, TrendingUp, ArrowUp, ArrowDown, ArrowRight, type LucideIcon,
 } from 'lucide-react'
@@ -19,75 +7,80 @@ import { cn } from '@/lib/utils'
 
 export function SezioneKpi({ kpi }: { kpi: DashboardData['kpi'] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Kpi
-        label="Ricavi del mese"
-        value={formatValuta(kpi.ricaviMese)}
-        delta={kpi.deltaRicaviPercent}
-        icon={Euro}
-        tone="primary"
-      />
-      <Kpi
-        label="Prenotazioni"
-        value={String(kpi.prenotazioniMese)}
-        delta={kpi.deltaPrenotazioniPercent}
-        icon={BookOpen}
-        tone="info"
-      />
-      <Kpi
-        label="ADR medio"
-        hint="Avg Daily Rate"
-        value={formatValuta(kpi.adrMese)}
-        delta={kpi.deltaAdrPercent}
-        icon={TrendingUp}
-        tone="success"
-      />
-      <Kpi
-        label="Mese scorso"
-        hint="Stesso periodo"
-        value={formatValuta(kpi.ricaviMeseScorso)}
-        delta={null}
-        icon={Euro}
-        tone="neutral"
-      />
+    <div className="bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-slate-100">
+        <KpiCell
+          label="Ricavi del mese"
+          value={formatValuta(kpi.ricaviMese)}
+          delta={kpi.deltaRicaviPercent}
+          icon={Euro}
+          accent="emerald"
+        />
+        <KpiCell
+          label="Prenotazioni"
+          value={String(kpi.prenotazioniMese)}
+          delta={kpi.deltaPrenotazioniPercent}
+          icon={BookOpen}
+          accent="blue"
+        />
+        <KpiCell
+          label="ADR medio"
+          hint="Avg Daily Rate"
+          value={formatValuta(kpi.adrMese)}
+          delta={kpi.deltaAdrPercent}
+          icon={TrendingUp}
+          accent="slate"
+        />
+        <KpiCell
+          label="Mese scorso"
+          hint="stesso periodo"
+          value={formatValuta(kpi.ricaviMeseScorso)}
+          delta={null}
+          icon={Euro}
+          accent="slate"
+        />
+      </div>
     </div>
   )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-
-const TONE: Record<string, { iconBg: string; iconColor: string }> = {
-  primary: { iconBg: 'bg-primary-50',  iconColor: 'text-primary-600' },
-  success: { iconBg: 'bg-success-50',  iconColor: 'text-success-600' },
-  info:    { iconBg: 'bg-info-50',     iconColor: 'text-info-600'    },
-  neutral: { iconBg: 'bg-neutral-100', iconColor: 'text-neutral-500' },
+const ACCENT: Record<string, { dot: string; iconColor: string }> = {
+  emerald: { dot: 'bg-emerald-500', iconColor: 'text-emerald-600' },
+  blue:    { dot: 'bg-blue-500',    iconColor: 'text-blue-600'    },
+  slate:   { dot: 'bg-slate-300',   iconColor: 'text-slate-400'   },
 }
 
-function Kpi({
-  label, hint, value, delta, icon: Icon, tone = 'primary',
+function KpiCell({
+  label, hint, value, delta, icon: Icon, accent = 'slate',
 }: {
   label: string
   hint?: string
   value: string
   delta: number | null
   icon: LucideIcon
-  tone?: 'primary' | 'success' | 'info' | 'neutral'
+  accent?: string
 }) {
-  const t = TONE[tone] ?? TONE.primary
+  const a = ACCENT[accent] ?? ACCENT.slate
   return (
-    <div className="bg-white rounded-lg border border-neutral-150 shadow-xs p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className={cn('shrink-0 w-10 h-10 rounded-md flex items-center justify-center', t.iconBg)}>
-          <Icon size={20} className={t.iconColor} />
+    <div className="group relative px-6 py-5 transition-colors hover:bg-slate-50/60">
+      {/* top accent line */}
+      <div className={cn('absolute top-0 left-6 right-6 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity', a.dot)} />
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <Icon size={13} className={cn('shrink-0', a.iconColor)} strokeWidth={2.5} />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
+            {label}
+          </span>
+          {hint && (
+            <span className="text-[10px] text-slate-300 hidden lg:inline">· {hint}</span>
+          )}
         </div>
         <DeltaBadge delta={delta} />
       </div>
-      <p className="mt-4 text-[28px] leading-none font-bold tabular-nums tracking-[-0.02em] text-neutral-900">
+
+      <p className="text-[32px] leading-none font-bold tabular-nums tracking-[-0.03em] text-slate-900">
         {value}
-      </p>
-      <p className="mt-1.5 text-[13px] text-neutral-500">
-        {label}
-        {hint && <span className="ml-1.5 text-[11px] text-neutral-400">· {hint}</span>}
       </p>
     </div>
   )
@@ -99,16 +92,16 @@ function DeltaBadge({ delta }: { delta: number | null }) {
   const isUp = delta > 0
   const isDown = delta < 0
   const Icon = isUp ? ArrowUp : isDown ? ArrowDown : ArrowRight
-  const className = isUp
-    ? 'bg-success-50 text-success-700'
-    : isDown
-      ? 'bg-error-50 text-error-700'
-      : 'bg-neutral-100 text-neutral-500'
   const sign = delta > 0 ? '+' : ''
 
   return (
-    <span className={cn('inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums', className)}>
-      <Icon size={12} />
+    <span className={cn(
+      'inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums',
+      isUp   ? 'bg-emerald-50 text-emerald-700' :
+      isDown ? 'bg-red-50 text-red-600' :
+               'bg-slate-100 text-slate-500',
+    )}>
+      <Icon size={10} strokeWidth={2.5} />
       {sign}{delta}%
     </span>
   )

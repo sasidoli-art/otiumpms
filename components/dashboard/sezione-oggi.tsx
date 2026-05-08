@@ -7,53 +7,24 @@ import {
   Check, Clock, AlertCircle, ChevronRight, ShieldCheck,
   Calendar, TrendingUp,
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { DashboardData } from '@/hooks/use-dashboard'
-
-// ─── Props ──────────────────────────────────────────────────────────────────
 
 interface Props {
   oggi: DashboardData['oggi']
   occupazione: DashboardData['occupazione']
 }
 
-// ─── Accent palette ─────────────────────────────────────────────────────────
+// ─── Framer stagger ─────────────────────────────────────────────────────────
 
-type AccentKey = 'emerald' | 'blue' | 'violet'
-
-const ACCENT: Record<AccentKey, { from: string; to: string; tile: string; tileSoft: string; text: string; badgeBg: string; badgeText: string }> = {
-  emerald: {
-    from: '#10b981', to: '#059669',
-    tile: 'rgba(16,185,129,0.18)', tileSoft: 'rgba(16,185,129,0.08)',
-    text: '#059669',
-    badgeBg: 'bg-emerald-50 dark:bg-emerald-900/30',
-    badgeText: 'text-emerald-700 dark:text-emerald-400',
-  },
-  blue: {
-    from: '#3b82f6', to: '#2563eb',
-    tile: 'rgba(59,130,246,0.18)', tileSoft: 'rgba(59,130,246,0.08)',
-    text: '#2563eb',
-    badgeBg: 'bg-blue-50 dark:bg-blue-900/30',
-    badgeText: 'text-blue-700 dark:text-blue-400',
-  },
-  violet: {
-    from: '#8b5cf6', to: '#7c3aed',
-    tile: 'rgba(139,92,246,0.18)', tileSoft: 'rgba(139,92,246,0.08)',
-    text: '#7c3aed',
-    badgeBg: 'bg-violet-50 dark:bg-violet-900/30',
-    badgeText: 'text-violet-700 dark:text-violet-400',
-  },
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
 }
-
-function accentStyle(k: AccentKey): CSSProperties {
-  const a = ACCENT[k]
-  return {
-    '--card-accent-from': a.from,
-    '--card-accent-to': a.to,
-    '--tile-from': a.tile,
-    '--tile-to': a.tileSoft,
-    '--tile-color': a.text,
-  } as CSSProperties
+const card = {
+  hidden: { opacity: 0, y: 12 },
+  show:   { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } },
 }
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -71,248 +42,224 @@ export function SezioneOggi({ oggi, occupazione }: Props) {
   }, [oggi.data, oggi.giorno])
 
   return (
-    <div className="space-y-5">
-      {/* ═══ Header ═══ */}
+    <div className="space-y-4">
+      {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="icon-tile icon-tile-lg" style={{ '--tile-from': 'rgba(99,102,241,0.18)', '--tile-to': 'rgba(99,102,241,0.08)', '--tile-color': '#6366f1' } as CSSProperties}>
-            <Calendar size={20} />
+          <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
+            <Calendar size={17} className="text-indigo-500" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Oggi</p>
-            <h2 className="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 capitalize leading-tight">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">Oggi</p>
+            <h2 className="text-[17px] font-bold text-slate-900 capitalize leading-tight tracking-tight">
               {dataEstesa}
             </h2>
           </div>
         </div>
-        <span className="inline-flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-800/60 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm ring-1 ring-inset ring-slate-200/60 dark:ring-slate-700/60">
-          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white dark:bg-slate-900 shadow-sm">
-            <Users size={13} className="text-slate-500" />
-          </span>
+        <div className="inline-flex items-center gap-2 h-8 px-3 rounded-full bg-slate-100 text-slate-600 text-[12px] font-semibold">
+          <Users size={12} className="text-slate-400" />
           {oggi.inHouse} in struttura
-        </span>
+        </div>
       </div>
 
-      {/* ═══ Cards ═══ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-        <CardArrivi arrivi={oggi.arrivi} />
-        <CardPartenze partenze={oggi.partenze} />
-        <CardOccupazione occupazione={occupazione} />
-      </div>
+      {/* ── Bento grid asimmetrico: [arrivi 2fr | occ 1fr] / [partenze 2fr | occ cont.] ── */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 lg:grid-cols-3 gap-3"
+      >
+        {/* Arrivi — lg: col 1-2 */}
+        <motion.div variants={card} className="lg:col-span-2">
+          <BentoCard
+            accent="emerald"
+            icon={<ArrowDownToLine size={14} strokeWidth={2.2} />}
+            title="Arrivi"
+            count={oggi.arrivi.totale}
+            link={{ href: '/host/oggi', label: 'Vedi tutti' }}
+            badges={oggi.arrivi.totale > 0 ? (
+              <>
+                {oggi.arrivi.checkinCompletati > 0 && (
+                  <BadgePill tone="emerald" icon={<Check size={10} />}>
+                    {oggi.arrivi.checkinCompletati} verif{oggi.arrivi.checkinCompletati === 1 ? 'icato' : 'icati'}
+                  </BadgePill>
+                )}
+                {oggi.arrivi.checkinOnline > 0 && (
+                  <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>
+                    {oggi.arrivi.checkinOnline} da verificare
+                  </BadgePill>
+                )}
+                {oggi.arrivi.checkinMancanti > 0 && (
+                  <BadgePill tone="slate" icon={<Clock size={10} />}>
+                    {oggi.arrivi.checkinMancanti} in attesa
+                  </BadgePill>
+                )}
+              </>
+            ) : null}
+          >
+            {oggi.arrivi.totale === 0 ? (
+              <EmptyState text="Nessun arrivo oggi" />
+            ) : (
+              <div className="max-h-[200px] overflow-y-auto">
+                {oggi.arrivi.lista.map((g) => (
+                  <GuestRow
+                    key={g.id}
+                    href={`/host/prenotazioni/${g.id}`}
+                    name={`${g.guestNome} ${g.guestCognome}`}
+                    subtitle={[
+                      g.unitaNome ? { icon: <BedDouble size={10} />, text: g.unitaNome } : null,
+                      g.numOspiti > 1 ? { icon: <Users size={10} />, text: `${g.numOspiti} ospiti` } : null,
+                    ].filter(Boolean) as { icon: ReactNode; text: string }[]}
+                    badge={<CheckinBadge stato={g.statoCheckIn} />}
+                  />
+                ))}
+              </div>
+            )}
+          </BentoCard>
+        </motion.div>
+
+        {/* Occupazione — lg: col 3, row 1-2 */}
+        <motion.div variants={card} className="lg:row-span-2">
+          <BentoOccupazione occupazione={occupazione} />
+        </motion.div>
+
+        {/* Partenze — lg: col 1-2 */}
+        <motion.div variants={card} className="lg:col-span-2">
+          <BentoCard
+            accent="blue"
+            icon={<ArrowUpFromLine size={14} strokeWidth={2.2} />}
+            title="Partenze"
+            count={oggi.partenze.totale}
+            link={{ href: '/host/oggi', label: 'Vedi tutti' }}
+          >
+            {oggi.partenze.totale === 0 ? (
+              <EmptyState text="Nessuna partenza oggi" />
+            ) : (
+              <div className="max-h-[200px] overflow-y-auto">
+                {oggi.partenze.lista.map((g) => (
+                  <GuestRow
+                    key={g.id}
+                    href={`/host/prenotazioni/${g.id}`}
+                    name={`${g.guestNome} ${g.guestCognome}`}
+                    subtitle={g.unitaNome ? [{ icon: <BedDouble size={10} />, text: g.unitaNome }] : []}
+                    badge={g.regCardFirmata
+                      ? <BadgePill tone="emerald" icon={<Check size={10} />}>Checkout</BadgePill>
+                      : <BadgePill tone="amber" icon={<AlertCircle size={10} />}>Manca firma</BadgePill>
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </BentoCard>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
 
-// ─── Shared header ──────────────────────────────────────────────────────────
+// ─── Bento card shell ────────────────────────────────────────────────────────
 
-function CardHeader({
-  accent, icon, title, count, link, badges,
+const ACCENT_CFG: Record<string, { iconBg: string; iconColor: string; countBg: string; countText: string }> = {
+  emerald: { iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600', countBg: 'bg-emerald-100', countText: 'text-emerald-700' },
+  blue:    { iconBg: 'bg-blue-50',    iconColor: 'text-blue-600',    countBg: 'bg-blue-100',    countText: 'text-blue-700'    },
+}
+
+function BentoCard({
+  accent, icon, title, count, link, badges, children,
 }: {
-  accent: AccentKey
+  accent: string
   icon: ReactNode
   title: string
   count?: number
   link?: { href: string; label: string }
   badges?: ReactNode
+  children: ReactNode
 }) {
-  const a = ACCENT[accent]
+  const a = ACCENT_CFG[accent] ?? ACCENT_CFG.blue
   return (
-    <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="icon-tile">{icon}</div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{title}</h3>
-          {typeof count === 'number' && (
-            <span
-              className={cn(
-                'inline-flex items-center justify-center min-w-[24px] h-[24px] px-1.5 rounded-full text-xs font-bold',
-                a.badgeBg, a.badgeText,
-              )}
-            >
-              {count}
-            </span>
-          )}
+    <div className="h-full bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+      {/* header */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100">
+        <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', a.iconBg)}>
+          <span className={a.iconColor}>{icon}</span>
         </div>
+        <span className="text-[14px] font-bold text-slate-800 tracking-tight">{title}</span>
+        {typeof count === 'number' && (
+          <span className={cn('ml-0.5 inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold tabular-nums', a.countBg, a.countText)}>
+            {count}
+          </span>
+        )}
+        <div className="flex-1" />
         {link && (
-          <Link
-            href={link.href}
-            className="text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors inline-flex items-center gap-0.5"
-          >
-            {link.label} <ChevronRight size={12} />
+          <Link href={link.href} className="inline-flex items-center gap-0.5 text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-colors">
+            {link.label} <ChevronRight size={11} />
           </Link>
         )}
       </div>
-      {badges && <div className="flex flex-wrap gap-1.5 mt-2.5">{badges}</div>}
+      {badges && <div className="flex flex-wrap gap-1.5 px-4 py-2 border-b border-slate-100/70">{badges}</div>}
+      <div className="flex-1 min-h-0">{children}</div>
     </div>
   )
 }
 
-// ─── Card Arrivi ────────────────────────────────────────────────────────────
+// ─── Occupazione card ────────────────────────────────────────────────────────
 
-function CardArrivi({ arrivi }: { arrivi: DashboardData['oggi']['arrivi'] }) {
-  return (
-    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('emerald')}>
-      <CardHeader
-        accent="emerald"
-        icon={<ArrowDownToLine size={16} />}
-        title="Arrivi"
-        count={arrivi.totale}
-        link={{ href: '/host/oggi', label: 'Tutti' }}
-        badges={arrivi.totale > 0 ? (
-          <>
-            {arrivi.checkinCompletati > 0 && (
-              <BadgePill tone="emerald" icon={<Check size={10} />}>
-                {arrivi.checkinCompletati} verificat{arrivi.checkinCompletati === 1 ? 'o' : 'i'}
-              </BadgePill>
-            )}
-            {arrivi.checkinOnline > 0 && (
-              <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>
-                {arrivi.checkinOnline} da verificare
-              </BadgePill>
-            )}
-            {arrivi.checkinMancanti > 0 && (
-              <BadgePill tone="slate" icon={<Clock size={10} />}>
-                {arrivi.checkinMancanti} in attesa
-              </BadgePill>
-            )}
-          </>
-        ) : null}
-      />
-
-      <div className="flex-1 min-h-0">
-        {arrivi.totale === 0 ? (
-          <EmptyState text="Nessun arrivo oggi" />
-        ) : (
-          <div className="relative">
-            <div className="max-h-[300px] overflow-y-auto py-1">
-              {arrivi.lista.map((guest) => (
-                <GuestRow
-                  key={guest.id}
-                  href={`/host/prenotazioni/${guest.id}`}
-                  name={`${guest.guestNome} ${guest.guestCognome}`}
-                  subtitle={[
-                    guest.unitaNome ? { icon: <BedDouble size={10} />, text: guest.unitaNome } : null,
-                    guest.numOspiti > 1 ? { icon: <Users size={10} />, text: `${guest.numOspiti} ospiti` } : null,
-                  ].filter(Boolean) as { icon: ReactNode; text: string }[]}
-                  badge={<CheckinBadge stato={guest.statoCheckIn} />}
-                />
-              ))}
-            </div>
-            {arrivi.lista.length > 4 && <FadeOut />}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Card Partenze ──────────────────────────────────────────────────────────
-
-function CardPartenze({ partenze }: { partenze: DashboardData['oggi']['partenze'] }) {
-  return (
-    <div className="card-accent flex flex-col p-0 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('blue')}>
-      <CardHeader
-        accent="blue"
-        icon={<ArrowUpFromLine size={16} />}
-        title="Partenze"
-        count={partenze.totale}
-        link={{ href: '/host/oggi', label: 'Tutti' }}
-      />
-
-      <div className="flex-1 min-h-0">
-        {partenze.totale === 0 ? (
-          <EmptyState text="Nessuna partenza oggi" />
-        ) : (
-          <div className="relative">
-            <div className="max-h-[300px] overflow-y-auto py-1">
-              {partenze.lista.map((guest) => (
-                <GuestRow
-                  key={guest.id}
-                  href={`/host/prenotazioni/${guest.id}`}
-                  name={`${guest.guestNome} ${guest.guestCognome}`}
-                  subtitle={guest.unitaNome ? [{ icon: <BedDouble size={10} />, text: guest.unitaNome }] : []}
-                  badge={guest.regCardFirmata
-                    ? <BadgePill tone="emerald" icon={<Check size={10} />}>Checkout</BadgePill>
-                    : <BadgePill tone="amber" icon={<AlertCircle size={10} />}>Manca firma</BadgePill>
-                  }
-                />
-              ))}
-            </div>
-            {partenze.lista.length > 4 && <FadeOut />}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// ─── Card Occupazione ───────────────────────────────────────────────────────
-
-function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazione'] }) {
+function BentoOccupazione({ occupazione }: { occupazione: DashboardData['occupazione'] }) {
   const { percentuale, unitaOccupate, unitaTotali, settimana } = occupazione
-
-  // Dynamic color: primary <70%, warning 70-90%, error >90%
-  const donutColor = percentuale > 90 ? 'var(--color-error-500)'
-    : percentuale > 70 ? 'var(--color-warning-500)'
-    : 'var(--color-primary-500)'
-  const donutTextClass = percentuale > 90 ? 'text-error-600'
-    : percentuale > 70 ? 'text-warning-600'
-    : 'text-primary-600'
-
-  // Donut circonferenza: 2πr dove r=50 (spec: stroke 10, diametro totale 120)
-  const RADIUS = 50
-  const CIRCUMFERENCE = 2 * Math.PI * RADIUS // 314.159
-
+  const donutColor =
+    percentuale > 90 ? '#ef4444' : percentuale > 70 ? '#f59e0b' : '#10b981'
+  const donutTextColor =
+    percentuale > 90 ? 'text-red-600' : percentuale > 70 ? 'text-amber-600' : 'text-emerald-600'
+  const RADIUS = 46
+  const CIRC = 2 * Math.PI * RADIUS
   const maxOcc = Math.max(...settimana.map((d) => d.occupate), 1)
 
   return (
-    <div className="card-accent flex flex-col p-0 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" style={accentStyle('violet')}>
-      <CardHeader
-        accent="violet"
-        icon={<TrendingUp size={16} />}
-        title="Occupazione"
-      />
+    <div className="h-full bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col">
+      {/* header */}
+      <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-100">
+        <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+          <TrendingUp size={14} className="text-slate-500" strokeWidth={2.2} />
+        </div>
+        <span className="text-[14px] font-bold text-slate-800 tracking-tight">Occupazione</span>
+      </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-5 py-5 gap-5">
-        {/* ── Donut 120×120, stroke 10px, animato da 0 via transition ── */}
-        <div className="relative w-[120px] h-[120px]">
-          <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-6 gap-5">
+        {/* Donut */}
+        <div className="relative w-[110px] h-[110px]">
+          <svg viewBox="0 0 110 110" className="w-full h-full -rotate-90">
+            <circle cx="55" cy="55" r={RADIUS} fill="none" stroke="#f1f5f9" strokeWidth="9" />
             <circle
-              cx="60" cy="60" r={RADIUS}
-              fill="none"
-              stroke="var(--color-neutral-200)"
-              strokeWidth="10"
-            />
-            <circle
-              cx="60" cy="60" r={RADIUS}
+              cx="55" cy="55" r={RADIUS}
               fill="none"
               stroke={donutColor}
-              strokeWidth="10"
+              strokeWidth="9"
               strokeLinecap="round"
-              strokeDasharray={CIRCUMFERENCE}
-              strokeDashoffset={CIRCUMFERENCE * (1 - percentuale / 100)}
-              style={{ transition: 'stroke-dashoffset 800ms var(--ease-out), stroke 300ms ease-out' }}
+              strokeDasharray={CIRC}
+              strokeDashoffset={CIRC * (1 - percentuale / 100)}
+              style={{ transition: 'stroke-dashoffset 900ms cubic-bezier(0.16,1,0.3,1), stroke 300ms ease' }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-[28px] font-bold tabular-nums tracking-[-0.02em] leading-none', donutTextClass)}>
+            <span className={cn('text-[30px] font-bold tabular-nums tracking-[-0.03em] leading-none', donutTextColor)}>
               {percentuale}%
             </span>
           </div>
         </div>
-        <p className="text-[12px] text-neutral-500 -mt-2 tabular-nums">
-          {unitaOccupate}/{unitaTotali} camere
+
+        <p className="text-[12px] font-medium text-slate-400 -mt-2 tabular-nums">
+          {unitaOccupate} / {unitaTotali} camere
         </p>
 
-        {/* ── BARCHART SETTIMANA — 7 barre verticali ── */}
+        {/* Bar chart 7 giorni */}
         {settimana.length > 0 && (
           <div className="w-full">
-            <p className="text-[11px] font-semibold text-neutral-400 uppercase tracking-[0.02em] mb-2 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 mb-3 text-center">
               Prossimi 7 giorni
             </p>
-            <div className="flex items-end justify-center gap-1">
+            <div className="flex items-end justify-center gap-1.5">
               {settimana.slice(0, 7).map((day, i) => {
-                const barHeight = maxOcc > 0 ? (day.occupate / maxOcc) * 80 : 0
+                const barH = maxOcc > 0 ? (day.occupate / maxOcc) * 72 : 0
                 const isToday = i === 0
                 return (
                   <div
@@ -320,29 +267,21 @@ function CardOccupazione({ occupazione }: { occupazione: DashboardData['occupazi
                     className="group relative flex flex-col items-center gap-1.5"
                     title={`${isToday ? 'Oggi' : day.giorno}: ${day.occupate}/${day.totali}`}
                   >
-                    {/* Barra */}
-                    <div className="flex items-end h-[80px]">
+                    <div className="flex items-end h-[72px]">
                       <div
                         className={cn(
-                          'w-[24px] rounded-t-sm transition-all duration-500 ease-out',
-                          isToday
-                            ? 'bg-primary-600 group-hover:bg-primary-700'
-                            : 'bg-primary-200 group-hover:bg-primary-300',
+                          'w-[22px] rounded-t transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                          isToday ? 'bg-emerald-500 group-hover:bg-emerald-600' : 'bg-slate-200 group-hover:bg-slate-300',
                         )}
-                        style={{ height: `${Math.max(barHeight, 2)}px` }}
+                        style={{ height: `${Math.max(barH, 3)}px` }}
                       />
                     </div>
-                    {/* Label giorno — iniziale */}
-                    <span className={cn(
-                      'text-[11px] leading-none tabular-nums',
-                      isToday ? 'font-semibold text-neutral-800' : 'text-neutral-400',
-                    )}>
+                    <span className={cn('text-[10px] leading-none tabular-nums', isToday ? 'font-bold text-slate-700' : 'text-slate-400')}>
                       {day.giorno.charAt(0).toUpperCase()}
                     </span>
-                    {/* Tooltip on hover */}
                     <span
                       role="tooltip"
-                      className="absolute bottom-full mb-1 px-2 py-1 bg-neutral-800 text-white text-[11px] font-medium rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 tabular-nums"
+                      className="absolute bottom-full mb-1 px-2 py-1 bg-slate-800 text-white text-[11px] font-medium rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 tabular-nums"
                     >
                       {day.occupate}/{day.totali}
                     </span>
@@ -370,73 +309,56 @@ function GuestRow({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+      className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition-colors group"
     >
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{name}</p>
+        <p className="text-[13px] font-semibold text-slate-800 truncate">{name}</p>
         {subtitle.length > 0 && (
           <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400">
             {subtitle.map((s, i) => (
-              <span key={i} className="inline-flex items-center gap-0.5">
-                {s.icon}{s.text}
-              </span>
+              <span key={i} className="inline-flex items-center gap-0.5">{s.icon}{s.text}</span>
             ))}
           </div>
         )}
       </div>
       {badge}
-      <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+      <ChevronRight size={13} className="text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
     </Link>
   )
 }
 
-// ─── Badge pill ─────────────────────────────────────────────────────────────
+// ─── Badges ──────────────────────────────────────────────────────────────────
 
 const TONE_CLS: Record<string, string> = {
-  emerald: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/60 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-800/40',
-  blue: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200/60 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-800/40',
-  amber: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/60 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-800/40',
-  slate: 'bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
-  red: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200/60 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-800/40',
+  emerald: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/60',
+  blue:    'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200/60',
+  amber:   'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200/60',
+  slate:   'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200/60',
 }
 
 function BadgePill({ tone, icon, children }: { tone: string; icon: ReactNode; children: ReactNode }) {
   return (
     <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0', TONE_CLS[tone] ?? TONE_CLS.slate)}>
-      {icon}
-      {children}
+      {icon}{children}
     </span>
   )
 }
 
 function CheckinBadge({ stato }: { stato: string }) {
   switch (stato) {
-    case 'VERIFICATO':
-      return <BadgePill tone="emerald" icon={<Check size={10} />}>Verificato</BadgePill>
-    case 'ONLINE_COMPLETATO':
-      return <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>Da verificare</BadgePill>
-    default:
-      return <BadgePill tone="slate" icon={<Clock size={10} />}>In attesa</BadgePill>
+    case 'VERIFICATO':           return <BadgePill tone="emerald" icon={<Check size={10} />}>Verificato</BadgePill>
+    case 'ONLINE_COMPLETATO':    return <BadgePill tone="blue" icon={<ShieldCheck size={10} />}>Da verificare</BadgePill>
+    default:                     return <BadgePill tone="slate" icon={<Clock size={10} />}>In attesa</BadgePill>
   }
 }
 
-// ─── Fade-out ───────────────────────────────────────────────────────────────
-
-function FadeOut() {
-  return (
-    <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-slate-900 to-transparent pointer-events-none" />
-  )
-}
-
-// ─── Empty state ────────────────────────────────────────────────────────────
-
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4">
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center mb-3 ring-1 ring-inset ring-slate-200/60 dark:ring-slate-700/60">
-        <Check size={20} className="text-slate-300 dark:text-slate-600" />
+    <div className="flex flex-col items-center justify-center py-10 px-4 gap-2">
+      <div className="w-10 h-10 rounded-xl bg-slate-50 ring-1 ring-inset ring-slate-200/60 flex items-center justify-center">
+        <Check size={18} className="text-slate-300" />
       </div>
-      <p className="text-sm text-slate-400 font-medium">{text}</p>
+      <p className="text-[12px] text-slate-400 font-medium">{text}</p>
     </div>
   )
 }
