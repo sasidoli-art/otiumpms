@@ -106,9 +106,9 @@ export async function POST(req: NextRequest) {
     const guestCognome = typeof body.guestCognome === 'string' ? body.guestCognome.trim() : ''
     const numeroCamera = typeof body.numeroCamera === 'string' ? body.numeroCamera.trim() : ''
 
-    if (!guestNome || !numeroCamera) {
+    if (!guestNome || !guestCognome) {
       return NextResponse.json(
-        { error: 'Nome e numero camera sono obbligatori' },
+        { error: 'Nome e cognome sono obbligatori' },
         { status: 422 }
       )
     }
@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
     domani.setDate(domani.getDate() + 1)
 
     // Cerca prenotazione attiva: dataArrivo <= oggi < dataPartenza
+    // Camera opzionale: se passata fa da disambiguatore tra omonimi
     const prenotazione = await prisma.prenotazione.findFirst({
       where: {
         hostId: host.id,
@@ -129,10 +130,10 @@ export async function POST(req: NextRequest) {
           { dataPartenza: { gt: oggi } },
         ],
         guestNome: { equals: guestNome, mode: 'insensitive' },
-        ...(guestCognome
-          ? { guestCognome: { equals: guestCognome, mode: 'insensitive' } }
+        guestCognome: { equals: guestCognome, mode: 'insensitive' },
+        ...(numeroCamera
+          ? { unita: { nome: { equals: numeroCamera, mode: 'insensitive' } } }
           : {}),
-        unita: { nome: { equals: numeroCamera, mode: 'insensitive' } },
       },
       include: { unita: { select: { nome: true } } },
     })

@@ -49,7 +49,7 @@ export default function WifiLoginClient({
 
   const availableTabs: { id: Tab; label: string; icon: React.ReactNode }[] = []
   if (methods.pms) availableTabs.push({ id: 'pin', label: 'Ho il PIN', icon: <KeyRound className="w-4 h-4" /> })
-  if (methods.pms) availableTabs.push({ id: 'prenotazione', label: 'Camera + Cognome', icon: <UserCheck className="w-4 h-4" /> })
+  if (methods.pms) availableTabs.push({ id: 'prenotazione', label: 'Nome + Cognome', icon: <UserCheck className="w-4 h-4" /> })
   if (methods.emailOnly) availableTabs.push({ id: 'email_only', label: 'Email prenotazione', icon: <Mail className="w-4 h-4" /> })
   if (methods.code) availableTabs.push({ id: 'codice', label: 'Codice accesso', icon: <KeyRound className="w-4 h-4" /> })
   if (methods.complimentary) availableTabs.push({ id: 'complimentary', label: 'Gratis', icon: <Globe className="w-4 h-4" /> })
@@ -264,7 +264,7 @@ export default function WifiLoginClient({
             </>
           )}
 
-          {/* TAB: Prenotazione (Room + Cognome) */}
+          {/* TAB: Prenotazione (Nome + Cognome, camera opzionale) */}
           {tab === 'prenotazione' && (
             <>
               <p className="text-xs text-gray-500">Inserisci i dati della tua prenotazione.</p>
@@ -276,14 +276,14 @@ export default function WifiLoginClient({
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Cognome</label>
-                <input type="text" autoComplete="family-name" value={guestCognome}
+                <input type="text" required autoComplete="family-name" value={guestCognome}
                   onChange={e => setGuestCognome(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Numero camera</label>
-                <input type="text" required value={numeroCamera}
-                  onChange={e => setNumeroCamera(e.target.value)} placeholder="es. 101"
+                <label className="block text-xs font-medium text-gray-700 mb-1">Numero camera <span className="text-gray-400 font-normal">(opzionale)</span></label>
+                <input type="text" value={numeroCamera}
+                  onChange={e => setNumeroCamera(e.target.value)} placeholder="solo se ci sono omonimi"
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
               </div>
             </>
