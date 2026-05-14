@@ -1,12 +1,13 @@
 import { prisma } from '@/lib/db'
 import { requireSuperAdmin, isUnauthorized } from '@/lib/auth-middleware'
+import { redirect } from 'next/navigation'
 import OnboardDeviceForm from './onboard-form'
 
 export const metadata = { title: 'Onboard nuovo router — Otium SuperAdmin' }
 
 export default async function OnboardDevicePage() {
   const auth = await requireSuperAdmin()
-  if (isUnauthorized(auth)) return auth
+  if (isUnauthorized(auth)) redirect('/login')
 
   const hosts = await prisma.host.findMany({
     select: {

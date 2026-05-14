@@ -20,6 +20,7 @@ import {
   BookOpen,
   ThumbsUp,
   Users,
+  UserCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -171,7 +172,7 @@ function Hero() {
 
 /* ───────────────────────── Features ───────────────────────── */
 const FEATURE_ICONS = [
-  Calendar, Brush, Sparkles, MessageCircle, FileText, Home, BarChart3, Globe, Smartphone,
+  Calendar, Brush, Sparkles, MessageCircle, FileText, Home, BarChart3, Globe, Smartphone, UserCheck,
 ] as const
 
 function Features() {

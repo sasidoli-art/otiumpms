@@ -328,7 +328,7 @@ export function PagamentoSpaForm({
                 if (!giftCardCodice.trim()) return
                 setVerificando(true)
                 try {
-                  const res = await fetch(`/api/host/spa/gift-card/${encodeURIComponent(giftCardCodice.trim().toUpperCase())}/verifica`)
+                  const res = await fetch(`/api/host/spa/gift-card/verifica/${encodeURIComponent(giftCardCodice.trim().toUpperCase())}`)
                   const j = await res.json()
                   setGiftCardVerifica({
                     valida: !!j.valida,

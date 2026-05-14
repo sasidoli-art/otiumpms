@@ -3,7 +3,7 @@ import { requireHost, isUnauthorized } from '@/lib/auth-middleware'
 import { verificaGiftCard } from '@/lib/gift-card'
 
 /**
- * GET /api/host/spa/gift-card/[codice]/verifica
+ * GET /api/host/spa/gift-card/verifica/[codice]
  *
  * Lookup read-only per UI: verifica validità + ritorna saldo.
  * Non modifica stato. Richiede auth host (evita enumeration da outside).
