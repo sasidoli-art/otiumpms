@@ -34,7 +34,7 @@
     "link:prenotazioni-crm": "ts-node --project tsconfig.scripts.json scripts/link-prenotazioni-crm.ts"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.9.3",
+    "@neondatabase/serverless": "^1.0.2",
     "@prisma/adapter-neon": "^5.11.0",
     "@prisma/client": "^5.11.0",
     "@react-pdf/renderer": "^3.4.2",
