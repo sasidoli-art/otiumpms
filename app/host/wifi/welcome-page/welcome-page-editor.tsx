@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { SplashConfig } from '@/lib/wifi/splash-config'
+import ImageUploadField from './image-upload-field'
 
 interface Props {
   hostNomeAzienda: string
@@ -71,7 +72,13 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
           <Section title="Brand & identità">
             <Field label="Titolo principale" value={config.titolo ?? ''} onChange={v => patch('titolo', v)} placeholder={hostNomeAzienda} />
             <Field label="Sottotitolo" value={config.sottotitolo ?? ''} onChange={v => patch('sottotitolo', v)} placeholder="Wi-Fi gratuito per ospiti" />
-            <Field label="URL logo (PNG/SVG)" value={config.logoUrl ?? ''} onChange={v => patch('logoUrl', v)} placeholder="https://cdn.tuosito.it/logo.png" />
+            <ImageUploadField
+              label="Logo"
+              value={config.logoUrl ?? ''}
+              onChange={v => patch('logoUrl', v)}
+              kind="logo"
+              hint="PNG/SVG/JPG, max 2 MB (compresso a 80 KB)"
+            />
             <FieldNumber label="Altezza logo (px)" value={config.logoHeight ?? 60} onChange={v => patch('logoHeight', v)} min={20} max={200} />
             <Field label="Messaggio di benvenuto" value={config.messaggioWelcome ?? ''} onChange={v => patch('messaggioWelcome', v)} placeholder="es. Benvenuto. Inserisci il codice ricevuto al check-in." textarea />
           </Section>
@@ -80,7 +87,13 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
             <FieldColor label="Colore primario" value={config.colorePrimario ?? '#4f46e5'} onChange={v => patch('colorePrimario', v)} />
             <FieldColor label="Colore sfondo" value={config.coloreSfondo ?? '#f3f4f6'} onChange={v => patch('coloreSfondo', v)} />
             <FieldColor label="Colore testo" value={config.coloreTesto ?? '#111827'} onChange={v => patch('coloreTesto', v)} />
-            <Field label="URL immagine sfondo (opzionale)" value={config.sfondoImmagineUrl ?? ''} onChange={v => patch('sfondoImmagineUrl', v)} placeholder="https://cdn.tuosito.it/sfondo.jpg" />
+            <ImageUploadField
+              label="Immagine sfondo"
+              value={config.sfondoImmagineUrl ?? ''}
+              onChange={v => patch('sfondoImmagineUrl', v)}
+              kind="background"
+              hint="JPG/PNG, max 10 MB (compresso a 400 KB, ridimensionato a 1600px)"
+            />
           </Section>
 
           <Section title="Form di login">

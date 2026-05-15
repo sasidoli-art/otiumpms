@@ -47,6 +47,9 @@ export async function GET() {
   })
 }
 
+/** Limite size config (incluse immagini data URI). 1 MB ragionevole. */
+const MAX_CONFIG_BYTES = 1_000_000
+
 export async function POST(req: NextRequest) {
   const res = await getCurrentHostWithCheck()
   if ('error' in res) return NextResponse.json({ error: res.error }, { status: res.status })
@@ -61,6 +64,15 @@ export async function POST(req: NextRequest) {
   for (const k of Object.keys(cleaned) as (keyof SplashConfig)[]) {
     const val = cleaned[k]
     if (val === '' || val === null) delete cleaned[k]
+  }
+
+  // Limite size globale (data URI inflate splashConfig)
+  const serialized = JSON.stringify(cleaned)
+  if (serialized.length > MAX_CONFIG_BYTES) {
+    return NextResponse.json(
+      { error: `Config troppo grande (${(serialized.length / 1024).toFixed(0)} KB > ${MAX_CONFIG_BYTES / 1024} KB). Riduci le immagini.` },
+      { status: 413 },
+    )
   }
 
   await prisma.host.update({
