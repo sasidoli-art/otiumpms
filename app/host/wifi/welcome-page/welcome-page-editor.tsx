@@ -6,6 +6,8 @@ import { applyTemplate, type SplashTemplate } from '@/lib/wifi/splash-templates'
 import ImageUploadField from './image-upload-field'
 import TemplatePicker from './template-picker'
 import LanguageSection from './language-section'
+import BlocksEditor from './blocks-editor'
+import type { Block } from '@/lib/wifi/splash-blocks'
 
 interface Props {
   hostNomeAzienda: string
@@ -129,6 +131,8 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
             <Field label="URL Termini e Condizioni" value={config.urlTermsConditions ?? ''} onChange={v => patch('urlTermsConditions', v)} placeholder="https://www.tuosito.it/termini" />
             <Field label="URL Privacy Policy" value={config.urlPrivacyPolicy ?? ''} onChange={v => patch('urlPrivacyPolicy', v)} placeholder="https://www.tuosito.it/privacy" />
           </Section>
+
+          <BlocksEditor blocks={config.blocks ?? []} onChange={(blocks: Block[]) => patch('blocks', blocks)} />
 
           <LanguageSection config={config} onPatch={patch} />
 

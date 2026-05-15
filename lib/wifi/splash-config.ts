@@ -67,6 +67,10 @@ export interface SplashConfig {
   /** Template pre-built selezionato (sovrascrive defaults sopra prima del merge) */
   template?: 'minimalist' | 'hotel-chic' | 'agriturismo' | 'beach-resort' | 'business'
 
+  // ─── Blocks personalizzati (drag-drop sezioni opzionali tra hero e form) ─
+  /** Array di blocchi opzionali. Ordine = ordine di rendering. */
+  blocks?: import('./splash-blocks').Block[]
+
   // ─── Multilingua ───────────────────────────────────────────────────────
   /** Lingue abilitate (default: ['it']) */
   lingue?: Lang[]

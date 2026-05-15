@@ -7,6 +7,7 @@
 
 import type { SplashConfig, Lang, TranslatableFields } from './splash-config'
 import { mergeSplashConfig, LANG_LABELS, TRANSLATABLE_FIELDS } from './splash-config'
+import { renderBlocks } from './splash-blocks'
 
 /** Escape HTML entities per evitare XSS via campi utente */
 function esc(s: string | undefined | null): string {
@@ -70,6 +71,12 @@ export function renderSplashHtml(
   const welcomeHtml = c.messaggioWelcome
     ? `<p style="font-size: 14px; color: ${esc(c.coloreTesto)}; opacity: 0.75; margin: 12px 0 0; line-height: 1.5;">${esc(c.messaggioWelcome)}</p>`
     : ''
+
+  // Blocks personalizzati (custom drag-drop sections)
+  const blocksHtml = renderBlocks(c.blocks, {
+    colorePrimario: c.colorePrimario ?? '#4f46e5',
+    coloreTesto: c.coloreTesto ?? '#111827',
+  })
 
   const tabCodiceHtml = showCodice ? `
     <div class="pane${initialMode === 'codice' ? ' active' : ''}" data-pane="codice">
@@ -187,6 +194,7 @@ ${langSwitcherHtml}
     <p class="sub" data-t="sottotitolo">${esc(c.sottotitolo)}</p>
     ${c.messaggioWelcome ? `<p style="font-size: 14px; color: ${esc(c.coloreTesto)}; opacity: 0.75; margin: 12px 0 0; line-height: 1.5;" data-t="messaggioWelcome">${esc(c.messaggioWelcome)}</p>` : welcomeHtml}
   </div>
+  ${blocksHtml}
   <div class="card">
     ${tabsBarHtml}
     <form id="f" method="post" action="/cgi-bin/otium-login"${redirectAttr}>
