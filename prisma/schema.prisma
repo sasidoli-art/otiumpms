@@ -428,6 +428,7 @@ model Host {
   wifiAccessLogs  WifiAccessLog[]
   wifiAccessCodes WifiAccessCode[]
   wifiSessions    WifiSession[]
+  wifiApiKeys     WifiApiKey[]
 
   // ─── Config estratte (Fase 1 God Object split) ──────────────────────────
   // Durante la migrazione i campi SMTP/Concierge/Wifi/Billing esistono sia su
@@ -4079,6 +4080,43 @@ model WifiSession {
   @@index([prenotazioneId])
   @@index([accessCodeId])
   @@map("wifi_sessions")
+}
+
+// ─── Wi-Fi Public API Keys ────────────────────────────────────────────────────
+// Permette integrazioni esterne (es. PMS terzi, Zapier, automazioni) di interagire
+// col modulo Wi-Fi via REST. Una key appartiene a un Host (multi-tenant garantito).
+// La key in chiaro viene mostrata UNA volta a creation; il DB salva solo l'hash.
+
+model WifiApiKey {
+  id     String @id @default(cuid())
+  hostId String
+  host   Host   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  name      String // Etichetta leggibile, es. "Hotelfriend integration"
+  keyHash   String @unique // sha256 della key in chiaro
+  keyPrefix String // primi 8 char (visibili nella UI per identificare la key)
+
+  // Scopes (whitelist) — array di stringhe tipo "codes:write", "sessions:read"
+  scopes String[]
+
+  // Rate limit per-minute (default 60 req/min)
+  rateLimitPerMin Int @default(60)
+
+  // Lifecycle
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+
+  // Audit
+  createdByUserId String?
+  note            String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hostId, revokedAt])
+  @@index([keyHash])
+  @@map("wifi_api_keys")
 }
 
 // ─── Webhooks ─────────────────────────────────────────────────────────────────
