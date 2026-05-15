@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Modal } from '@/components/ui/modal'
 
 type Host = {
   id: string
@@ -30,6 +31,24 @@ export default function OnboardDeviceForm({ hosts }: { hosts: Host[] }) {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<ResultOk | ResultErr | null>(null)
+  const [tokenCopied, setTokenCopied] = useState(false)
+
+  function closeSuccess() {
+    if (result?.ok) URL.revokeObjectURL(result.fileUrl)
+    setResult(null)
+    setTokenCopied(false)
+  }
+
+  async function copyToken() {
+    if (!result?.ok) return
+    try {
+      await navigator.clipboard.writeText(result.token)
+      setTokenCopied(true)
+      setTimeout(() => setTokenCopied(false), 2500)
+    } catch {
+      // fallback: select the element text
+    }
+  }
 
   const selectedHost = hosts.find(h => h.id === hostId)
 
@@ -200,47 +219,85 @@ export default function OnboardDeviceForm({ hosts }: { hosts: Host[] }) {
         </button>
       </form>
 
-      {/* Risultato */}
+      {/* Errore inline */}
       {result && !result.ok && (
         <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
           <strong>Errore:</strong> {result.error}
         </div>
       )}
 
-      {result && result.ok && (
-        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-          <h3 className="font-semibold text-green-900">✓ Device creato — scarica il backup patchato</h3>
-
-          <a
-            href={result.fileUrl}
-            download={result.filename}
-            className="inline-block px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
+      {/* Modal popup success */}
+      <Modal
+        open={!!(result && result.ok)}
+        onClose={closeSuccess}
+        title="✓ Device creato"
+        size="lg"
+        footer={
+          <button
+            type="button"
+            onClick={closeSuccess}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium"
           >
-            ⬇ Scarica {result.filename}
-          </a>
+            Ho salvato tutto, chiudi
+          </button>
+        }
+      >
+        {result && result.ok && (
+          <div className="space-y-5">
+            <p className="text-sm text-gray-600">
+              Backup patchato pronto. Salva il bearer token <strong>prima</strong> di chiudere — non sarà più visibile.
+            </p>
 
-          <div className="text-sm space-y-1">
-            <div><strong>Device ID:</strong> <code className="bg-white px-1">{result.deviceId}</code></div>
-            <div><strong>MAC:</strong> <code className="bg-white px-1">{result.mac}</code></div>
-            <div><strong>Dimensione:</strong> {(result.fileSize / 1024).toFixed(1)} KB</div>
-          </div>
+            {/* Download */}
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <p className="text-xs uppercase tracking-wide text-indigo-700 mb-2 font-semibold">Step 1 — Download file patchato</p>
+              <a
+                href={result.fileUrl}
+                download={result.filename}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 text-sm"
+              >
+                ⬇ Scarica {result.filename}
+              </a>
+              <p className="text-xs text-gray-500 mt-2">{(result.fileSize / 1024).toFixed(1)} KB</p>
+            </div>
 
-          <div className="bg-yellow-50 border border-yellow-300 rounded p-3 text-sm">
-            <p className="font-semibold mb-1">⚠️ Bearer token (salvalo, NON sarà più visibile)</p>
-            <code className="block bg-white px-2 py-1 rounded font-mono text-xs break-all">{result.token}</code>
-          </div>
+            {/* Token */}
+            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-xs uppercase tracking-wide text-yellow-800 font-semibold">⚠ Step 2 — Salva il Bearer Token</p>
+                <button
+                  type="button"
+                  onClick={copyToken}
+                  className="text-xs bg-yellow-200 hover:bg-yellow-300 px-2 py-1 rounded font-medium"
+                >
+                  {tokenCopied ? '✓ Copiato!' : '📋 Copia'}
+                </button>
+              </div>
+              <code className="block bg-white px-3 py-2 rounded font-mono text-xs break-all border border-yellow-200">
+                {result.token}
+              </code>
+              <p className="text-xs text-gray-600 mt-2">Questa è l&apos;unica volta che vedi il token in chiaro. Conservalo (es. in un password manager o nella scheda cliente).</p>
+            </div>
 
-          <div className="text-sm text-gray-700">
-            <p><strong>Prossimi passi:</strong></p>
-            <ol className="list-decimal pl-5 space-y-1 mt-1">
-              <li>Carica il file su Web UI router → <strong>Manage Config → Restore</strong></li>
-              <li>Aspetta riavvio (60s)</li>
-              <li>Verifica heartbeat sulla pagina <a href="/superadmin/wifi" className="text-indigo-600 underline">Wi-Fi devices</a></li>
-              <li>Per setup completo local-first portal: <code className="bg-gray-100 px-1">deploy-from-pc.sh</code></li>
-            </ol>
+            {/* Meta */}
+            <div className="bg-gray-50 border rounded-lg p-3 text-xs space-y-1">
+              <div><strong>Device ID:</strong> <code className="bg-white px-1 rounded">{result.deviceId}</code></div>
+              <div><strong>MAC:</strong> <code className="bg-white px-1 rounded">{result.mac}</code></div>
+            </div>
+
+            {/* Prossimi passi */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+              <p className="font-semibold text-blue-900 mb-2">Prossimi passi:</p>
+              <ol className="list-decimal pl-5 space-y-1 text-gray-700">
+                <li>Carica il file su Web UI router → <strong>Manage Config → Restore</strong></li>
+                <li>Aspetta riavvio (~60s)</li>
+                <li>Verifica heartbeat su <a href="/superadmin/wifi" className="text-indigo-600 underline">Wi-Fi devices</a></li>
+                <li>Per setup completo local-first portal lancia <code className="bg-white px-1 rounded">deploy-from-pc.sh</code> da PC operatore</li>
+              </ol>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </>
   )
 }
