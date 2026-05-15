@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { SplashConfig } from '@/lib/wifi/splash-config'
+import { applyTemplate, type SplashTemplate } from '@/lib/wifi/splash-templates'
 import ImageUploadField from './image-upload-field'
+import TemplatePicker from './template-picker'
 
 interface Props {
   hostNomeAzienda: string
@@ -50,6 +52,15 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
     }, 800)
   }
 
+  function applyTpl(id: SplashTemplate['id']) {
+    const next = applyTemplate(config, id, true)
+    setConfig(next)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setSaving(true)
+    // Apply immediato (no debounce per feedback istantaneo)
+    renderPreview(next).then(() => setSaving(false))
+  }
+
   useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
 
   return (
@@ -69,6 +80,8 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
 
       <div className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
+          <TemplatePicker currentTemplate={config.template} onApply={applyTpl} />
+
           <Section title="Brand & identità">
             <Field label="Titolo principale" value={config.titolo ?? ''} onChange={v => patch('titolo', v)} placeholder={hostNomeAzienda} />
             <Field label="Sottotitolo" value={config.sottotitolo ?? ''} onChange={v => patch('sottotitolo', v)} placeholder="Wi-Fi gratuito per ospiti" />
