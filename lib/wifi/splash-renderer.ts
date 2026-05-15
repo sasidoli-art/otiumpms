@@ -5,8 +5,8 @@
  * Tutto inline (CSS+JS) per evitare richieste esterne durante captive.
  */
 
-import type { SplashConfig } from './splash-config'
-import { mergeSplashConfig } from './splash-config'
+import type { SplashConfig, Lang, TranslatableFields } from './splash-config'
+import { mergeSplashConfig, LANG_LABELS, TRANSLATABLE_FIELDS } from './splash-config'
 
 /** Escape HTML entities per evitare XSS via campi utente */
 function esc(s: string | undefined | null): string {
@@ -19,12 +19,40 @@ function esc(s: string | undefined | null): string {
     .replace(/'/g, '&#39;')
 }
 
+/** Costruisce dataset i18n per tutti i campi traducibili e tutte le lingue abilitate */
+function buildI18nData(c: SplashConfig): Record<Lang, TranslatableFields> | null {
+  const langs = c.lingue ?? []
+  if (langs.length <= 1) return null
+
+  const data: Partial<Record<Lang, TranslatableFields>> = {}
+  for (const lang of langs) {
+    const overrides = c.traduzioni?.[lang] ?? {}
+    const fields: TranslatableFields = {}
+    for (const k of TRANSLATABLE_FIELDS) {
+      fields[k] = overrides[k] ?? (c[k] as string | undefined) ?? ''
+    }
+    data[lang] = fields
+  }
+  return data as Record<Lang, TranslatableFields>
+}
+
+/** Applica overrides della lingua default al config per il rendering iniziale */
+function applyDefaultLang(c: SplashConfig): SplashConfig {
+  const defaultLang = c.linguaDefault ?? c.lingue?.[0]
+  if (!defaultLang || defaultLang === 'it') return c
+  const overrides = c.traduzioni?.[defaultLang]
+  if (!overrides) return c
+  return { ...c, ...overrides }
+}
+
 /** Renderizza l'HTML splash completo */
 export function renderSplashHtml(
   hostNomeAzienda: string,
   config: SplashConfig | null | undefined,
 ): string {
-  const c = mergeSplashConfig(hostNomeAzienda, config)
+  let c = mergeSplashConfig(hostNomeAzienda, config)
+  c = applyDefaultLang(c)
+  const i18n = buildI18nData(c)
 
   const bgStyle = c.sfondoImmagineUrl
     ? `background: url('${esc(c.sfondoImmagineUrl)}') center/cover no-repeat fixed, ${esc(c.coloreSfondo)};`
@@ -61,8 +89,8 @@ export function renderSplashHtml(
 
   const tabsBarHtml = hasMultiTabs ? `
     <div class="tabs">
-      ${showCodice ? `<button type="button" class="tab active" data-tab="codice">${esc(c.labelTabCodice)}</button>` : ''}
-      ${showPreno  ? `<button type="button" class="tab" data-tab="prenotazione">${esc(c.labelTabPrenotazione)}</button>` : ''}
+      ${showCodice ? `<button type="button" class="tab active" data-tab="codice"><span data-t="labelTabCodice">${esc(c.labelTabCodice)}</span></button>` : ''}
+      ${showPreno  ? `<button type="button" class="tab" data-tab="prenotazione"><span data-t="labelTabPrenotazione">${esc(c.labelTabPrenotazione)}</span></button>` : ''}
     </div>` : ''
 
   const legalLinks: string[] = []
@@ -75,6 +103,42 @@ export function renderSplashHtml(
   const redirectAttr = c.urlRedirectPostLogin
     ? ` data-redirect="${esc(c.urlRedirectPostLogin)}"`
     : ''
+
+  // ─── Lang switcher ─────────────────────────────────────────────────────
+  const langSwitcherHtml = i18n ? `
+    <div class="lang-switcher">
+      ${(c.lingue ?? []).map(lang => {
+        const isActive = (c.linguaDefault ?? c.lingue?.[0]) === lang
+        return `<button type="button" class="lang-btn${isActive ? ' active' : ''}" data-lang="${lang}" title="${esc(LANG_LABELS[lang].label)}">${LANG_LABELS[lang].flag}</button>`
+      }).join('')}
+    </div>` : ''
+
+  const i18nDataScript = i18n ? `
+<script id="i18n-data" type="application/json">${JSON.stringify(i18n).replace(/</g, '\\u003c')}</script>
+<script>
+(function(){
+  var data=JSON.parse(document.getElementById('i18n-data').textContent);
+  var btns=document.getElementsByClassName('lang-btn');
+  function apply(lang){
+    var t=data[lang]; if(!t) return;
+    document.title=(t.titolo||'')+' - Wi-Fi';
+    var elT=document.querySelector('[data-t="titolo"]');     if(elT)elT.textContent=t.titolo||'';
+    var elS=document.querySelector('[data-t="sottotitolo"]'); if(elS)elS.textContent=t.sottotitolo||'';
+    var elW=document.querySelector('[data-t="messaggioWelcome"]'); if(elW){ elW.textContent=t.messaggioWelcome||''; elW.style.display=t.messaggioWelcome?'':'none'; }
+    var elB=document.querySelector('[data-t="testoBottone"]'); if(elB)elB.textContent=t.testoBottone||'';
+    var elTc=document.querySelector('[data-t="labelTabCodice"]'); if(elTc)elTc.textContent=t.labelTabCodice||'';
+    var elTp=document.querySelector('[data-t="labelTabPrenotazione"]'); if(elTp)elTp.textContent=t.labelTabPrenotazione||'';
+    var elF=document.querySelector('[data-t="testoFooter"]'); if(elF)elF.textContent=t.testoFooter||'';
+    for(var i=0;i<btns.length;i++) btns[i].className='lang-btn'+(btns[i].getAttribute('data-lang')===lang?' active':'');
+    try{ localStorage.setItem('otium_lang', lang); }catch(e){}
+  }
+  for(var i=0;i<btns.length;i++){
+    (function(b){ b.onclick=function(){ apply(b.getAttribute('data-lang')); }; })(btns[i]);
+  }
+  // Auto-restore preferenza utente
+  try{ var saved=localStorage.getItem('otium_lang'); if(saved && data[saved]) apply(saved); }catch(e){}
+})();
+</script>` : ''
 
   return `<!DOCTYPE html>
 <html lang="it">
@@ -107,16 +171,21 @@ input.code { text-align: center; letter-spacing: 0.2em; font-size: 22px; text-tr
 .legal a { color: ${esc(c.colorePrimario)}; text-decoration: none; opacity: 0.85; }
 .legal a:hover { text-decoration: underline; }
 .error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 9px; padding: 10px 12px; margin-top: 10px; font-size: 13px; }
+.lang-switcher { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border-radius: 100px; padding: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.lang-btn { width: 32px; height: 32px; border: 0; background: transparent; border-radius: 100px; cursor: pointer; font-size: 16px; transition: background .15s; padding: 0; line-height: 1; }
+.lang-btn:hover { background: rgba(0,0,0,0.05); }
+.lang-btn.active { background: ${esc(c.colorePrimario)}20; }
 @media (max-width: 380px) { body { padding: 12px; } .card { padding: 18px; } .hero h1 { font-size: 20px; } }
 </style>
 </head>
 <body>
+${langSwitcherHtml}
 <div class="wrap">
   <div class="hero">
     ${logoHtml}
-    <h1>${esc(c.titolo)}</h1>
-    <p class="sub">${esc(c.sottotitolo)}</p>
-    ${welcomeHtml}
+    <h1 data-t="titolo">${esc(c.titolo)}</h1>
+    <p class="sub" data-t="sottotitolo">${esc(c.sottotitolo)}</p>
+    ${c.messaggioWelcome ? `<p style="font-size: 14px; color: ${esc(c.coloreTesto)}; opacity: 0.75; margin: 12px 0 0; line-height: 1.5;" data-t="messaggioWelcome">${esc(c.messaggioWelcome)}</p>` : welcomeHtml}
   </div>
   <div class="card">
     ${tabsBarHtml}
@@ -124,14 +193,15 @@ input.code { text-align: center; letter-spacing: 0.2em; font-size: 22px; text-tr
       <input type="hidden" name="mode" id="mode" value="${initialMode}">
       ${tabCodiceHtml}
       ${tabPrenoHtml}
-      <button type="submit" class="submit">${esc(c.testoBottone)}</button>
+      <button type="submit" class="submit" data-t="testoBottone">${esc(c.testoBottone)}</button>
     </form>
   </div>
   <div class="foot">
-    <div>${esc(c.testoFooter)}</div>
+    <div data-t="testoFooter">${esc(c.testoFooter)}</div>
     ${legalHtml}
   </div>
 </div>
+${i18nDataScript}
 <script>
 (function(){
   var tabs=document.getElementsByClassName('tab');

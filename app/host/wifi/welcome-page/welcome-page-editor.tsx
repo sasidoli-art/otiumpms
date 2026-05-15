@@ -5,6 +5,7 @@ import type { SplashConfig } from '@/lib/wifi/splash-config'
 import { applyTemplate, type SplashTemplate } from '@/lib/wifi/splash-templates'
 import ImageUploadField from './image-upload-field'
 import TemplatePicker from './template-picker'
+import LanguageSection from './language-section'
 
 interface Props {
   hostNomeAzienda: string
@@ -128,6 +129,8 @@ export default function WelcomePageEditor({ hostNomeAzienda, initialConfig, init
             <Field label="URL Termini e Condizioni" value={config.urlTermsConditions ?? ''} onChange={v => patch('urlTermsConditions', v)} placeholder="https://www.tuosito.it/termini" />
             <Field label="URL Privacy Policy" value={config.urlPrivacyPolicy ?? ''} onChange={v => patch('urlPrivacyPolicy', v)} placeholder="https://www.tuosito.it/privacy" />
           </Section>
+
+          <LanguageSection config={config} onPatch={patch} />
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
             <strong>Propagazione al router:</strong> le modifiche vengono applicate alla pagina captive entro <strong>5 minuti</strong> (prossimo sync).

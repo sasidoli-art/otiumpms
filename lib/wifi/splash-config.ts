@@ -67,12 +67,42 @@ export interface SplashConfig {
   /** Template pre-built selezionato (sovrascrive defaults sopra prima del merge) */
   template?: 'minimalist' | 'hotel-chic' | 'agriturismo' | 'beach-resort' | 'business'
 
-  // ─── Multilingua (sprint 4) ───────────────────────────────────────────
+  // ─── Multilingua ───────────────────────────────────────────────────────
   /** Lingue abilitate (default: ['it']) */
-  lingue?: ('it' | 'en' | 'de' | 'fr')[]
-  /** Traduzioni per ogni campo (sovrascrive i campi sopra se lingua != it) */
-  traduzioni?: Partial<Record<'it' | 'en' | 'de' | 'fr', Partial<SplashConfig>>>
+  lingue?: Lang[]
+  /** Lingua di default mostrata al primo caricamento (default: prima di `lingue`) */
+  linguaDefault?: Lang
+  /** Traduzioni per ogni campo. Es: { en: { titolo: 'Welcome', ... } } */
+  traduzioni?: Partial<Record<Lang, TranslatableFields>>
 }
+
+export type Lang = 'it' | 'en' | 'de' | 'fr'
+
+/** Campi traducibili (solo testi visibili, no colori/url/toggle) */
+export interface TranslatableFields {
+  titolo?: string
+  sottotitolo?: string
+  messaggioWelcome?: string
+  testoBottone?: string
+  labelTabCodice?: string
+  labelTabPrenotazione?: string
+  testoFooter?: string
+  successTitolo?: string
+  successMessaggio?: string
+}
+
+export const LANG_LABELS: Record<Lang, { label: string; flag: string }> = {
+  it: { label: 'Italiano', flag: '🇮🇹' },
+  en: { label: 'English',  flag: '🇬🇧' },
+  de: { label: 'Deutsch',  flag: '🇩🇪' },
+  fr: { label: 'Français', flag: '🇫🇷' },
+}
+
+export const TRANSLATABLE_FIELDS: (keyof TranslatableFields)[] = [
+  'titolo', 'sottotitolo', 'messaggioWelcome', 'testoBottone',
+  'labelTabCodice', 'labelTabPrenotazione', 'testoFooter',
+  'successTitolo', 'successMessaggio',
+]
 
 /** Valori di fallback per i campi quando il config è vuoto */
 export function getSplashDefaults(hostNomeAzienda: string): SplashConfig {
