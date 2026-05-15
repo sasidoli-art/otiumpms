@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireWifiDevice } from '@/lib/wifi/auth'
+import { renderSplashHtml } from '@/lib/wifi/splash-renderer'
+import type { SplashConfig } from '@/lib/wifi/splash-config'
 
 /**
  * GET /api/wifi/router/sync
@@ -25,6 +27,12 @@ export async function GET(req: NextRequest) {
 
   const device = await requireWifiDevice(req, macNorm)
   if (device instanceof NextResponse) return device
+
+  // Carico host per nomeAzienda + splashConfig (per renderizzare HTML captive)
+  const host = await prisma.host.findUnique({
+    where: { id: device.hostId },
+    select: { nomeAzienda: true, splashConfig: true },
+  })
 
   const now = new Date()
   const tomorrow = new Date(now); tomorrow.setHours(0, 0, 0, 0); tomorrow.setDate(tomorrow.getDate() + 1)
@@ -90,6 +98,11 @@ export async function GET(req: NextRequest) {
     data: { ultimoHeartbeatAt: new Date() },
   }).catch(() => {})
 
+  // Renderizza HTML splash dal config (cached per request — il router lo scrive su disco)
+  const splashHtml = host
+    ? renderSplashHtml(host.nomeAzienda, host.splashConfig as SplashConfig | null)
+    : null
+
   return NextResponse.json({
     syncedAt: now.toISOString(),
     hostId: device.hostId,
@@ -103,5 +116,6 @@ export async function GET(req: NextRequest) {
       note: c.note,
     })),
     prenotazioni: prenotazioniFlat,
+    splashHtml,
   })
 }

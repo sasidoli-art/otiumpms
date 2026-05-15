@@ -265,6 +265,11 @@ model Host {
   wifiAuthSocial        Boolean @default(false) // Social login (Google/Facebook)
   wifiRedirectUrl       String? // URL redirect post-login (sito hotel/attività)
   wifiWelcomeMessage    String? // Messaggio personalizzato welcome page
+  // Splash page rich config (editor /host/wifi/welcome-page) — JSONB unico per
+  // tutta la personalizzazione visiva captive: logo, colori, sezioni, testi,
+  // template scelto, T&C, redirect, multilingua. Quando null o vuoto → fallback
+  // al template stock con wifiWelcomeMessage di default.
+  splashConfig          Json?
 
   // Email routing — inoltro richieste ospiti a reparti specifici
   emailHousekeeping String? // richieste pulizie/biancheria/asciugamani
@@ -911,8 +916,8 @@ model Struttura {
   customDomain             String?   @unique
   customDomainVerificatoAt DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([deletedAt])
@@ -1013,7 +1018,7 @@ model RegolaTariffa {
   giorniSettimana Int[] @default([]) // es. [4,5] = Ven+Sab, [5,6] = Sab+Dom
 
   // Durata soggiorno (solo per DURATA) — notti minime per attivare lo sconto
-  nottiMinime  Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
+  nottiMinime   Int? // es. 3 = sconto attivo per soggiorni >= 3 notti
   // Anticipo prenotazione (EARLY_BIRD / LAST_MINUTE)
   giorniMinimi  Int? // EARLY_BIRD: anticipo minimo in giorni per avere lo sconto
   giorniMassimi Int? // LAST_MINUTE: anticipo massimo in giorni per avere lo sconto
@@ -1125,8 +1130,8 @@ model Prenotazione {
   verificatoDa      String? // userId operatore reception
 
   // CRM: collegamento diretto all'anagrafica ospite
-  ospiteCrmId            String?
-  ospiteCrm              OspiteCRM?               @relation(fields: [ospiteCrmId], references: [id], onDelete: SetNull)
+  ospiteCrmId String?
+  ospiteCrm   OspiteCRM? @relation(fields: [ospiteCrmId], references: [id], onDelete: SetNull)
 
   chat                   Chat?
   fattura                Fattura?                 @relation(fields: [fatturaId], references: [id])
@@ -1327,12 +1332,12 @@ model ConfigRistorante {
   strutturaId String    @unique
   struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
 
-  nomeRistorante  String?
-  oraApertura     String  @default("12:00")
-  oraChiusura     String  @default("22:00")
-  intervalloSlot  Int     @default(30) // minuti tra slot
-  maxCopertiPerSlot Int   @default(30)
-  giorniChiusura  Int[]   @default([]) // 0=lunedì, 6=domenica
+  nomeRistorante     String?
+  oraApertura        String  @default("12:00")
+  oraChiusura        String  @default("22:00")
+  intervalloSlot     Int     @default(30) // minuti tra slot
+  maxCopertiPerSlot  Int     @default(30)
+  giorniChiusura     Int[]   @default([]) // 0=lunedì, 6=domenica
   prenotazioneOnline Boolean @default(true)
   confermaAutomatica Boolean @default(true)
 
@@ -1367,8 +1372,8 @@ model ArticoloMagazzino {
 
   movimenti MovimentoMagazzino[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([hostId, categoria])
@@ -1604,8 +1609,8 @@ model CanaleEsterno {
   // Prenotazioni importate da questo canale
   prenotazioniImportate PrenotazioneCanale[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([strutturaId])
@@ -2257,8 +2262,8 @@ model OspiteCRM {
   spaPreferenzeTerapista   TerapistaSpa? @relation("OspiteTerapistaPreferito", fields: [spaPreferenzeTerapistaId], references: [id])
   spaTrattamentiPreferiti  String[]      @default([]) // nomi/id trattamenti preferiti
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   // Relazioni
@@ -2839,8 +2844,8 @@ model AppuntamentoSpa {
   movimentiPunti    MovimentoPunti[]
   transazioniPOS    TransazionePOS[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([hostId, dataOra]) // calendario SPA + availability check
@@ -3140,8 +3145,8 @@ model StaffMember {
   attivo Boolean    @default(true)
   note   String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@unique([hostId, userId])
