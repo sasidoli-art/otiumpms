@@ -249,7 +249,10 @@
       "Bash(curl -s https://otium-pms.vercel.app/api/health)",
       "Bash(npx vitest *)",
       "Bash(git stash *)",
-      "Bash(awk '/^model / { current=$2 } /deletedAt/ && current { print current; current=\"\" }' prisma/schema.prisma)"
+      "Bash(awk '/^model / { current=$2 } /deletedAt/ && current { print current; current=\"\" }' prisma/schema.prisma)",
+      "Bash(code \"c:\\\\PROGETTI\\\\Gestionale_otium\\\\app\\\\host\\\\booking-engine\\\\page.tsx\")",
+      "PowerShell(if \\(Test-Path \"$env:USERPROFILE\\\\.claude\\\\skills\"\\) { Get-ChildItem \"$env:USERPROFILE\\\\.claude\\\\skills\" } else { \"skills dir non esiste\" })",
+      "Bash(curl -sS -o /tmp/home.html -w \"HTTP %{http_code}\\\\n\" https://otium-pms.vercel.app/)"
     ],
     "additionalDirectories": [
       "c:\\PROGETTI\\Gestionale_otium"

@@ -265,6 +265,8 @@ model Host {
   wifiAuthSocial        Boolean @default(false) // Social login (Google/Facebook)
   wifiRedirectUrl       String? // URL redirect post-login (sito hotel/attività)
   wifiWelcomeMessage    String? // Messaggio personalizzato welcome page
+  wifiCheckInTime       String  @default("14:00") // Orario check-in locale (HH:MM) — WiFi attivo da
+  wifiCheckOutTime      String  @default("11:00") // Orario check-out locale (HH:MM) — WiFi disattivo a
   // Splash page rich config (editor /host/wifi/welcome-page) — JSONB unico per
   // tutta la personalizzazione visiva captive: logo, colori, sezioni, testi,
   // template scelto, T&C, redirect, multilingua. Quando null o vuoto → fallback
