@@ -5,7 +5,10 @@ import type { WifiAgentAction } from '@/lib/wifi/types'
 
 const VALID_ACTIONS: WifiAgentAction[] = [
   'ping', 'get_status', 'get_ap_list', 'list_guest_users',
-  'add_guest_user', 'revoke_guest_user',
+  'add_guest_user', 'revoke_guest_user', 'update_agent',
+  // v0.5 (2026-05-18): remote management
+  'reboot', 'restart_wifidog', 'reapply_firewall',
+  'pull_logs', 'pull_iptables', 'get_extended_status',
 ]
 
 export async function GET(

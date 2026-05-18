@@ -30,6 +30,13 @@ export type WifiAgentAction =
   | 'set_splash_branding'
   | 'upload_splash_image'
   | 'update_agent'
+  // ─── Estensione v0.5 (2026-05-18): remote management ─────────────────
+  | 'reboot'
+  | 'restart_wifidog'
+  | 'reapply_firewall'
+  | 'pull_logs'
+  | 'pull_iptables'
+  | 'get_extended_status'
 
 export interface WifiAgentCommand {
   id: string

@@ -1,9 +1,9 @@
 #!/bin/sh
-# Otium Wi-Fi Agent v0.4
+# Otium Wi-Fi Agent v0.5
 # Cron: */1 * * * * /usr/sbin/otium-agent.sh
 # Config device: /etc/otium-agent.conf
 
-AGENT_VERSION="0.4"
+AGENT_VERSION="0.5"
 BASE="http://127.0.0.1:80"
 HOST="otium-pms.vercel.app"
 PIDFILE="/var/run/otium-agent.pid"
@@ -169,6 +169,62 @@ while true; do
           log "aggiornato a $NEW_VER"
         fi
       fi
+      ;;
+
+    # ─── Estensione v0.5 (2026-05-18): remote management ─────────────────
+
+    reboot)
+      # Reboot grace 5s per permettere POST result al backend prima del reset
+      OUT="{\"scheduled\":\"reboot in 5s\"}"
+      ( sleep 5; reboot ) >/dev/null 2>&1 &
+      log "reboot scheduled"
+      ;;
+
+    restart_wifidog)
+      WDOG_OUT=$(/etc/init.d/wifidog restart 2>&1 | head -5)
+      OUT="{\"output\":\"$(echo "$WDOG_OUT" | sed 's/"/\\"/g' | tr '\n' ' ')\"}"
+      ;;
+
+    reapply_firewall)
+      FF_OUT=$(/usr/sbin/otium-firewall-fix.sh 2>&1 | head -10)
+      NAT_COUNT=$(iptables -t nat -L WiFiDog_br-lan_AuthWhite -n 2>/dev/null | grep -cE "76\.76|151\.101|216\.198|199\.36|64\.29")
+      OUT="{\"vercelIpsInAuthWhite\":$NAT_COUNT,\"output\":\"$(echo "$FF_OUT" | sed 's/"/\\"/g' | tr '\n' ' ')\"}"
+      ;;
+
+    pull_logs)
+      # Restituisce ultimi 100 righe dei principali log Otium + syslog wifidog
+      AGENT_LOG=$(logread 2>/dev/null | grep -i otium-agent | tail -30 | sed 's/"/\\"/g' | tr '\n' '|')
+      WIFIDOG_LOG=$(logread 2>/dev/null | grep -i wifidog | tail -30 | sed 's/"/\\"/g' | tr '\n' '|')
+      PRUNE_LOG=$(tail -30 /tmp/otium-prune.log 2>/dev/null | sed 's/"/\\"/g' | tr '\n' '|')
+      QOS_LOG=$(tail -30 /tmp/otium-qos.log 2>/dev/null | sed 's/"/\\"/g' | tr '\n' '|')
+      SYNC_LOG=$(tail -30 /tmp/otium-sync.log 2>/dev/null | sed 's/"/\\"/g' | tr '\n' '|')
+      OUT="{\"agent\":\"$AGENT_LOG\",\"wifidog\":\"$WIFIDOG_LOG\",\"prune\":\"$PRUNE_LOG\",\"qos\":\"$QOS_LOG\",\"sync\":\"$SYNC_LOG\"}"
+      ;;
+
+    pull_iptables)
+      NAT=$(iptables -t nat -S 2>/dev/null | head -80 | sed 's/"/\\"/g' | tr '\n' '|')
+      MANGLE=$(iptables -t mangle -S 2>/dev/null | head -60 | sed 's/"/\\"/g' | tr '\n' '|')
+      FILTER=$(iptables -S 2>/dev/null | head -60 | sed 's/"/\\"/g' | tr '\n' '|')
+      OUT="{\"nat\":\"$NAT\",\"mangle\":\"$MANGLE\",\"filter\":\"$FILTER\"}"
+      ;;
+
+    get_extended_status)
+      # CPU + RAM + AC mode + interfacce + AP count + client count
+      CPU_IDLE=$(top -bn1 2>/dev/null | head -2 | tail -1 | awk '{for(i=1;i<=NF;i++) if($i ~ /idle/) {gsub("%","",$(i-1)); print $(i-1); exit}}')
+      [ -z "$CPU_IDLE" ] && CPU_IDLE=100
+      CPU_USE=$((100 - CPU_IDLE))
+      MEM_TOTAL=$(awk '/MemTotal/{print $2}' /proc/meminfo)
+      MEM_FREE=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
+      [ -z "$MEM_FREE" ] && MEM_FREE=$(awk '/MemFree/{print $2}' /proc/meminfo)
+      MEM_USE_PCT=$(( (MEM_TOTAL - MEM_FREE) * 100 / MEM_TOTAL ))
+      WAN_IP=$(ifstatus wan 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
+      LAN_IP=$(ifstatus lan 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
+      GUEST_IP=$(ifstatus guest 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
+      AP_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e 'length(@.list_all)' 2>/dev/null || echo 0)
+      WDOG=$(pgrep wifidog > /dev/null && echo true || echo false)
+      STUN=$(pgrep stunnel > /dev/null && echo true || echo false)
+      AC_MODE=$(uci get wtpd.@wtpd[0].ac_mode 2>/dev/null || echo unknown)
+      OUT="{\"cpuPercent\":$CPU_USE,\"memPercent\":$MEM_USE_PCT,\"memTotalKb\":$MEM_TOTAL,\"uptimeSec\":$UPTIME,\"wanIp\":\"${WAN_IP:-}\",\"lanIp\":\"${LAN_IP:-}\",\"guestIp\":\"${GUEST_IP:-}\",\"apCount\":$AP_COUNT,\"wifidog\":$WDOG,\"stunnel\":$STUN,\"acMode\":\"$AC_MODE\"}"
       ;;
 
     *)

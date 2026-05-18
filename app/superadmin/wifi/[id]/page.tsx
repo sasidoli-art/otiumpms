@@ -22,13 +22,24 @@ const CMD_BADGE = {
 } as const
 
 const ACTIONS = [
-  { value: 'ping',              label: 'Ping', params: null },
-  { value: 'get_status',        label: 'Stato servizi', params: null },
-  { value: 'get_ap_list',       label: 'Lista AP', params: null },
-  { value: 'list_guest_users',  label: 'MAC whitelist', params: null },
-  { value: 'add_guest_user',    label: 'Aggiungi MAC', params: 'mac' },
-  { value: 'revoke_guest_user', label: 'Rimuovi MAC', params: 'mac' },
-  { value: 'update_agent',      label: 'Aggiorna agent', params: null },
+  // Diagnostica + status
+  { value: 'ping',                 label: 'Ping', params: null },
+  { value: 'get_status',           label: 'Stato servizi', params: null },
+  { value: 'get_extended_status',  label: 'Stato esteso (CPU/RAM/IF)', params: null },
+  { value: 'get_ap_list',          label: 'Lista AP', params: null },
+  // MAC whitelist
+  { value: 'list_guest_users',     label: 'MAC whitelist', params: null },
+  { value: 'add_guest_user',       label: 'Aggiungi MAC', params: 'mac' },
+  { value: 'revoke_guest_user',    label: 'Rimuovi MAC', params: 'mac' },
+  // Debug + log
+  { value: 'pull_logs',            label: 'Pull logs (agent/wifidog/prune/qos/sync)', params: null },
+  { value: 'pull_iptables',        label: 'Dump iptables', params: null },
+  // Manutenzione (con cautela)
+  { value: 'reapply_firewall',     label: 'Riapplica firewall-fix', params: null },
+  { value: 'restart_wifidog',      label: 'Restart wifidog (5s downtime)', params: null },
+  { value: 'reboot',               label: '⚠️ Reboot router (~70s downtime)', params: null },
+  // Agent self-update
+  { value: 'update_agent',         label: 'Aggiorna agent', params: null },
 ]
 
 function formatDate(d: string | null) {
