@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { Router, Clock, Globe, ArrowLeft, Play, RefreshCw } from 'lucide-react'
+import { Modal } from '@/components/ui/modal'
+import { Router, Clock, Globe, ArrowLeft, Play, RefreshCw, Cpu, MemoryStick, Wifi, Server, Eye } from 'lucide-react'
 
 const STATO_BADGE = {
   ONLINE:   { variant: 'green',  label: 'Online' },
@@ -67,6 +68,209 @@ type Command = {
   doneAt: string | null; result: unknown; errorMsg: string | null
 }
 
+// ─── Renderer custom per ogni action type ────────────────────────────────
+
+function MetricBox({ icon: Icon, label, value, color = 'gray' }: {
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  value: React.ReactNode
+  color?: 'gray' | 'green' | 'red' | 'yellow' | 'blue'
+}) {
+  const colorMap = {
+    gray: 'text-gray-600 dark:text-slate-300',
+    green: 'text-green-600 dark:text-green-400',
+    red: 'text-red-600 dark:text-red-400',
+    yellow: 'text-yellow-600 dark:text-yellow-400',
+    blue: 'text-blue-600 dark:text-blue-400',
+  }
+  return (
+    <div className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 bg-gray-50 dark:bg-slate-800/50">
+      <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
+        <Icon className="w-3 h-3" />
+        <span>{label}</span>
+      </div>
+      <div className={`text-lg font-semibold ${colorMap[color]}`}>{value}</div>
+    </div>
+  )
+}
+
+function LogBlock({ title, content }: { title: string; content: string }) {
+  const lines = content.split('|').filter(l => l.trim())
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{title} <span className="text-gray-400 font-normal normal-case">({lines.length} righe)</span></h3>
+      <pre className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded p-2 text-xs font-mono overflow-x-auto max-h-48 whitespace-pre-wrap">
+        {lines.length > 0 ? lines.join('\n') : <span className="text-gray-400 italic">(vuoto)</span>}
+      </pre>
+    </div>
+  )
+}
+
+function CommandResultView({ cmd }: { cmd: Command }) {
+  if (cmd.errorMsg) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-red-600">Errore</h3>
+        <pre className="bg-red-50 border border-red-200 rounded p-3 text-xs text-red-700 whitespace-pre-wrap">
+          {cmd.errorMsg}
+        </pre>
+      </div>
+    )
+  }
+
+  if (!cmd.result) {
+    return <p className="text-sm text-gray-400 italic">Nessun risultato</p>
+  }
+
+  const r = cmd.result as Record<string, unknown>
+
+  // ─── get_extended_status ─────────────────────────────────────────────
+  if (cmd.action === 'get_extended_status') {
+    const cpu = Number(r.cpuPercent ?? 0)
+    const mem = Number(r.memPercent ?? 0)
+    const uptime = Number(r.uptimeSec ?? 0)
+    const days = Math.floor(uptime / 86400)
+    const hours = Math.floor((uptime % 86400) / 3600)
+    const mins = Math.floor((uptime % 3600) / 60)
+    const uptimeStr = days > 0 ? `${days}g ${hours}h` : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MetricBox icon={Cpu} label="CPU" value={`${cpu}%`} color={cpu > 70 ? 'red' : cpu > 40 ? 'yellow' : 'green'} />
+          <MetricBox icon={MemoryStick} label="Memoria" value={`${mem}%`} color={mem > 80 ? 'red' : mem > 60 ? 'yellow' : 'green'} />
+          <MetricBox icon={Clock} label="Uptime" value={uptimeStr} />
+          <MetricBox icon={Wifi} label="AP gestiti" value={String(r.apCount ?? 0)} />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <MetricBox icon={Globe} label="WAN IP" value={<span className="font-mono text-sm">{String(r.wanIp || '—')}</span>} />
+          <MetricBox icon={Globe} label="LAN IP" value={<span className="font-mono text-sm">{String(r.lanIp || '—')}</span>} />
+          <MetricBox icon={Globe} label="Guest IP" value={<span className="font-mono text-sm">{String(r.guestIp || '—')}</span>} />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <MetricBox icon={Server} label="wifidog" value={r.wifidog ? '✅ running' : '❌ down'} color={r.wifidog ? 'green' : 'red'} />
+          <MetricBox icon={Server} label="stunnel" value={r.stunnel ? '✅ running' : '❌ down'} color={r.stunnel ? 'green' : 'red'} />
+          <MetricBox icon={Router} label="AC mode" value={<span className="text-sm">{String(r.acMode || 'unknown')}</span>} />
+        </div>
+      </div>
+    )
+  }
+
+  // ─── pull_logs ───────────────────────────────────────────────────────
+  if (cmd.action === 'pull_logs') {
+    return (
+      <div className="space-y-3">
+        <LogBlock title="otium-agent (syslog)"   content={String(r.agent || '')} />
+        <LogBlock title="wifidog (syslog)"       content={String(r.wifidog || '')} />
+        <LogBlock title="otium-session-prune"    content={String(r.prune || '')} />
+        <LogBlock title="otium-sync"             content={String(r.sync || '')} />
+        <LogBlock title="otium-qos-comfast"      content={String(r.qos || '')} />
+      </div>
+    )
+  }
+
+  // ─── pull_iptables ───────────────────────────────────────────────────
+  if (cmd.action === 'pull_iptables') {
+    return (
+      <div className="space-y-3">
+        <LogBlock title="nat table"    content={String(r.nat || '')} />
+        <LogBlock title="mangle table" content={String(r.mangle || '')} />
+        <LogBlock title="filter table" content={String(r.filter || '')} />
+      </div>
+    )
+  }
+
+  // ─── get_ap_list ─────────────────────────────────────────────────────
+  if (cmd.action === 'get_ap_list') {
+    const aps = (r.aps as { list_all?: Array<Record<string, unknown>> })?.list_all ?? []
+    if (!Array.isArray(aps) || aps.length === 0) {
+      return <p className="text-sm text-gray-400 italic">Nessun AP collegato</p>
+    }
+    return (
+      <div className="space-y-3">
+        {aps.map((ap, i) => {
+          const vifs = (ap.vif as Array<Record<string, unknown>>) || []
+          const totalClients = vifs.reduce((s, v) => s + Number(v.staCount || 0), 0)
+          return (
+            <div key={i} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-2">
+                <span className="font-semibold">{String(ap.product || 'AP')}</span>
+                <span className="font-mono text-xs text-gray-500">{String(ap.mac || '—')}</span>
+                <Badge variant={ap.offline_flag === 'online' ? 'green' : 'red'}>
+                  {String(ap.offline_flag || '—')}
+                </Badge>
+                <span className="text-xs text-gray-400">uptime {Math.floor(Number(ap.uptime || 0) / 60)}m</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-2">
+                <div><span className="text-gray-400">WAN:</span> <span className="font-mono">{String(ap.wan_ip || '—')}</span></div>
+                <div><span className="text-gray-400">LAN:</span> <span className="font-mono">{String(ap.lan_ip || '—')}</span></div>
+                <div><span className="text-gray-400">Firmware:</span> <span className="font-mono">{String(ap.soft_version || '—')}</span></div>
+                <div><span className="text-gray-400">Client tot:</span> <span className="font-semibold">{totalClients}</span></div>
+              </div>
+              <div className="space-y-1">
+                {vifs.filter(v => !v.disabled).map((v, j) => (
+                  <div key={j} className="flex items-center gap-2 text-xs bg-gray-50 dark:bg-slate-800/50 rounded px-2 py-1">
+                    <Wifi className="w-3 h-3 text-gray-400" />
+                    <span className="font-mono">{String(v.ssid || '')}</span>
+                    <span className="text-gray-400">{v.is_5g ? '5GHz' : '2.4GHz'}</span>
+                    <span className="text-gray-400">·</span>
+                    <span className="text-gray-400">{String(v.encryp_way === 'none' ? 'open' : v.encryp_way)}</span>
+                    <span className="ml-auto">{String(v.staCount)} client</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ─── get_status (semplice) ───────────────────────────────────────────
+  if (cmd.action === 'get_status') {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <MetricBox icon={Server} label="wifidog" value={r.wifidog ? '✅ running' : '❌ down'} color={r.wifidog ? 'green' : 'red'} />
+        <MetricBox icon={Server} label="stunnel" value={r.stunnel ? '✅ running' : '❌ down'} color={r.stunnel ? 'green' : 'red'} />
+        <MetricBox icon={Wifi} label="AP count" value={String(r.apCount ?? 0)} />
+        <MetricBox icon={Globe} label="stunnel IP" value={<span className="font-mono text-xs">{String(r.stunnel_ip || '—')}</span>} />
+        <MetricBox icon={Clock} label="Uptime (s)" value={String(r.uptimeSec ?? 0)} />
+      </div>
+    )
+  }
+
+  // ─── list_guest_users (MAC whitelist) ────────────────────────────────
+  if (cmd.action === 'list_guest_users') {
+    const macs = String(r.trusted_macs || '').split(/\s+/).filter(m => m.includes(':'))
+    return (
+      <div>
+        <p className="text-xs text-gray-400 mb-2">{macs.length} MAC trusted</p>
+        <div className="space-y-1">
+          {macs.map((m, i) => (
+            <div key={i} className="font-mono text-xs bg-gray-50 dark:bg-slate-800/50 rounded px-2 py-1">{m}</div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ─── reapply_firewall ────────────────────────────────────────────────
+  if (cmd.action === 'reapply_firewall') {
+    return (
+      <div className="space-y-2">
+        <MetricBox icon={Server} label="Vercel IPs in AuthWhite" value={String(r.vercelIpsInAuthWhite ?? 0)} color={Number(r.vercelIpsInAuthWhite) >= 4 ? 'green' : 'yellow'} />
+        {r.output ? <LogBlock title="output" content={String(r.output)} /> : null}
+      </div>
+    )
+  }
+
+  // ─── default: JSON pretty ────────────────────────────────────────────
+  return (
+    <pre className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+      {JSON.stringify(r, null, 2)}
+    </pre>
+  )
+}
+
 export default function WifiDeviceDetail() {
   const { id } = useParams<{ id: string }>()
   const [device, setDevice]   = useState<Device | null>(null)
@@ -75,6 +279,7 @@ export default function WifiDeviceDetail() {
   const [mac, setMac]         = useState('')
   const [sending, startSend]  = useTransition()
   const [msg, setMsg]         = useState<string | null>(null)
+  const [viewingCmd, setViewingCmd] = useState<Command | null>(null)
 
   const load = async () => {
     const [dRes, cRes] = await Promise.all([
@@ -232,8 +437,13 @@ export default function WifiDeviceDetail() {
             <tbody>
               {commands.map(c => {
                 const cc = CMD_BADGE[c.stato as keyof typeof CMD_BADGE]
+                const hasResult = c.result || c.errorMsg
                 return (
-                  <tr key={c.id} className="border-b border-gray-50 dark:border-slate-800">
+                  <tr
+                    key={c.id}
+                    onClick={() => hasResult && setViewingCmd(c)}
+                    className={`border-b border-gray-50 dark:border-slate-800 ${hasResult ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50' : ''}`}
+                  >
                     <td className="table-td font-mono text-xs">{c.action}</td>
                     <td className="table-td">
                       <Badge variant={cc.variant as 'green' | 'red' | 'yellow' | 'gray' | 'blue'}>
@@ -246,7 +456,12 @@ export default function WifiDeviceDetail() {
                       {c.errorMsg
                         ? <span className="text-red-500">{c.errorMsg}</span>
                         : c.result
-                          ? JSON.stringify(c.result).slice(0, 120)
+                          ? (
+                              <div className="flex items-center gap-2">
+                                <Eye className="w-3 h-3 text-brand-500 flex-shrink-0" />
+                                <span className="truncate">{JSON.stringify(c.result).slice(0, 80)}…</span>
+                              </div>
+                            )
                           : '—'
                       }
                     </td>
@@ -264,6 +479,37 @@ export default function WifiDeviceDetail() {
           </table>
         </div>
       </div>
+
+      {/* Modal dettaglio risultato comando */}
+      <Modal
+        open={viewingCmd !== null}
+        onClose={() => setViewingCmd(null)}
+        title={viewingCmd ? `Dettaglio: ${viewingCmd.action}` : ''}
+        size="lg"
+      >
+        {viewingCmd && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 pb-3 border-b border-gray-100 dark:border-slate-700">
+              <span className="font-mono">id: {viewingCmd.id.slice(-12)}</span>
+              <span>·</span>
+              <span>creato: {formatDate(viewingCmd.createdAt)}</span>
+              {viewingCmd.sentAt && (
+                <>
+                  <span>·</span>
+                  <span>inviato: {formatDate(viewingCmd.sentAt)}</span>
+                </>
+              )}
+              {viewingCmd.doneAt && (
+                <>
+                  <span>·</span>
+                  <span>completato: {formatDate(viewingCmd.doneAt)}</span>
+                </>
+              )}
+            </div>
+            <CommandResultView cmd={viewingCmd} />
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
