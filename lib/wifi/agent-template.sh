@@ -5,7 +5,11 @@
 
 AGENT_VERSION="0.5"
 BASE="http://127.0.0.1:80"
-HOST="otium-pms.vercel.app"
+# IMPORTANTE: usiamo otiumpms.duckdns.org NON otium-pms.vercel.app.
+# Vercel ha Deployment Protection / Bot Detection sul dominio default che
+# ritorna 403 a GET /api/wifi/agent/.../pending-commands. Il custom domain
+# (DuckDNS CNAME al project Vercel) bypassa la protezione.
+HOST="otiumpms.duckdns.org"
 PIDFILE="/var/run/otium-agent.pid"
 CONF="/etc/otium-agent.conf"
 
@@ -44,10 +48,14 @@ sync_vercel_ip() {
   LOCK=/tmp/sync-vercel.lock
   [ -f "$LOCK" ] && return
   touch "$LOCK"
+  # Mantengo entry /etc/hosts per ENTRAMBI gli hostname (stunnel + agent
+  # devono trovare 127.0.0.1 per il nostro hostname custom)
+  sed -i '/otiumpms.duckdns.org/d' /etc/hosts
   sed -i '/otium-pms.vercel.app/d' /etc/hosts
   NEW_IP=$(nslookup "$HOST" 1.1.1.1 2>/dev/null \
     | awk '/^Address / && $3 != "1.1.1.1" {print $3}' | head -1)
-  echo "127.0.0.1 $HOST" >> /etc/hosts
+  echo "127.0.0.1 otiumpms.duckdns.org" >> /etc/hosts
+  echo "127.0.0.1 otium-pms.vercel.app" >> /etc/hosts
   rm -f "$LOCK"
   [ -z "$NEW_IP" ] && return
   CURRENT=$(grep -E '^connect = ' /etc/stunnel/otium.conf | awk -F'= ' '{print $2}')
