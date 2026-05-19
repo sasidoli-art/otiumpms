@@ -2,3 +2,6 @@ node_modules
 .next
 opla*
 .git
+# WIP: route che dipendono da model Prisma WifiRouterCommand (non ancora creato)
+app/api/wifi/router/command-result
+app/api/wifi/router/commands
