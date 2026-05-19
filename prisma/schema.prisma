@@ -888,6 +888,7 @@ model Struttura {
   exportAlloggiati       ExportAlloggiati[]
   prenotazioniRistorante PrenotazioneRistorante[]
   configRistorante       ConfigRistorante?
+  guida                  GuidaStruttura[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -4203,4 +4204,49 @@ model WebhookConsegna {
   @@index([subscriptionId, createdAt])
   @@index([stato, prossimoTentativoAt]) // worker: pick next pending
   @@map("webhook_consegne")
+}
+
+// ─── Guida in camera (welcome book digitale brandable) ────────────────────────
+// Entry per categoria mostrate nella directory /room/[unitaId] dopo PIN.
+// Sostituisce il classico PDF Canva: dinamico, multilingua, gestito da host.
+
+enum CategoriaGuida {
+  REGOLE_CASA   // silenzio, fumo, animali, ospiti extra
+  COME_FUNZIONA // istruzioni elettrodomestici, parcheggio, raccolta differenziata
+  RISTORANTI    // POI ristoranti consigliati con foto e link maps
+  ATTRAZIONI    // cosa fare in zona
+  EMERGENZE     // carabinieri, ospedale, farmacia 24h, taxi
+  TRASPORTI     // bus, treni, taxi locali, autonoleggi
+  SERVIZI_ZONA  // farmacie, supermercati, lavanderie
+}
+
+model GuidaStruttura {
+  id          String         @id @default(cuid())
+  strutturaId String
+  struttura   Struttura      @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  categoria   CategoriaGuida
+  titolo      String
+  descrizione String?        // testo lungo
+  icona       String?        // lucide icon name (es. "Utensils", "MapPin")
+  ordine      Int            @default(0)
+
+  // POI esterni (ristoranti, attrazioni, ecc.)
+  fotoUrl     String?
+  indirizzo   String?
+  distanzaKm  Float?
+  mapsLink    String?
+  telefono    String?
+  orari       String?
+  websiteUrl  String?
+
+  // i18n: { en: { titolo, descrizione }, fr: {...}, de: {...} }
+  traduzioni  Json?
+
+  attivo      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([strutturaId, categoria, ordine])
+  @@map("guida_struttura")
 }

@@ -346,6 +346,12 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
         modulo: 'wifi',
       },
       {
+        id: 'guida',
+        label: 'sidebar.guida',
+        href: '/host/guida',
+        icon: 'BookOpen',
+      },
+      {
         id: 'promemoria',
         label: 'sidebar.promemoria',
         href: '/host/promemoria',

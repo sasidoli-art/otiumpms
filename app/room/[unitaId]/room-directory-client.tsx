@@ -5,6 +5,7 @@ import {
   Wifi, UtensilsCrossed, Waves, Phone, Mail, MapPin, Clock,
   Loader2, KeyRound, Bot, Sparkles, Shirt, Wrench, CalendarDays,
   Coffee, Wine, Dumbbell, Car, Sun, Shield, ChevronRight,
+  ScrollText, Bus, ShoppingBag, Utensils, ExternalLink,
 } from 'lucide-react'
 import { isModuloAttivo } from '@/lib/moduli'
 import { PublicConciergeWidget } from '@/components/book/public-concierge-widget'
@@ -18,10 +19,34 @@ type GuestData = {
   servizi: Record<string, boolean>
 }
 
+type GuidaEntry = {
+  id: string
+  categoria: 'REGOLE_CASA' | 'COME_FUNZIONA' | 'RISTORANTI' | 'ATTRAZIONI' | 'EMERGENZE' | 'TRASPORTI' | 'SERVIZI_ZONA'
+  titolo: string
+  descrizione: string | null
+  fotoUrl: string | null
+  indirizzo: string | null
+  distanzaKm: number | null
+  mapsLink: string | null
+  telefono: string | null
+  orari: string | null
+  websiteUrl: string | null
+}
+
+const CATEGORIA_META: Record<GuidaEntry['categoria'], { titolo: string; icon: typeof ScrollText; color: string }> = {
+  REGOLE_CASA:   { titolo: 'Regole della casa',   icon: ScrollText,  color: 'text-slate-600' },
+  COME_FUNZIONA: { titolo: 'Come funziona',       icon: Wrench,      color: 'text-orange-600' },
+  RISTORANTI:    { titolo: 'Ristoranti consigliati', icon: Utensils, color: 'text-rose-600' },
+  ATTRAZIONI:    { titolo: 'Cosa fare in zona',   icon: MapPin,      color: 'text-emerald-600' },
+  EMERGENZE:     { titolo: 'Numeri utili',        icon: Phone,       color: 'text-red-600' },
+  TRASPORTI:     { titolo: 'Trasporti',           icon: Bus,         color: 'text-blue-600' },
+  SERVIZI_ZONA:  { titolo: 'Servizi nella zona',  icon: ShoppingBag, color: 'text-purple-600' },
+}
+
 export default function RoomDirectoryClient({
   unitaId, unitaNome, unitaDescrizione,
   hostId, hostNome, strutturaNome, strutturaCitta, strutturaIndirizzo,
-  telefono, email, moduliAttivi, conciergeAttivo, strutturaId,
+  telefono, email, moduliAttivi, conciergeAttivo, strutturaId, guida,
 }: {
   unitaId: string
   unitaNome: string
@@ -36,6 +61,7 @@ export default function RoomDirectoryClient({
   moduliAttivi: unknown
   conciergeAttivo: boolean
   strutturaId: string
+  guida: GuidaEntry[]
 }) {
   const [pin, setPin] = useState('')
   const [loading, setLoading] = useState(false)
@@ -247,8 +273,8 @@ export default function RoomDirectoryClient({
           </ServiceCard>
         )}
 
-        {/* Eventi locali */}
-        {hasEventi && (
+        {/* Eventi locali — fallback se host non ha popolato la guida ATTRAZIONI */}
+        {hasEventi && !guida.some(g => g.categoria === 'ATTRAZIONI') && (
           <ServiceCard icon={<CalendarDays className="w-5 h-5 text-purple-600" />} title="Cosa fare in zona">
             <div className="space-y-2 text-xs text-gray-700">
               <div className="flex items-center gap-2">
@@ -266,6 +292,21 @@ export default function RoomDirectoryClient({
             </div>
           </ServiceCard>
         )}
+
+        {/* Guida dinamica dal DB — una card per categoria con almeno una entry attiva */}
+        {(['REGOLE_CASA', 'COME_FUNZIONA', 'RISTORANTI', 'ATTRAZIONI', 'EMERGENZE', 'TRASPORTI', 'SERVIZI_ZONA'] as const).map(cat => {
+          const entries = guida.filter(g => g.categoria === cat)
+          if (entries.length === 0) return null
+          const meta = CATEGORIA_META[cat]
+          const Icon = meta.icon
+          return (
+            <ServiceCard key={cat} icon={<Icon className={`w-5 h-5 ${meta.color}`} />} title={meta.titolo}>
+              <ul className="space-y-3">
+                {entries.map(e => <GuidaRow key={e.id} entry={e} />)}
+              </ul>
+            </ServiceCard>
+          )
+        })}
 
         {/* Info utili */}
         <ServiceCard icon={<Shield className="w-5 h-5 text-gray-600" />} title="Info utili">
@@ -339,5 +380,45 @@ function ServiceButton({ label, emoji }: { label: string; emoji: string }) {
     <button className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 active:scale-95 transition-all">
       <span>{emoji}</span> {label}
     </button>
+  )
+}
+
+function GuidaRow({ entry }: { entry: GuidaEntry }) {
+  const hasMeta = entry.indirizzo || entry.distanzaKm != null || entry.telefono || entry.orari || entry.mapsLink || entry.websiteUrl
+  return (
+    <li className="flex gap-3">
+      {entry.fotoUrl && (
+         
+        <img src={entry.fotoUrl} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0" />
+      )}
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-gray-800">{entry.titolo}</p>
+        {entry.descrizione && (
+          <p className="text-[12px] text-gray-500 mt-0.5 leading-relaxed">{entry.descrizione}</p>
+        )}
+        {hasMeta && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+            {entry.indirizzo && <span className="inline-flex items-center gap-0.5"><MapPin className="w-3 h-3 text-gray-400" />{entry.indirizzo}</span>}
+            {entry.distanzaKm != null && <span>{entry.distanzaKm} km</span>}
+            {entry.orari && <span className="inline-flex items-center gap-0.5"><Clock className="w-3 h-3 text-gray-400" />{entry.orari}</span>}
+            {entry.telefono && (
+              <a href={`tel:${entry.telefono}`} className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
+                <Phone className="w-3 h-3" />{entry.telefono}
+              </a>
+            )}
+            {entry.mapsLink && (
+              <a href={entry.mapsLink} target="_blank" rel="noopener" className="inline-flex items-center gap-0.5 text-emerald-600 font-medium">
+                Maps <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+            {entry.websiteUrl && (
+              <a href={entry.websiteUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-0.5 text-indigo-600 font-medium">
+                Sito <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </li>
   )
 }

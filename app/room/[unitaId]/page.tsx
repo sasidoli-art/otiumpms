@@ -45,6 +45,11 @@ export default async function RoomDirectoryPage({
 
   if (!unita || !unita.struttura) notFound()
 
+  const guida = await prisma.guidaStruttura.findMany({
+    where: { strutturaId: unita.struttura.id, attivo: true },
+    orderBy: [{ categoria: 'asc' }, { ordine: 'asc' }],
+  })
+
   return (
     <RoomDirectoryClient
       unitaId={unita.id}
@@ -60,6 +65,19 @@ export default async function RoomDirectoryPage({
       moduliAttivi={unita.struttura.host.moduliAttivi}
       conciergeAttivo={unita.struttura.host.conciergeAttivo}
       strutturaId={unita.struttura.id}
+      guida={guida.map(g => ({
+        id: g.id,
+        categoria: g.categoria,
+        titolo: g.titolo,
+        descrizione: g.descrizione,
+        fotoUrl: g.fotoUrl,
+        indirizzo: g.indirizzo,
+        distanzaKm: g.distanzaKm,
+        mapsLink: g.mapsLink,
+        telefono: g.telefono,
+        orari: g.orari,
+        websiteUrl: g.websiteUrl,
+      }))}
     />
   )
 }

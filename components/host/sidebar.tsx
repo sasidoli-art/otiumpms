@@ -82,6 +82,7 @@ const LABELS: Record<string, string> = {
   'sidebar.emailAuto': 'Email automatiche',
   'sidebar.concierge': 'AI Concierge',
   'sidebar.wifi': 'Wi-Fi Ospiti',
+  'sidebar.guida': 'Guida in camera',
   'sidebar.promemoria': 'Promemoria',
   'sidebar.strutture': 'Strutture',
   'sidebar.utenti': 'Utenti & Staff',
