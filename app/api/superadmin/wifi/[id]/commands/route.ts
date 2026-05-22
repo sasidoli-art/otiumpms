@@ -9,6 +9,8 @@ const VALID_ACTIONS: WifiAgentAction[] = [
   // v0.5 (2026-05-18): remote management
   'reboot', 'restart_wifidog', 'reapply_firewall',
   'pull_logs', 'pull_iptables', 'get_extended_status',
+  // v0.6 (2026-05-22): SSID management stage A
+  'list_ssids',
 ]
 
 export async function GET(

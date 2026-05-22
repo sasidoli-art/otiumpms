@@ -28,6 +28,7 @@ const ACTIONS = [
   { value: 'get_status',           label: 'Stato servizi', params: null },
   { value: 'get_extended_status',  label: 'Stato esteso (CPU/RAM/IF)', params: null },
   { value: 'get_ap_list',          label: 'Lista AP', params: null },
+  { value: 'list_ssids',           label: 'Lista SSID broadcastati', params: null },
   // MAC whitelist
   { value: 'list_guest_users',     label: 'MAC whitelist', params: null },
   { value: 'add_guest_user',       label: 'Aggiungi MAC', params: 'mac' },
@@ -222,6 +223,99 @@ function CommandResultView({ cmd }: { cmd: Command }) {
             </div>
           )
         })}
+      </div>
+    )
+  }
+
+  // ─── list_ssids (aggregato VIF da tutti gli AP) ──────────────────────
+  if (cmd.action === 'list_ssids') {
+    const raw = r.raw as { list_all?: Array<Record<string, unknown>> } | undefined
+    const aps = raw?.list_all ?? []
+    if (!Array.isArray(aps) || aps.length === 0) {
+      return <p className="text-sm text-gray-400 italic">Nessun AP gestito → nessuna SSID</p>
+    }
+    // Flatten: 1 riga per ogni VIF
+    type FlatVif = {
+      apMac: string; apProduct: string; apIp: string
+      name: string; ssid: string; is5g: boolean
+      auth: string; password: string; vlan: number
+      hidden: boolean; isolate: boolean; disabled: boolean
+      staCount: number; maxsta: number
+    }
+    const flat: FlatVif[] = []
+    aps.forEach(ap => {
+      const vifs = (ap.vif as Array<Record<string, unknown>>) || []
+      vifs.forEach(v => flat.push({
+        apMac: String(ap.mac || '-'),
+        apProduct: String(ap.product || '-'),
+        apIp: String(ap.wan_ip || ap.lan_ip || '-'),
+        name: String(v.name || ''),
+        ssid: String(v.ssid || ''),
+        is5g: Boolean(v.is_5g),
+        auth: String(v.encryp_way || 'open').replace('none', 'open'),
+        password: String(v.key || ''),
+        vlan: Number(v.vid || 0),
+        hidden: Boolean(v.hidden),
+        isolate: Boolean(v.wlan_isolate),
+        disabled: Boolean(v.disabled),
+        staCount: Number(v.staCount || 0),
+        maxsta: Number(v.maxstaCount || 0),
+      }))
+    })
+    if (flat.length === 0) {
+      return <p className="text-sm text-gray-400 italic">AP gestiti ma nessun VIF/SSID</p>
+    }
+    return (
+      <div className="space-y-3">
+        <div className="text-xs text-gray-500 mb-2">
+          {flat.length} SSID totali su {aps.length} AP
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-slate-700 text-xs text-gray-500">
+                <th className="text-left py-2 px-2">SSID</th>
+                <th className="text-left py-2 px-2">Band</th>
+                <th className="text-left py-2 px-2">Auth</th>
+                <th className="text-left py-2 px-2">VLAN</th>
+                <th className="text-left py-2 px-2">Flags</th>
+                <th className="text-left py-2 px-2">Client</th>
+                <th className="text-left py-2 px-2">AP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flat.map((v, i) => (
+                <tr key={i} className="border-b border-gray-50 dark:border-slate-800">
+                  <td className="py-2 px-2">
+                    <div className="flex items-center gap-2">
+                      <Wifi className={`w-3 h-3 ${v.disabled ? 'text-gray-400' : 'text-green-500'}`} />
+                      <span className={`font-medium ${v.disabled ? 'text-gray-400 line-through' : ''}`}>{v.ssid}</span>
+                    </div>
+                  </td>
+                  <td className="py-2 px-2 text-xs">
+                    <Badge variant={v.is5g ? 'blue' : 'gray'}>{v.is5g ? '5GHz' : '2.4GHz'}</Badge>
+                  </td>
+                  <td className="py-2 px-2 text-xs">
+                    <Badge variant={v.auth === 'open' ? 'yellow' : 'green'}>{v.auth}</Badge>
+                    {v.password && <span className="ml-1 font-mono text-gray-400 text-[10px]">****</span>}
+                  </td>
+                  <td className="py-2 px-2 text-xs font-mono">{v.vlan || '—'}</td>
+                  <td className="py-2 px-2 text-xs space-x-1">
+                    {v.hidden    && <Badge variant="gray">hidden</Badge>}
+                    {v.isolate   && <Badge variant="gray">isolation</Badge>}
+                    {v.disabled  && <Badge variant="red">disabled</Badge>}
+                  </td>
+                  <td className="py-2 px-2 text-xs">
+                    <span className={v.staCount > 0 ? 'font-semibold text-green-600' : 'text-gray-400'}>
+                      {v.staCount}{v.maxsta ? `/${v.maxsta}` : ''}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-xs font-mono text-gray-500">{v.apMac.slice(-8)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )
   }

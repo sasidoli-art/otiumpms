@@ -37,6 +37,8 @@ export type WifiAgentAction =
   | 'pull_logs'
   | 'pull_iptables'
   | 'get_extended_status'
+  // ─── Estensione v0.6 (2026-05-22): SSID management stage A (read) ────
+  | 'list_ssids'
 
 export interface WifiAgentCommand {
   id: string

@@ -122,6 +122,14 @@ while true; do
       OUT="{\"aps\":$AP_RAW}"
       ;;
 
+    list_ssids)
+      # Restituisce TUTTI i VIF (SSID) configurati su TUTTI gli AP CAPWAP gestiti.
+      # L'output preserva esattamente la struttura wtpd per future modifiche con add_list.
+      # Output: {"ssids":[{"apMac":"...","apProduct":"...","vifs":[{...}]}, ...]}
+      AP_DUMP=$(ubus call wtpd list_all 2>/dev/null || echo '{"list_all":[]}')
+      OUT="{\"raw\":$AP_DUMP}"
+      ;;
+
     list_guest_users)
       MACS=$(uci get wifidog.wifidog.trusted_mac_list 2>/dev/null || echo "")
       OUT="{\"trusted_macs\":\"$MACS\"}"
