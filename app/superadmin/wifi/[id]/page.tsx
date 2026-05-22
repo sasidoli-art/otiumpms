@@ -135,11 +135,12 @@ function CommandResultView({ cmd }: { cmd: Command }) {
     const uptimeStr = days > 0 ? `${days}g ${hours}h` : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <MetricBox icon={Cpu} label="CPU" value={`${cpu}%`} color={cpu > 70 ? 'red' : cpu > 40 ? 'yellow' : 'green'} />
           <MetricBox icon={MemoryStick} label="Memoria" value={`${mem}%`} color={mem > 80 ? 'red' : mem > 60 ? 'yellow' : 'green'} />
           <MetricBox icon={Clock} label="Uptime" value={uptimeStr} />
           <MetricBox icon={Wifi} label="AP gestiti" value={String(r.apCount ?? 0)} />
+          <MetricBox icon={Wifi} label="Client connessi" value={String(r.clientCount ?? 0)} color={Number(r.clientCount ?? 0) > 0 ? 'green' : 'gray'} />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <MetricBox icon={Globe} label="WAN IP" value={<span className="font-mono text-sm">{String(r.wanIp || '—')}</span>} />

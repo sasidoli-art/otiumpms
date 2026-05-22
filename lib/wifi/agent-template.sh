@@ -110,7 +110,9 @@ while true; do
     get_status)
       WDOG=$(pgrep wifidog > /dev/null && echo true || echo false)
       STUN=$(pgrep stunnel > /dev/null && echo true || echo false)
-      AP_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e 'length(@)' 2>/dev/null || echo 0)
+      # jsonfilter OpenWrt 15.05.1 NON supporta length() - usiamo array iteration + wc -l
+      AP_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e '@.list_all[*].mac' 2>/dev/null | wc -l)
+      [ -z "$AP_COUNT" ] && AP_COUNT=0
       STUNNEL_IP=$(grep -E '^connect = ' /etc/stunnel/otium.conf | awk -F'= ' '{print $2}')
       OUT="{\"wifidog\":$WDOG,\"stunnel\":$STUN,\"stunnel_ip\":\"$STUNNEL_IP\",\"uptimeSec\":$UPTIME,\"apCount\":$AP_COUNT}"
       ;;
@@ -228,11 +230,16 @@ while true; do
       WAN_IP=$(ifstatus wan 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
       LAN_IP=$(ifstatus lan 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
       GUEST_IP=$(ifstatus guest 2>/dev/null | jsonfilter -e '@["ipv4-address"][0].address' 2>/dev/null)
-      AP_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e 'length(@.list_all)' 2>/dev/null || echo 0)
+      # jsonfilter OpenWrt 15.05.1 NON supporta length() - usiamo array iteration + wc -l
+      AP_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e '@.list_all[*].mac' 2>/dev/null | wc -l)
+      [ -z "$AP_COUNT" ] && AP_COUNT=0
+      # clientCount = somma staCount di tutti i VIF di tutti gli AP (utile dashboard live)
+      CLIENT_COUNT=$(ubus call wtpd list_all 2>/dev/null | jsonfilter -e '@.list_all[*].vif[*].staCount' 2>/dev/null | awk '{s+=$1} END {print s+0}')
+      [ -z "$CLIENT_COUNT" ] && CLIENT_COUNT=0
       WDOG=$(pgrep wifidog > /dev/null && echo true || echo false)
       STUN=$(pgrep stunnel > /dev/null && echo true || echo false)
       AC_MODE=$(uci get wtpd.@wtpd[0].ac_mode 2>/dev/null || echo unknown)
-      OUT="{\"cpuPercent\":$CPU_USE,\"memPercent\":$MEM_USE_PCT,\"memTotalKb\":$MEM_TOTAL,\"uptimeSec\":$UPTIME,\"wanIp\":\"${WAN_IP:-}\",\"lanIp\":\"${LAN_IP:-}\",\"guestIp\":\"${GUEST_IP:-}\",\"apCount\":$AP_COUNT,\"wifidog\":$WDOG,\"stunnel\":$STUN,\"acMode\":\"$AC_MODE\"}"
+      OUT="{\"cpuPercent\":$CPU_USE,\"memPercent\":$MEM_USE_PCT,\"memTotalKb\":$MEM_TOTAL,\"uptimeSec\":$UPTIME,\"wanIp\":\"${WAN_IP:-}\",\"lanIp\":\"${LAN_IP:-}\",\"guestIp\":\"${GUEST_IP:-}\",\"apCount\":$AP_COUNT,\"clientCount\":$CLIENT_COUNT,\"wifidog\":$WDOG,\"stunnel\":$STUN,\"acMode\":\"$AC_MODE\"}"
       ;;
 
     *)
