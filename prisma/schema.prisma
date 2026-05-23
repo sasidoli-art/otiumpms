@@ -889,6 +889,7 @@ model Struttura {
   prenotazioniRistorante PrenotazioneRistorante[]
   configRistorante       ConfigRistorante?
   guida                  GuidaStruttura[]
+  regoleTassaSoggiorno   RegolaTassaSoggiorno[]
 
   // Assegnazione camera: MANUALE (operatore sceglie), AUTOMATICA (sistema in base a HK), AI (concierge AI)
   modalitaAssegnazione String? @default("MANUALE")
@@ -1094,6 +1095,13 @@ model Prenotazione {
   acconto        Float?
   tassaSoggiorno Float? // tassa di soggiorno: € per notte
   noteInterne    String?
+
+  // Età bambini (per calcolo tassa soggiorno con soglia età variabile per comune)
+  // Es. [3, 7, 12] = 3 bambini di queste età. numOspiti totale = adulti + bambini.
+  guestEtaBambini Int[] @default([])
+
+  // Esenzioni tassa soggiorno (disabili, forze ordine, autisti gruppi, ecc.)
+  esenzioniTassa EsenzioneTassaSoggiorno[]
 
   // ─── Dati anagrafici ospite per Alloggiati Web ───────────────────────────
   guestSesso               String? // "M" o "F"
@@ -4249,4 +4257,69 @@ model GuidaStruttura {
 
   @@index([strutturaId, categoria, ordine])
   @@map("guida_struttura")
+}
+
+// ─── Tassa di soggiorno italiana — gestione completa ────────────────────────
+// Sostituisce il singolo campo Struttura.tassaSoggiornoPerNotte (mantenuto come
+// fallback se nessuna regola attiva). Permette: stagionalità, soglia età bambini
+// variabile per comune (Roma 10, Firenze 12...), tetto max notti consecutive
+// (Roma 10, Firenze 7), esenzioni speciali per disabili/forze ordine/ecc.
+
+model RegolaTassaSoggiorno {
+  id          String    @id @default(cuid())
+  strutturaId String
+  struttura   Struttura @relation(fields: [strutturaId], references: [id], onDelete: Cascade)
+
+  nome         String    // es. "Alta stagione 2026", "Standard annuale"
+  importoNotte Float     // € per persona per notte
+
+  // Stagionalità — null = sempre attiva
+  // Se ricorrenteAnnuale=true, considero solo MM-DD ignorando anno (regola riusabile anno per anno)
+  dataInizio        DateTime?
+  dataFine          DateTime?
+  ricorrenteAnnuale Boolean   @default(true)
+
+  // Età minima per applicazione (bambini sotto questa soglia non pagano)
+  // null o 0 = tutti pagano. Es. Roma=10, Firenze=12, Venezia=10, Napoli=18
+  etaMinimaApplicazione Int? @default(0)
+
+  // Tetto max notti consecutive oltre cui non si addebita
+  // Es. Roma=10, Firenze=7, Bologna=5. null = nessun cap
+  maxNottiConsecutive Int?
+
+  attiva Boolean @default(true)
+  ordine Int     @default(0) // prima regola attiva che matcha vince
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([strutturaId, attiva, ordine])
+  @@map("regole_tassa_soggiorno")
+}
+
+enum TipoEsenzioneTassa {
+  DISABILE                  // certificazione invalidità
+  ACCOMPAGNATORE_DISABILE   // 1 accompagnatore per disabile
+  FORZE_ORDINE_SERVIZIO     // carabinieri, polizia, GdF in missione
+  AUTISTA_GRUPPO            // bus/pullman accompagnatori turistici
+  PAZIENTE_MEDICO           // ricovero/cura con certificato struttura
+  MINORE                    // se non già gestito da etaMinima nella regola
+  PELLEGRINO                // alcuni comuni (Assisi, ecc.)
+  ALTRO
+}
+
+model EsenzioneTassaSoggiorno {
+  id             String       @id @default(cuid())
+  prenotazioneId String
+  prenotazione   Prenotazione @relation(fields: [prenotazioneId], references: [id], onDelete: Cascade)
+
+  tipoEsenzione   TipoEsenzioneTassa
+  numeroPersone   Int                @default(1) // quanti soggetti esentati nella prenotazione
+  documentoNumero String? // riferimento certificato/ordine servizio/ecc.
+  note            String?
+
+  createdAt DateTime @default(now())
+
+  @@index([prenotazioneId])
+  @@map("esenzioni_tassa_soggiorno")
 }

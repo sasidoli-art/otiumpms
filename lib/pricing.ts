@@ -1,4 +1,9 @@
 import { differenceInCalendarDays, eachDayOfInterval, subDays } from 'date-fns'
+import {
+  calcolaTassaSoggiorno,
+  type RegolaTassaSoggiornoInput,
+  type EsenzioneTassaInput,
+} from '@/lib/tassa-soggiorno'
 
 /**
  * Calcolo prezzo dinamico per soggiorno.
@@ -77,13 +82,20 @@ export type PrezzoBreakdownInput = {
   dataPrenotazione?: Date
   adulti: number
   bambini: number
+  /** Età specifica dei bambini (per soglia età variabile per comune nella tassa). Se vuoto, contano tutti come "esenti" (vecchio comportamento) */
+  etaBambini?: number[]
   lettoExtra: number
   prezzoBase: number
   prezzoLettoExtra: number | null
   unitaId: string
   tariffePeriodo: TariffaPeriodo[]
   regole: RegolaTariffa[]
+  /** Importo fallback usato se nessuna regola tassa attiva (legacy `Struttura.tassaSoggiornoPerNotte`) */
   tassaSoggiornoPerNotte: number
+  /** Nuove regole tassa stagionali con soglia età/cap notti. Se vuoto, usa fallback `tassaSoggiornoPerNotte` */
+  regoleTassa?: RegolaTassaSoggiornoInput[]
+  /** Esenzioni applicate alla prenotazione (disabili, forze ordine, ecc.) */
+  esenzioniTassa?: EsenzioneTassaInput[]
 }
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────
@@ -308,9 +320,28 @@ export function calcolaPrezzoBreakdown(input: PrezzoBreakdownInput): PriceBreakd
     supplementi.push({ descrizione: `Letto extra ×${lettoExtra} ×${notti} notti`, importo })
   }
 
-  // 4. Tassa soggiorno (bambini esenti — conteggiati solo adulti)
-  const totaleTassa = Math.round(tassaSoggiornoPerNotte * adulti * notti * 100) / 100
-  const tassaSoggiorno = { importoNotte: tassaSoggiornoPerNotte, persone: adulti, notti, totale: totaleTassa }
+  // 4. Tassa soggiorno
+  //    - Se passi `regoleTassa` (nuovo): usa engine completo (stagionalità, età minima, cap notti, esenzioni)
+  //    - Altrimenti fallback al vecchio comportamento (importo × adulti × notti, bambini esenti)
+  const tassaResult = calcolaTassaSoggiorno({
+    dataArrivo: input.dataArrivo,
+    dataPartenza: input.dataPartenza,
+    adulti,
+    etaBambini: input.etaBambini ?? [],
+    regole: input.regoleTassa ?? [],
+    esenzioni: input.esenzioniTassa ?? [],
+    fallbackImportoNotte: tassaSoggiornoPerNotte,
+  })
+  const totaleTassa = tassaResult.totale
+  // Per backward compat manteniamo la shape `tassaSoggiorno` originale (importoNotte, persone, notti, totale).
+  // `persone` rappresenta ora le persone applicabili medie. Per breakdown completo per-notte vedi `tassaSoggiornoDettaglio`.
+  const personeMediaApplicabili = tassaResult.dettaglioNotti.length > 0
+    ? Math.round(tassaResult.dettaglioNotti.reduce((s, n) => s + n.personeAddebitate, 0) / tassaResult.dettaglioNotti.length)
+    : 0
+  const importoNotteMedio = tassaResult.nottiAddebitate > 0
+    ? Math.round((totaleTassa / tassaResult.nottiAddebitate) * 100) / 100
+    : tassaSoggiornoPerNotte
+  const tassaSoggiorno = { importoNotte: importoNotteMedio, persone: personeMediaApplicabili, notti: tassaResult.nottiAddebitate, totale: totaleTassa }
 
   const subtotaleSconti = Math.round(
     regoleApplicate.filter(r => r.importo < 0).reduce((s, r) => s + r.importo, 0) * 100
@@ -347,12 +378,16 @@ export async function calcolaPrezzoPrenotazione(opts: {
   dataPartenza: Date
   adulti: number
   bambini: number
+  /** Età specifica dei bambini (per soglia tassa soggiorno per comune) */
+  etaBambini?: number[]
   lettoExtra: number
   dataPrenotazione?: Date
+  /** Se passato, carica anche le esenzioni tassa di questa prenotazione */
+  prenotazioneId?: string
 }): Promise<PriceBreakdown> {
   const { prisma } = await import('@/lib/db')
 
-  const [unita, regole, struttura] = await Promise.all([
+  const [unita, regole, struttura, regoleTassa, esenzioniTassa] = await Promise.all([
     prisma.unitaPrenotabile.findUniqueOrThrow({
       where: { id: opts.unitaId },
       include: { tariffe: true },
@@ -364,6 +399,13 @@ export async function calcolaPrezzoPrenotazione(opts: {
       where: { id: opts.strutturaId },
       select: { tassaSoggiornoPerNotte: true },
     }),
+    prisma.regolaTassaSoggiorno.findMany({
+      where: { strutturaId: opts.strutturaId, attiva: true },
+      orderBy: { ordine: 'asc' },
+    }),
+    opts.prenotazioneId
+      ? prisma.esenzioneTassaSoggiorno.findMany({ where: { prenotazioneId: opts.prenotazioneId } })
+      : Promise.resolve([]),
   ])
 
   return calcolaPrezzoBreakdown({
@@ -372,6 +414,7 @@ export async function calcolaPrezzoPrenotazione(opts: {
     dataPrenotazione: opts.dataPrenotazione,
     adulti: opts.adulti,
     bambini: opts.bambini,
+    etaBambini: opts.etaBambini ?? [],
     lettoExtra: opts.lettoExtra,
     prezzoBase: unita.prezzoBase,
     prezzoLettoExtra: unita.prezzoLettoExtra ?? null,
@@ -379,6 +422,21 @@ export async function calcolaPrezzoPrenotazione(opts: {
     tariffePeriodo: unita.tariffe,
     regole,
     tassaSoggiornoPerNotte: struttura.tassaSoggiornoPerNotte ?? 0,
+    regoleTassa: regoleTassa.map(r => ({
+      id: r.id,
+      importoNotte: r.importoNotte,
+      dataInizio: r.dataInizio,
+      dataFine: r.dataFine,
+      ricorrenteAnnuale: r.ricorrenteAnnuale,
+      etaMinimaApplicazione: r.etaMinimaApplicazione,
+      maxNottiConsecutive: r.maxNottiConsecutive,
+      attiva: r.attiva,
+      ordine: r.ordine,
+    })),
+    esenzioniTassa: esenzioniTassa.map(e => ({
+      tipoEsenzione: e.tipoEsenzione,
+      numeroPersone: e.numeroPersone,
+    })),
   })
 }
 
